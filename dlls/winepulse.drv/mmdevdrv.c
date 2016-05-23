@@ -57,6 +57,7 @@
 #include "audiopolicy.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(pulse);
+WINE_DECLARE_DEBUG_CHANNEL(winediag);
 
 #define NULL_PTR_ERR MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, RPC_X_NULL_REF_POINTER)
 
@@ -285,6 +286,8 @@ static void pulse_contextcallback(pa_context *c, void *userdata)
     switch (pa_context_get_state(c)) {
         default:
             FIXME("Unhandled state: %i\n", pa_context_get_state(c));
+            return;
+
         case PA_CONTEXT_CONNECTING:
         case PA_CONTEXT_UNCONNECTED:
         case PA_CONTEXT_AUTHORIZING:
@@ -440,7 +443,7 @@ static void pulse_probe_settings(int render, WAVEFORMATEXTENSIBLE *fmt) {
 static HRESULT pulse_connect(void)
 {
     int len;
-    WCHAR path[PATH_MAX], *name;
+    WCHAR path[MAX_PATH], *name;
     char *str;
 
     if (!pulse_thread)
@@ -504,7 +507,7 @@ fail:
     return E_FAIL;
 }
 
-/* For default Pulseaudio render device, OR together all of the
+/* For default PulseAudio render device, OR together all of the
  * PKEY_AudioEndpoint_PhysicalSpeakers values of the sinks. */
 static void pulse_phys_speakers_cb(pa_context *c, const pa_sink_info *i, int eol, void *userdata)
 {
@@ -519,7 +522,7 @@ static void pulse_phys_speakers_cb(pa_context *c, const pa_sink_info *i, int eol
 static HRESULT pulse_test_connect(void)
 {
     int len, ret;
-    WCHAR path[PATH_MAX], *name;
+    WCHAR path[MAX_PATH], *name;
     char *str;
     pa_operation *o;
 
@@ -799,7 +802,7 @@ static HRESULT pulse_stream_connect(ACImpl *This, UINT32 period_bytes) {
     pa_stream_set_buffer_attr_callback(This->stream, pulse_attr_update, This);
     pa_stream_set_moved_callback(This->stream, pulse_attr_update, This);
 
-    /* Pulseaudio will fill in correct values */
+    /* PulseAudio will fill in correct values */
     attr.minreq = attr.fragsize = period_bytes;
     attr.maxlength = attr.tlength = This->bufsize_bytes;
     attr.prebuf = pa_frame_size(&This->ss);
@@ -1334,9 +1337,16 @@ static HRESULT WINAPI AudioClient_Initialize(IAudioClient *iface,
         const pa_buffer_attr *attr = pa_stream_get_buffer_attr(This->stream);
         /* Update frames according to new size */
         dump_attr(attr);
-        if (This->dataflow == eRender)
+        if (This->dataflow == eRender) {
+            if (attr->tlength < This->bufsize_bytes) {
+                const char *latenv = getenv("PULSE_LATENCY_MSEC");
+                if (latenv && *latenv)
+                    ERR_(winediag)("PulseAudio buffer too small (%u < %u) - PULSE_LATENCY_MSEC is %s\n", attr->tlength, This->bufsize_bytes, latenv);
+                else
+                    ERR_(winediag)("PulseAudio buffer too small (%u < %u)\n", attr->tlength, This->bufsize_bytes);
+            }
             This->bufsize_bytes = attr->tlength;
-        else {
+        } else {
             This->capture_period = period_bytes = attr->fragsize;
             if ((unalign = This->bufsize_bytes % period_bytes))
                 This->bufsize_bytes += period_bytes - unalign;
@@ -2239,10 +2249,9 @@ static HRESULT WINAPI AudioClock_GetFrequency(IAudioClock *iface, UINT64 *freq)
     pthread_mutex_lock(&pulse_lock);
     hr = pulse_stream_valid(This);
     if (SUCCEEDED(hr)) {
+        *freq = This->ss.rate;
         if (This->share == AUDCLNT_SHAREMODE_SHARED)
-            *freq = This->ss.rate * pa_frame_size(&This->ss);
-        else
-            *freq = This->ss.rate;
+            *freq *= pa_frame_size(&This->ss);
     }
     pthread_mutex_unlock(&pulse_lock);
     return hr;
@@ -2990,7 +2999,7 @@ static HRESULT WINAPI SimpleAudioVolume_SetMasterVolume(
     if (context)
         FIXME("Notifications not supported yet\n");
 
-    TRACE("Pulseaudio does not support session volume control\n");
+    TRACE("PulseAudio does not support session volume control\n");
 
     pthread_mutex_lock(&pulse_lock);
     session->master_vol = level;
@@ -3126,7 +3135,7 @@ static HRESULT WINAPI ChannelAudioVolume_SetChannelVolume(
     if (context)
         FIXME("Notifications not supported yet\n");
 
-    TRACE("Pulseaudio does not support session volume control\n");
+    TRACE("PulseAudio does not support session volume control\n");
 
     pthread_mutex_lock(&pulse_lock);
     session->channel_vols[index] = level;
@@ -3174,7 +3183,7 @@ static HRESULT WINAPI ChannelAudioVolume_SetAllVolumes(
     if (context)
         FIXME("Notifications not supported yet\n");
 
-    TRACE("Pulseaudio does not support session volume control\n");
+    TRACE("PulseAudio does not support session volume control\n");
 
     pthread_mutex_lock(&pulse_lock);
     for(i = 0; i < count; ++i)

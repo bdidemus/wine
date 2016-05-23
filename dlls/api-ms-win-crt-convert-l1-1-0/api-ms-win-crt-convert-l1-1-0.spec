@@ -10,7 +10,7 @@
 @ stub _atol_l
 @ cdecl _atoldbl(ptr str) ucrtbase._atoldbl
 @ stub _atoldbl_l
-@ stub _atoll_l
+@ cdecl -ret64 _atoll_l(str ptr) ucrtbase._atoll_l
 @ cdecl _ecvt(double long ptr ptr) ucrtbase._ecvt
 @ cdecl _ecvt_s(str long double long ptr ptr) ucrtbase._ecvt_s
 @ cdecl _fcvt(double long ptr ptr) ucrtbase._fcvt
@@ -34,7 +34,7 @@
 @ cdecl -ret64 _strtoi64(str ptr long) ucrtbase._strtoi64
 @ cdecl -ret64 _strtoi64_l(str ptr long ptr) ucrtbase._strtoi64_l
 @ stub _strtoimax_l
-@ stub _strtol_l
+@ cdecl _strtol_l(str ptr long ptr) ucrtbase._strtol_l
 @ stub _strtold_l
 @ cdecl -ret64 _strtoll_l(str ptr long ptr) ucrtbase._strtoll_l
 @ cdecl -ret64 _strtoui64(str ptr long) ucrtbase._strtoui64
@@ -75,12 +75,12 @@
 @ cdecl _wtoi_l(wstr ptr) ucrtbase._wtoi_l
 @ cdecl _wtol(wstr) ucrtbase._wtol
 @ cdecl _wtol_l(wstr ptr) ucrtbase._wtol_l
-@ stub _wtoll
-@ stub _wtoll_l
+@ cdecl -ret64 _wtoll(wstr) ucrtbase._wtoll
+@ cdecl -ret64 _wtoll_l(wstr ptr) ucrtbase._wtoll_l
 @ cdecl atof(str) ucrtbase.atof
 @ cdecl atoi(str) ucrtbase.atoi
 @ cdecl atol(str) ucrtbase.atol
-@ stub atoll
+@ cdecl -ret64 atoll(str) ucrtbase.atoll
 @ cdecl btowc(long) ucrtbase.btowc
 @ stub c16rtomb
 @ stub c32rtomb

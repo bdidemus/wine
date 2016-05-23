@@ -175,6 +175,7 @@ HKCR,.msi,,2,"Msi.Package"
 HKCR,.msp,,2,"Msi.Patch"
 HKCR,.rtf,,2,"rtffile"
 HKCR,.wri,,2,"wrifile"
+HKCR,*\shellex\ContextMenuHandlers,,16
 HKCR,chm.file,,2,"Compiled HTML Help File"
 HKCR,chm.file\DefaultIcon,,2,"%10%\hh.exe,0"
 HKCR,chm.file\shell\open\command,,2,"%10%\hh.exe %1"
@@ -188,6 +189,7 @@ HKCR,exefile\shell\open\command,,2,"""%1"" %*"
 HKCR,folder\shell\open\ddeexec,,2,"[ViewFolder("%l", %I, %S)]"
 HKCR,folder\shell\open\ddeexec,"NoActivateHandler",2,""
 HKCR,folder\shell\open\ddeexec\application,,2,"Folders"
+HKCR,folder\shellex\ContextMenuHandlers,,16
 HKCR,hlpfile,,2,"Help File"
 HKCR,hlpfile\shell\open\command,,2,"%11%\winhlp32.exe %1"
 HKCR,htmlfile\shell\open\command,,2,"""%11%\winebrowser.exe"" -nohome"
@@ -216,13 +218,13 @@ HKCR,Msi.Patch,,2,"Windows Installer Patch"
 HKCR,Msi.Patch\DefaultIcon,,2,"msiexec.exe"
 HKCR,Msi.Patch\shell\Open\command,,2,"%11%\msiexec.exe /p ""%1"""
 HKCR,rtffile,,2,"Rich Text Document"
-HKCR,rtffile\shell\open\command,,2,"%11%\wordpad.exe %1"
-HKCR,rtffile\shell\print\command,,2,"%11%\wordpad.exe /p %1"
+HKCR,rtffile\shell\open\command,,2,"""%16422%\Windows NT\Accessories\wordpad.exe"" %1"
+HKCR,rtffile\shell\print\command,,2,"""%16422%\Windows NT\Accessories\wordpad.exe"" /p %1"
 HKCR,txtfile,,2,"Text Document"
 HKCR,txtfile\shell\open\command,,2,"%11%\notepad.exe %1"
 HKCR,txtfile\shell\print\command,,2,"%11%\notepad.exe /p %1"
-HKCR,wrifile\shell\open\command,,2,"%11%\wordpad.exe %1"
-HKCR,wrifile\shell\print\command,,2,"%11%\wordpad.exe /p %1"
+HKCR,wrifile\shell\open\command,,2,"""%16422%\Windows NT\Accessories\wordpad.exe"" %1"
+HKCR,wrifile\shell\print\command,,2,"""%16422%\Windows NT\Accessories\wordpad.exe"" /p %1"
 HKCR,xmlfile,,2,"XML Document"
 HKCR,xmlfile\shell\open\command,,2,"""%11%\winebrowser.exe"" -nohome"
 HKCR,xmlfile\shell\open\ddeexec,,2,"""%1"",,-1,0,,,,"
@@ -489,7 +491,7 @@ HKLM,%CurrentVersionNT%\FontSubstitutes,,16
 HKLM,%CurrentVersionNT%\Gre_Initialize,,16
 HKLM,%CurrentVersionNT%\Hotfix\Q246009,"Installed",,"1"
 HKLM,%CurrentVersionNT%\Image File Execution Options,,16
-HKLM,%CurrentVersionNT%\Language Pack,,16
+HKLM,%CurrentVersionNT%\LanguagePack,,16
 HKLM,%CurrentVersionNT%\NetworkCards,,16
 HKLM,%CurrentVersionNT%\OpenGLDrivers,,16
 HKLM,%CurrentVersionNT%\Perflib,,16
@@ -635,6 +637,8 @@ HKLM,Software\Microsoft\DFS,,16
 HKLM,Software\Microsoft\Driver Signing,,16
 HKLM,Software\Microsoft\EnterpriseCertificates,,16
 HKLM,Software\Microsoft\EventSystem,,16
+HKLM,Software\Microsoft\MediaPlayer,"Installation DirectoryLFN",2,"%16422%\Windows Media Player"
+HKLM,Software\Microsoft\MediaPlayer\PlayerUpgrade,"PlayerVersion",2,"12,0,7601,18840"
 HKLM,Software\Microsoft\MSMQ,,16
 HKLM,Software\Microsoft\Non-Driver Signing,,16
 HKLM,Software\Microsoft\Notepad\DefaultFonts,,16
@@ -655,6 +659,7 @@ HKLM,Software\Policies,,16
 HKLM,Software\Registered Applications,,16
 HKLM,System\CurrentControlSet\Control\Lsa,,16
 HKLM,System\CurrentControlSet\Control\SecurityProviders\Schannel\Protocols\SSL 2.0\Client,"DisabledByDefault",0x10003,1
+HKLM,System\CurrentControlSet\Control\ServiceGroupOrder,"List",0x00010000,"TDI"
 HKLM,System\CurrentControlSet\Control\TimeZoneInformation,"StandardName",2,""
 HKLM,System\CurrentControlSet\Control\TimeZoneInformation,"TimeZoneKeyName",2,""
 HKLM,System\CurrentControlSet\Control\VirtualDeviceDrivers,,16
@@ -674,6 +679,12 @@ HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-99
 HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9948-00c04f98bbc9},"IsInstalled",2,1
 HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9948-00c04f98bbc9},"Locale",2,"*"
 HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9948-00c04f98bbc9},"Version",2,"4,74,9273,0"
+
+HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{6BF52A52-394A-11d3-B153-00C04F79FAA6},,2,"Windows Media Player"
+HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{6BF52A52-394A-11d3-B153-00C04F79FAA6},"ComponentID",2,"wmp"
+HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{6BF52A52-394A-11d3-B153-00C04F79FAA6},"IsInstalled",2,1
+HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{6BF52A52-394A-11d3-B153-00C04F79FAA6},"Locale",2,"*"
+HKLM,SOFTWARE\Microsoft\Active Setup\Installed Components\{6BF52A52-394A-11d3-B153-00C04F79FAA6},"Version",2,"12,0,7601,18840"
 
 [Nls]
 HKLM,System\CurrentControlSet\Control\Nls\Codepage,"37",,""
@@ -2503,6 +2514,7 @@ HKLM,%CurrentVersion%\Telephony\Country List\998,"SameAreaRule",,"G"
 12,,fltmgr.sys,-
 12,,mountmgr.sys,-
 12,,ndis.sys,-
+12,,tdi.sys,-
 ; skip .NET fake dlls in Wine Mono package
 11,,aspnet_regiis.exe,-
 11,,ngen.exe,-
@@ -2520,6 +2532,7 @@ HKLM,%CurrentVersion%\Telephony\Country List\998,"SameAreaRule",,"G"
 11,,shdocvw.dll
 16422,Internet Explorer,iexplore.exe
 16422,Windows Media Player,wmplayer.exe
+16422,Windows NT\Accessories,wordpad.exe
 11,,*
 
 [FakeDlls]
@@ -2543,6 +2556,7 @@ HKLM,%CurrentVersion%\Telephony\Country List\998,"SameAreaRule",,"G"
 12,,fltmgr.sys
 12,,mountmgr.sys
 12,,ndis.sys
+12,,tdi.sys
 ; skip .NET fake dlls in Wine Mono package
 11,,aspnet_regiis.exe,-
 11,,ngen.exe,-
@@ -2569,6 +2583,7 @@ HKLM,%CurrentVersion%\Telephony\Country List\998,"SameAreaRule",,"G"
 16412,Microsoft,
 16422,Internet Explorer,iexplore.exe
 16422,Windows Media Player,wmplayer.exe
+16422,Windows NT\Accessories,wordpad.exe
 16427,System\OLE DB,oledb32.dll
 16427,System\OLE DB,msdaps.dll
 11,,*
@@ -3073,6 +3088,7 @@ HKLM,%CurrentVersionNT%\Time Zones\Turkey Standard Time,"Display",,"Europe/Istan
 HKLM,%CurrentVersionNT%\Time Zones\Turkey Standard Time,"Dlt",,"Turkey Daylight Time"
 HKLM,%CurrentVersionNT%\Time Zones\Turkey Standard Time,"Std",,"Turkey Standard Time"
 HKLM,%CurrentVersionNT%\Time Zones\Turkey Standard Time,"TZI",1,88,ff,ff,ff,00,00,00,00,c4,ff,ff,ff,00,00,0a,00,00,00,05,00,04,00,00,00,00,00,00,00,00,00,03,00,00,00,05,00,03,00,00,00,00,00,00,00
+HKLM,%CurrentVersionNT%\Time Zones\Turkey Standard Time\Dynamic DST,"2015",1,88,ff,ff,ff,00,00,00,00,c4,ff,ff,ff,df,07,0b,00,00,00,08,00,04,00,00,00,00,00,00,00,df,07,03,00,00,00,1d,00,03,00,00,00,00,00,00,00
 HKLM,%CurrentVersionNT%\Time Zones\Ulaanbaatar Standard Time,"Display",,"Asia/Ulaanbaatar"
 HKLM,%CurrentVersionNT%\Time Zones\Ulaanbaatar Standard Time,"Dlt",,"Ulaanbaatar Daylight Time"
 HKLM,%CurrentVersionNT%\Time Zones\Ulaanbaatar Standard Time,"Std",,"Ulaanbaatar Standard Time"
@@ -3240,6 +3256,7 @@ HKLM,%CurrentVersionNT%\SvcHost,"netsvcs",0x00010008,"Schedule"
 [Services]
 HKLM,%CurrentVersion%\RunServices,"winemenubuilder",2,"%11%\winemenubuilder.exe -a -r"
 HKLM,"System\CurrentControlSet\Services\Eventlog\Application",,16
+HKLM,"System\CurrentControlSet\Services\Eventlog\System",,16
 HKLM,"System\CurrentControlSet\Services\RpcSs",,16
 HKLM,"System\CurrentControlSet\Services\Tcpip\Parameters",,16
 HKLM,"System\CurrentControlSet\Services\VxD\MSTCP",,16
@@ -3317,7 +3334,7 @@ HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Fonts,"SymbolicLin
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\FontSubstitutes,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes"
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Gre_Initialize,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\Gre_Initialize"
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"
-HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Language Pack,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\Language Pack"
+HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\LanguagePack,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\LanguagePack"
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\NetworkCards,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\NetworkCards"
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Perflib,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\Perflib"
 HKLM,Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Ports,"SymbolicLinkValue",0x60000,"\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion\Ports"

@@ -214,7 +214,7 @@ static void context_attach_surface_fbo(struct wined3d_context *context,
             case WINED3D_LOCATION_TEXTURE_SRGB:
                 srgb = location == WINED3D_LOCATION_TEXTURE_SRGB;
                 gl_info->fbo_ops.glFramebufferTexture2D(fbo_target, GL_COLOR_ATTACHMENT0 + idx,
-                        surface->texture_target, surface_get_texture_name(surface, gl_info, srgb),
+                        surface->texture_target, surface_get_texture_name(surface, context, srgb),
                         surface->texture_level);
                 checkGLcall("glFramebufferTexture2D()");
                 break;
@@ -1129,6 +1129,11 @@ BOOL context_set_current(struct wined3d_context *ctx)
         }
         else
         {
+            if (wglGetCurrentContext())
+            {
+                TRACE("Flushing context %p before switching to %p.\n", old, ctx);
+                glFlush();
+            }
             old->current = 0;
         }
     }
@@ -1451,7 +1456,7 @@ struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
     unsigned int s;
     int swap_interval;
     DWORD state;
-    HDC hdc;
+    HDC hdc = 0;
     BOOL hdc_is_private = FALSE;
 
     TRACE("swapchain %p, target %p, window %p.\n", swapchain, target, swapchain->win_handle);
@@ -1509,7 +1514,7 @@ struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
     /* Initialize the texture unit mapping to a 1:1 mapping */
     for (s = 0; s < MAX_COMBINED_SAMPLERS; ++s)
     {
-        if (s < gl_info->limits.fragment_samplers)
+        if (s < gl_info->limits.combined_samplers)
         {
             ret->tex_unit_map[s] = s;
             ret->rev_tex_unit_map[s] = s;
@@ -1565,7 +1570,8 @@ struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
      * Using the same format regardless of the color/depth/stencil targets
      * makes it much less likely that different wined3d instances will set
      * conflicting pixel formats. */
-    if (wined3d_settings.always_offscreen)
+    if (wined3d_settings.offscreen_rendering_mode != ORM_BACKBUFFER
+            && wined3d_settings.always_offscreen)
     {
         color_format = wined3d_get_format(gl_info, WINED3DFMT_B8G8R8A8_UNORM);
         ds_format = wined3d_get_format(gl_info, WINED3DFMT_UNKNOWN);
@@ -1831,6 +1837,7 @@ struct wined3d_context *context_create(struct wined3d_swapchain *swapchain,
     return ret;
 
 out:
+    if (hdc) wined3d_release_dc(swapchain->win_handle, hdc);
     device->shader_backend->shader_free_context_data(ret);
     device->adapter->fragment_pipe->free_context_data(ret);
     HeapFree(GetProcessHeap(), 0, ret->free_event_queries);
@@ -2461,7 +2468,16 @@ BOOL context_apply_clear_state(struct wined3d_context *context, const struct win
      * performance incredibly. */
     gl_info->gl_ops.gl.p_glDisable(GL_BLEND);
     gl_info->gl_ops.gl.p_glEnable(GL_SCISSOR_TEST);
-    checkGLcall("glEnable GL_SCISSOR_TEST");
+    if (gl_info->supported[ARB_FRAMEBUFFER_SRGB])
+    {
+        if (!(context->d3d_info->wined3d_creation_flags & WINED3D_SRGB_READ_WRITE_CONTROL)
+                || device->state.render_states[WINED3D_RS_SRGBWRITEENABLE])
+            gl_info->gl_ops.gl.p_glEnable(GL_FRAMEBUFFER_SRGB);
+        else
+            gl_info->gl_ops.gl.p_glDisable(GL_FRAMEBUFFER_SRGB);
+        context_invalidate_state(context, STATE_RENDER(WINED3D_RS_SRGBWRITEENABLE));
+    }
+    checkGLcall("setting up state for clear");
 
     context_invalidate_state(context, STATE_RENDER(WINED3D_RS_ALPHABLENDENABLE));
     context_invalidate_state(context, STATE_RENDER(WINED3D_RS_SCISSORTESTENABLE));
@@ -2542,6 +2558,7 @@ static void context_map_stage(struct wined3d_context *context, DWORD stage, DWOR
     DWORD i = context->rev_tex_unit_map[unit];
     DWORD j = context->tex_unit_map[stage];
 
+    TRACE("Mapping stage %u to unit %u.\n", stage, unit);
     context->tex_unit_map[stage] = unit;
     if (i != WINED3D_UNMAPPED_STAGE && i != stage)
         context->tex_unit_map[i] = WINED3D_UNMAPPED_STAGE;
@@ -2616,11 +2633,16 @@ static void context_update_fixed_function_usage_map(struct wined3d_context *cont
 static void context_map_fixed_function_samplers(struct wined3d_context *context,
         const struct wined3d_state *state)
 {
+    const struct wined3d_d3d_info *d3d_info = context->d3d_info;
+    const struct wined3d_gl_info *gl_info = context->gl_info;
     unsigned int i, tex;
     WORD ffu_map;
-    const struct wined3d_d3d_info *d3d_info = context->d3d_info;
 
     context_update_fixed_function_usage_map(context, state);
+
+    if (gl_info->limits.combined_samplers >= MAX_COMBINED_SAMPLERS)
+        return;
+
     ffu_map = context->fixed_function_usage_map;
 
     if (d3d_info->limits.ffp_textures == d3d_info->limits.ffp_blend_stages
@@ -2661,10 +2683,14 @@ static void context_map_fixed_function_samplers(struct wined3d_context *context,
 
 static void context_map_psamplers(struct wined3d_context *context, const struct wined3d_state *state)
 {
+    const struct wined3d_d3d_info *d3d_info = context->d3d_info;
+    const struct wined3d_gl_info *gl_info = context->gl_info;
     const struct wined3d_shader_resource_info *resource_info =
             state->shader[WINED3D_SHADER_TYPE_PIXEL]->reg_maps.resource_info;
     unsigned int i;
-    const struct wined3d_d3d_info *d3d_info = context->d3d_info;
+
+    if (gl_info->limits.combined_samplers >= MAX_COMBINED_SAMPLERS)
+        return;
 
     for (i = 0; i < MAX_FRAGMENT_SAMPLERS; ++i)
     {
@@ -2679,8 +2705,7 @@ static void context_map_psamplers(struct wined3d_context *context, const struct 
 }
 
 static BOOL context_unit_free_for_vs(const struct wined3d_context *context,
-        const struct wined3d_shader_resource_info *ps_resource_info,
-        const struct wined3d_shader_resource_info *vs_resource_info, DWORD unit)
+        const struct wined3d_shader_resource_info *ps_resource_info, DWORD unit)
 {
     DWORD current_mapping = context->rev_tex_unit_map[unit];
 
@@ -2702,8 +2727,7 @@ static BOOL context_unit_free_for_vs(const struct wined3d_context *context,
         return !ps_resource_info[current_mapping].type;
     }
 
-    /* Used by a vertex sampler */
-    return !vs_resource_info[current_mapping - MAX_FRAGMENT_SAMPLERS].type;
+    return TRUE;
 }
 
 static void context_map_vsamplers(struct wined3d_context *context, BOOL ps, const struct wined3d_state *state)
@@ -2714,6 +2738,9 @@ static void context_map_vsamplers(struct wined3d_context *context, BOOL ps, cons
     const struct wined3d_gl_info *gl_info = context->gl_info;
     int start = min(MAX_COMBINED_SAMPLERS, gl_info->limits.combined_samplers) - 1;
     int i;
+
+    if (gl_info->limits.combined_samplers >= MAX_COMBINED_SAMPLERS)
+        return;
 
     /* Note that we only care if a resource is used or not, not the
      * resource's specific type. Otherwise we'd need to call
@@ -2726,18 +2753,15 @@ static void context_map_vsamplers(struct wined3d_context *context, BOOL ps, cons
         DWORD vsampler_idx = i + MAX_FRAGMENT_SAMPLERS;
         if (vs_resource_info[i].type)
         {
-            if (context->tex_unit_map[vsampler_idx] != WINED3D_UNMAPPED_STAGE)
-            {
-                /* Already mapped somewhere */
-                continue;
-            }
-
             while (start >= 0)
             {
-                if (context_unit_free_for_vs(context, ps_resource_info, vs_resource_info, start))
+                if (context_unit_free_for_vs(context, ps_resource_info, start))
                 {
-                    context_map_stage(context, vsampler_idx, start);
-                    context_invalidate_state(context, STATE_SAMPLER(vsampler_idx));
+                    if (context->tex_unit_map[vsampler_idx] != start)
+                    {
+                        context_map_stage(context, vsampler_idx, start);
+                        context_invalidate_state(context, STATE_SAMPLER(vsampler_idx));
+                    }
 
                     --start;
                     break;
@@ -2745,6 +2769,8 @@ static void context_map_vsamplers(struct wined3d_context *context, BOOL ps, cons
 
                 --start;
             }
+            if (context->tex_unit_map[vsampler_idx] == WINED3D_UNMAPPED_STAGE)
+                WARN("Couldn't find a free texture unit for vertex sampler %u.\n", i);
         }
     }
 }
@@ -2753,13 +2779,12 @@ static void context_update_tex_unit_map(struct wined3d_context *context, const s
 {
     BOOL vs = use_vs(state);
     BOOL ps = use_ps(state);
-    /*
-     * Rules are:
-     * -> Pixel shaders need a 1:1 map. In theory the shader input could be mapped too, but
-     * that would be really messy and require shader recompilation
-     * -> When the mapping of a stage is changed, sampler and ALL texture stage states have
-     * to be reset. Because of that try to work with a 1:1 mapping as much as possible
-     */
+
+    /* Try to go for a 1:1 mapping of the samplers when possible. Pixel shaders
+     * need a 1:1 map at the moment.
+     * When the mapping of a stage is changed, sampler and ALL texture stage
+     * states have to be reset. */
+
     if (ps)
         context_map_psamplers(context, state);
     else
@@ -3089,6 +3114,7 @@ static void context_load_shader_resources(struct wined3d_context *context, const
 
 static void context_bind_shader_resources(struct wined3d_context *context, const struct wined3d_state *state)
 {
+    const struct wined3d_device *device = context->swapchain->device;
     const struct wined3d_gl_info *gl_info = context->gl_info;
     struct wined3d_shader_sampler_map_entry *entry;
     struct wined3d_shader_resource_view *view;
@@ -3096,6 +3122,7 @@ static void context_bind_shader_resources(struct wined3d_context *context, const
     struct wined3d_texture *texture;
     struct wined3d_shader *shader;
     unsigned int i, j, count;
+    GLuint sampler_name;
 
     static const struct
     {
@@ -3138,7 +3165,15 @@ static void context_bind_shader_resources(struct wined3d_context *context, const
                 continue;
             }
 
-            if (!(sampler = state->sampler[shader_types[i].type][entry->sampler_idx]))
+            if (entry->sampler_idx == WINED3D_SAMPLER_DEFAULT)
+            {
+                sampler_name = device->default_sampler;
+            }
+            else if ((sampler = state->sampler[shader_types[i].type][entry->sampler_idx]))
+            {
+                sampler_name = sampler->name;
+            }
+            else
             {
                 WARN("No sampler object bound at index %u, %u.\n", shader_types[i].type, entry->sampler_idx);
                 continue;
@@ -3148,7 +3183,7 @@ static void context_bind_shader_resources(struct wined3d_context *context, const
             context_active_texture(context, gl_info, shader_types[i].base_idx + entry->bind_idx);
             wined3d_texture_bind(texture, context, FALSE);
 
-            GL_EXTCALL(glBindSampler(shader_types[i].base_idx + entry->bind_idx, sampler->name));
+            GL_EXTCALL(glBindSampler(shader_types[i].base_idx + entry->bind_idx, sampler_name));
             checkGLcall("glBindSampler");
         }
     }

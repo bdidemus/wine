@@ -112,6 +112,7 @@ struct named_pipe_device
 
 static void named_pipe_dump( struct object *obj, int verbose );
 static unsigned int named_pipe_map_access( struct object *obj, unsigned int access );
+static int named_pipe_link_name( struct object *obj, struct object_name *name, struct object *parent );
 static struct object *named_pipe_open_file( struct object *obj, unsigned int access,
                                             unsigned int sharing, unsigned int options );
 static void named_pipe_destroy( struct object *obj );
@@ -131,6 +132,8 @@ static const struct object_ops named_pipe_ops =
     default_get_sd,               /* get_sd */
     default_set_sd,               /* set_sd */
     no_lookup_name,               /* lookup_name */
+    named_pipe_link_name,         /* link_name */
+    default_unlink_name,          /* unlink_name */
     named_pipe_open_file,         /* open_file */
     no_close_handle,              /* close_handle */
     named_pipe_destroy            /* destroy */
@@ -160,6 +163,8 @@ static const struct object_ops pipe_server_ops =
     default_get_sd,               /* get_sd */
     default_set_sd,               /* set_sd */
     no_lookup_name,               /* lookup_name */
+    no_link_name,                 /* link_name */
+    NULL,                         /* unlink_name */
     no_open_file,                 /* open_file */
     fd_close_handle,              /* close_handle */
     pipe_server_destroy           /* destroy */
@@ -202,6 +207,8 @@ static const struct object_ops pipe_client_ops =
     default_get_sd,               /* get_sd */
     default_set_sd,               /* set_sd */
     no_lookup_name,               /* lookup_name */
+    no_link_name,                 /* link_name */
+    NULL,                         /* unlink_name */
     no_open_file,                 /* open_file */
     fd_close_handle,              /* close_handle */
     pipe_client_destroy           /* destroy */
@@ -248,6 +255,8 @@ static const struct object_ops named_pipe_device_ops =
     default_get_sd,                   /* get_sd */
     default_set_sd,                   /* set_sd */
     named_pipe_device_lookup_name,    /* lookup_name */
+    directory_link_name,              /* link_name */
+    default_unlink_name,              /* unlink_name */
     named_pipe_device_open_file,      /* open_file */
     fd_close_handle,                  /* close_handle */
     named_pipe_device_destroy         /* destroy */
@@ -269,11 +278,7 @@ static const struct fd_ops named_pipe_device_fd_ops =
 
 static void named_pipe_dump( struct object *obj, int verbose )
 {
-    struct named_pipe *pipe = (struct named_pipe *) obj;
-    assert( obj->ops == &named_pipe_ops );
-    fprintf( stderr, "Named pipe " );
-    dump_object_name( &pipe->obj );
-    fprintf( stderr, "\n" );
+    fputs( "Named pipe\n", stderr );
 }
 
 static unsigned int named_pipe_map_access( struct object *obj, unsigned int access )
@@ -443,8 +448,7 @@ static void pipe_client_destroy( struct object *obj)
 
 static void named_pipe_device_dump( struct object *obj, int verbose )
 {
-    assert( obj->ops == &named_pipe_device_ops );
-    fprintf( stderr, "Named pipe device\n" );
+    fputs( "Named pipe device\n", stderr );
 }
 
 static struct object_type *named_pipe_device_get_type( struct object *obj )
@@ -468,6 +472,8 @@ static struct object *named_pipe_device_lookup_name( struct object *obj, struct 
 
     assert( obj->ops == &named_pipe_device_ops );
     assert( device->pipes );
+
+    if (!name) return NULL;  /* open the device itself */
 
     if ((found = find_object( device->pipes, name, attr | OBJ_CASE_INSENSITIVE )))
         name->len = 0;
@@ -664,53 +670,6 @@ static obj_handle_t pipe_server_ioctl( struct fd *fd, ioctl_code_t code, const a
     }
 }
 
-static struct named_pipe *create_named_pipe( struct directory *root, const struct unicode_str *name,
-                                             unsigned int attr, const struct security_descriptor *sd )
-{
-    struct object *obj;
-    struct named_pipe *pipe = NULL;
-    struct unicode_str new_name;
-
-    if (!name || !name->len)
-    {
-        if ((pipe = alloc_object( &named_pipe_ops ))) clear_error();
-        return pipe;
-    }
-
-    if (!(obj = find_object_dir( root, name, attr, &new_name )))
-    {
-        set_error( STATUS_OBJECT_NAME_INVALID );
-        return NULL;
-    }
-    if (!new_name.len)
-    {
-        if (attr & OBJ_OPENIF && obj->ops == &named_pipe_ops)
-            set_error( STATUS_OBJECT_NAME_EXISTS );
-        else
-        {
-            release_object( obj );
-            obj = NULL;
-            if (attr & OBJ_OPENIF)
-                set_error( STATUS_OBJECT_TYPE_MISMATCH );
-            else
-                set_error( STATUS_OBJECT_NAME_COLLISION );
-        }
-        return (struct named_pipe *)obj;
-    }
-
-    if (obj->ops != &named_pipe_device_ops)
-        set_error( STATUS_OBJECT_NAME_INVALID );
-    else
-    {
-        struct named_pipe_device *dev = (struct named_pipe_device *)obj;
-        if ((pipe = create_object( dev->pipes, &named_pipe_ops, &new_name, NULL )))
-            clear_error();
-    }
-
-    release_object( obj );
-    return pipe;
-}
-
 static struct pipe_server *get_pipe_server_obj( struct process *process,
                                 obj_handle_t handle, unsigned int access )
 {
@@ -781,6 +740,20 @@ static struct pipe_server *find_available_server( struct named_pipe *pipe )
     }
 
     return NULL;
+}
+
+static int named_pipe_link_name( struct object *obj, struct object_name *name, struct object *parent )
+{
+    struct named_pipe_device *dev = (struct named_pipe_device *)parent;
+
+    if (parent->ops != &named_pipe_device_ops)
+    {
+        set_error( STATUS_OBJECT_NAME_INVALID );
+        return 0;
+    }
+    namespace_add( dev->pipes, name );
+    name->parent = grab_object( parent );
+    return 1;
 }
 
 static struct object *named_pipe_open_file( struct object *obj, unsigned int access,
@@ -884,11 +857,8 @@ static obj_handle_t named_pipe_device_ioctl( struct fd *fd, ioctl_code_t code,
             }
             name.str = buffer->Name;
             name.len = (buffer->NameLength / sizeof(WCHAR)) * sizeof(WCHAR);
-            if (!(pipe = (struct named_pipe *)find_object( device->pipes, &name, OBJ_CASE_INSENSITIVE )))
-            {
-                set_error( STATUS_OBJECT_NAME_NOT_FOUND );
-                return 0;
-            }
+            if (!(pipe = open_named_object( &device->obj, &named_pipe_ops, &name, 0 ))) return 0;
+
             if (!(server = find_available_server( pipe )))
             {
                 struct async *async;
@@ -922,9 +892,11 @@ DECL_HANDLER(create_named_pipe)
     struct named_pipe *pipe;
     struct pipe_server *server;
     struct unicode_str name;
-    struct directory *root = NULL;
-    const struct object_attributes *objattr = get_req_data();
+    struct directory *root;
     const struct security_descriptor *sd;
+    const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, &root );
+
+    if (!objattr) return;
 
     if (!req->sharing || (req->sharing & ~(FILE_SHARE_READ | FILE_SHARE_WRITE)) ||
         (!(req->flags & NAMED_PIPE_MESSAGE_STREAM_WRITE) && (req->flags & NAMED_PIPE_MESSAGE_STREAM_READ)))
@@ -933,18 +905,17 @@ DECL_HANDLER(create_named_pipe)
         return;
     }
 
-    reply->handle = 0;
+    if (!name.len)  /* pipes need a root directory even without a name */
+    {
+        if (!objattr->rootdir)
+        {
+            set_error( STATUS_OBJECT_PATH_SYNTAX_BAD );
+            return;
+        }
+        else if (!(root = get_directory_obj( current->process, objattr->rootdir, 0 ))) return;
+    }
 
-    if (!objattr_is_valid( objattr, get_req_data_size() ))
-        return;
-
-    sd = objattr->sd_len ? (const struct security_descriptor *)(objattr + 1) : NULL;
-    objattr_get_name( objattr, &name );
-
-    if (objattr->rootdir && !(root = get_directory_obj( current->process, objattr->rootdir, 0 )))
-        return;
-
-    pipe = create_named_pipe( root, &name, req->attributes | OBJ_OPENIF, sd );
+    pipe = create_named_object_dir( root, &name, objattr->attributes | OBJ_OPENIF, &named_pipe_ops );
 
     if (root) release_object( root );
     if (!pipe) return;
@@ -982,7 +953,7 @@ DECL_HANDLER(create_named_pipe)
     server = create_pipe_server( pipe, req->options, req->flags );
     if (server)
     {
-        reply->handle = alloc_handle( current->process, server, req->access, req->attributes );
+        reply->handle = alloc_handle( current->process, server, req->access, objattr->attributes );
         server->pipe->instances++;
         if (sd) default_set_sd( &server->obj, sd, OWNER_SECURITY_INFORMATION |
                                                   GROUP_SECURITY_INFORMATION |
@@ -1013,11 +984,14 @@ DECL_HANDLER(get_named_pipe_info)
     }
 
     reply->flags        = client ? client->pipe_flags : server->pipe_flags;
-    reply->sharing      = server->pipe->sharing;
-    reply->maxinstances = server->pipe->maxinstances;
-    reply->instances    = server->pipe->instances;
-    reply->insize       = server->pipe->insize;
-    reply->outsize      = server->pipe->outsize;
+    if (server)
+    {
+        reply->sharing      = server->pipe->sharing;
+        reply->maxinstances = server->pipe->maxinstances;
+        reply->instances    = server->pipe->instances;
+        reply->insize       = server->pipe->insize;
+        reply->outsize      = server->pipe->outsize;
+    }
 
     if (client)
         release_object(client);
@@ -1043,7 +1017,11 @@ DECL_HANDLER(set_named_pipe_info)
         client = (struct pipe_client *)get_handle_obj( current->process, req->handle,
                                                        0, &pipe_client_ops );
         if (!client) return;
-        server = client->server;
+        if (!(server = client->server))
+        {
+            release_object( client );
+            return;
+        }
     }
 
     if ((req->flags & ~(NAMED_PIPE_MESSAGE_STREAM_READ | NAMED_PIPE_NONBLOCKING_MODE)) ||

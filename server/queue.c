@@ -178,6 +178,8 @@ static const struct object_ops msg_queue_ops =
     default_get_sd,            /* get_sd */
     default_set_sd,            /* set_sd */
     no_lookup_name,            /* lookup_name */
+    no_link_name,              /* link_name */
+    NULL,                      /* unlink_name */
     no_open_file,              /* open_file */
     no_close_handle,           /* close_handle */
     msg_queue_destroy          /* destroy */
@@ -211,6 +213,8 @@ static const struct object_ops thread_input_ops =
     default_get_sd,               /* get_sd */
     default_set_sd,               /* set_sd */
     no_lookup_name,               /* lookup_name */
+    no_link_name,                 /* link_name */
+    NULL,                         /* unlink_name */
     no_open_file,                 /* open_file */
     no_close_handle,              /* close_handle */
     thread_input_destroy          /* destroy */
@@ -374,7 +378,7 @@ static void get_message_defaults( struct msg_queue *queue, int *x, int *y, unsig
 }
 
 /* set the cursor clip rectangle */
-static void set_clip_rectangle( struct desktop *desktop, const rectangle_t *rect )
+static void set_clip_rectangle( struct desktop *desktop, const rectangle_t *rect, int send_clip_msg )
 {
     rectangle_t top_rect;
     int x, y;
@@ -392,7 +396,7 @@ static void set_clip_rectangle( struct desktop *desktop, const rectangle_t *rect
     }
     else desktop->cursor.clip = top_rect;
 
-    if (desktop->cursor.clip_msg)
+    if (desktop->cursor.clip_msg && send_clip_msg)
         post_desktop_message( desktop, desktop->cursor.clip_msg, rect != NULL, 0 );
 
     /* warp the mouse to be inside the clip rect */
@@ -405,7 +409,7 @@ static void set_clip_rectangle( struct desktop *desktop, const rectangle_t *rect
 static void set_foreground_input( struct desktop *desktop, struct thread_input *input )
 {
     if (desktop->foreground_input == input) return;
-    set_clip_rectangle( desktop, NULL );
+    set_clip_rectangle( desktop, NULL, 1 );
     desktop->foreground_input = input;
 }
 
@@ -2076,7 +2080,7 @@ void queue_cleanup_window( struct thread *thread, user_handle_t win )
     thread_input_cleanup_window( queue, win );
 }
 
-/* post a message to a window; used by socket handling */
+/* post a message to a window */
 void post_message( user_handle_t win, unsigned int message, lparam_t wparam, lparam_t lparam )
 {
     struct message *msg;
@@ -2581,13 +2585,21 @@ DECL_HANDLER(set_win_timer)
         }
         else
         {
+            lparam_t end_id = queue->next_timer_id;
+
             /* find a free id for it */
-            do
+            while (1)
             {
                 id = queue->next_timer_id;
                 if (--queue->next_timer_id <= 0x100) queue->next_timer_id = 0x7fff;
+
+                if (!find_timer( queue, 0, req->msg, id )) break;
+                if (queue->next_timer_id == end_id)
+                {
+                    set_win32_error( ERROR_NO_MORE_USER_HANDLES );
+                    return;
+                }
             }
-            while (find_timer( queue, 0, req->msg, id ));
         }
     }
 
@@ -3039,8 +3051,15 @@ DECL_HANDLER(set_caret_info)
     }
     if (req->flags & SET_CARET_STATE)
     {
-        if (req->state == -1) input->caret_state = !input->caret_state;
-        else input->caret_state = !!req->state;
+        switch (req->state)
+        {
+        case CARET_STATE_OFF:    input->caret_state = 0; break;
+        case CARET_STATE_ON:     input->caret_state = 1; break;
+        case CARET_STATE_TOGGLE: input->caret_state = !input->caret_state; break;
+        case CARET_STATE_ON_IF_MOVED:
+            if (req->x != reply->old_rect.left || req->y != reply->old_rect.top) input->caret_state = 1;
+            break;
+        }
     }
 }
 
@@ -3091,7 +3110,7 @@ DECL_HANDLER(set_cursor)
         if (req->clip_msg && get_top_window_owner(desktop) == current->process)
             desktop->cursor.clip_msg = req->clip_msg;
 
-        set_clip_rectangle( desktop, (req->flags & SET_CURSOR_NOCLIP) ? NULL : &req->clip );
+        set_clip_rectangle( desktop, (req->flags & SET_CURSOR_NOCLIP) ? NULL : &req->clip, 0 );
     }
 
     reply->new_x       = input->desktop->cursor.x;

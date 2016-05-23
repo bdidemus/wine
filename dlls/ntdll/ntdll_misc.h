@@ -97,11 +97,9 @@ extern int server_remove_fd_from_cache( HANDLE handle ) DECLSPEC_HIDDEN;
 extern int server_get_unix_fd( HANDLE handle, unsigned int access, int *unix_fd,
                                int *needs_close, enum server_fd_type *type, unsigned int *options ) DECLSPEC_HIDDEN;
 extern int server_pipe( int fd[2] ) DECLSPEC_HIDDEN;
-
-/* security descriptors */
-NTSTATUS NTDLL_create_struct_sd(PSECURITY_DESCRIPTOR nt_sd, struct security_descriptor **server_sd,
-                                data_size_t *server_sd_len) DECLSPEC_HIDDEN;
-void NTDLL_free_struct_sd(struct security_descriptor *server_sd) DECLSPEC_HIDDEN;
+extern NTSTATUS alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, struct object_attributes **ret,
+                                         data_size_t *ret_len ) DECLSPEC_HIDDEN;
+extern NTSTATUS validate_open_object_attributes( const OBJECT_ATTRIBUTES *attr ) DECLSPEC_HIDDEN;
 
 /* module handling */
 extern LIST_ENTRY tls_links DECLSPEC_HIDDEN;
@@ -261,6 +259,23 @@ extern HANDLE keyed_event DECLSPEC_HIDDEN;
                        "call " __ASM_NAME("__wine_call_from_regs") "\n\t" \
                        "ret $(4*" #args ")" ) /* fake ret to make copy protections happy */
 #endif
+
+#if defined(__i386__)
+
+#define SYSCALL( name ) __syscall_ ## name
+#define DEFINE_SYSCALL_ENTRYPOINT( name, args ) \
+    __ASM_GLOBAL_FUNC( name, \
+                       "movl $" __ASM_NAME("__syscall_") #name ",%eax\n\t"  \
+                       "movl $" __ASM_NAME("call_syscall_func") ",%edx\n\t" \
+                       "call *%edx\n\t"                                     \
+                       "ret $(4*" #args ")" )
+
+#else /* defined(__i386__) */
+
+#define SYSCALL( name ) name
+#define DEFINE_SYSCALL_ENTRYPOINT( name, args ) /* nothing */
+
+#endif /* defined(__i386__) */
 
 #define HASH_STRING_ALGORITHM_DEFAULT  0
 #define HASH_STRING_ALGORITHM_X65599   1

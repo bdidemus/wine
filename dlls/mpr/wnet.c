@@ -133,11 +133,17 @@ static void _tryLoadProvider(PCWSTR provider)
         DWORD type, size = sizeof(providerPath);
 
         if (RegQueryValueExW(hKey, szProviderPath, NULL, &type,
-         (LPBYTE)providerPath, &size) == ERROR_SUCCESS && type == REG_SZ)
+         (LPBYTE)providerPath, &size) == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ))
         {
             static const WCHAR szProviderName[] = { 'N','a','m','e',0 };
             PWSTR name = NULL;
-           
+
+            if (type == REG_EXPAND_SZ)
+            {
+                WCHAR path[MAX_PATH];
+                if (ExpandEnvironmentStringsW(providerPath, path, MAX_PATH)) lstrcpyW( providerPath, path );
+            }
+
             size = 0;
             RegQueryValueExW(hKey, szProviderName, NULL, NULL, NULL, &size);
             if (size)
@@ -1487,11 +1493,12 @@ DWORD WINAPI WNetGetResourceParentW( LPNETRESOURCEW lpNetResource,
 DWORD WINAPI WNetAddConnectionA( LPCSTR lpRemoteName, LPCSTR lpPassword,
                                  LPCSTR lpLocalName )
 {
-    FIXME( "(%s, %p, %s): stub\n",
-           debugstr_a(lpRemoteName), lpPassword, debugstr_a(lpLocalName) );
+    NETRESOURCEA resourcesA;
 
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    memset(&resourcesA, 0, sizeof(resourcesA));
+    resourcesA.lpRemoteName = (LPSTR)lpRemoteName;
+    resourcesA.lpLocalName = (LPSTR)lpLocalName;
+    return WNetUseConnectionA(NULL, &resourcesA, lpPassword, NULL, 0, NULL, 0, NULL);
 }
 
 /*********************************************************************
@@ -1500,11 +1507,12 @@ DWORD WINAPI WNetAddConnectionA( LPCSTR lpRemoteName, LPCSTR lpPassword,
 DWORD WINAPI WNetAddConnectionW( LPCWSTR lpRemoteName, LPCWSTR lpPassword,
                                  LPCWSTR lpLocalName )
 {
-    FIXME( "(%s, %p, %s): stub\n",
-           debugstr_w(lpRemoteName), lpPassword, debugstr_w(lpLocalName) );
+    NETRESOURCEW resourcesW;
 
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    memset(&resourcesW, 0, sizeof(resourcesW));
+    resourcesW.lpRemoteName = (LPWSTR)lpRemoteName;
+    resourcesW.lpLocalName = (LPWSTR)lpLocalName;
+    return WNetUseConnectionW(NULL, &resourcesW, lpPassword, NULL, 0, NULL, 0, NULL);
 }
 
 /*********************************************************************
@@ -1514,11 +1522,8 @@ DWORD WINAPI WNetAddConnection2A( LPNETRESOURCEA lpNetResource,
                                   LPCSTR lpPassword, LPCSTR lpUserID,
                                   DWORD dwFlags )
 {
-    FIXME( "(%p, %p, %s, 0x%08X): stub\n",
-           lpNetResource, lpPassword, debugstr_a(lpUserID), dwFlags );
-
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    return WNetUseConnectionA(NULL, lpNetResource, lpPassword, lpUserID, dwFlags,
+                              NULL, 0, NULL);
 }
 
 /*********************************************************************
@@ -1528,11 +1533,8 @@ DWORD WINAPI WNetAddConnection2W( LPNETRESOURCEW lpNetResource,
                                   LPCWSTR lpPassword, LPCWSTR lpUserID,
                                   DWORD dwFlags )
 {
-    FIXME( "(%p, %p, %s, 0x%08X): stub\n",
-           lpNetResource, lpPassword, debugstr_w(lpUserID), dwFlags );
-
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    return WNetUseConnectionW(NULL, lpNetResource, lpPassword, lpUserID, dwFlags,
+                              NULL, 0, NULL);
 }
 
 /*********************************************************************
@@ -1542,11 +1544,8 @@ DWORD WINAPI WNetAddConnection3A( HWND hwndOwner, LPNETRESOURCEA lpNetResource,
                                   LPCSTR lpPassword, LPCSTR lpUserID,
                                   DWORD dwFlags )
 {
-    FIXME( "(%p, %p, %p, %s, 0x%08X), stub\n",
-           hwndOwner, lpNetResource, lpPassword, debugstr_a(lpUserID), dwFlags );
-
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    return WNetUseConnectionA(hwndOwner, lpNetResource, lpPassword, lpUserID,
+                              dwFlags, NULL, 0, NULL);
 }
 
 /*********************************************************************
@@ -1556,11 +1555,8 @@ DWORD WINAPI WNetAddConnection3W( HWND hwndOwner, LPNETRESOURCEW lpNetResource,
                                   LPCWSTR lpPassword, LPCWSTR lpUserID,
                                   DWORD dwFlags )
 {
-    FIXME( "(%p, %p, %p, %s, 0x%08X), stub\n",
-           hwndOwner, lpNetResource, lpPassword, debugstr_w(lpUserID), dwFlags );
-
-    SetLastError(WN_NO_NETWORK);
-    return WN_NO_NETWORK;
+    return WNetUseConnectionW(hwndOwner, lpNetResource, lpPassword, lpUserID,
+                              dwFlags, NULL, 0, NULL);
 }
 
 /*****************************************************************

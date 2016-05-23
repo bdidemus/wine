@@ -921,8 +921,11 @@ static HRESULT WINAPI HTMLDocument_put_defaultCharset(IHTMLDocument2 *iface, BST
 static HRESULT WINAPI HTMLDocument_get_defaultCharset(IHTMLDocument2 *iface, BSTR *p)
 {
     HTMLDocument *This = impl_from_IHTMLDocument2(iface);
-    FIXME("(%p)->(%p)\n", This, p);
-    return E_NOTIMPL;
+
+    TRACE("(%p)->(%p)\n", This, p);
+
+    *p = charset_string_from_cp(GetACP());
+    return *p ? S_OK : E_OUTOFMEMORY;
 }
 
 static HRESULT WINAPI HTMLDocument_get_mimeType(IHTMLDocument2 *iface, BSTR *p)
@@ -2018,11 +2021,13 @@ static HRESULT WINAPI HTMLDocument3_get_documentElement(IHTMLDocument3 *iface, I
     return hres;
 }
 
-static HRESULT WINAPI HTMLDocument3_uniqueID(IHTMLDocument3 *iface, BSTR *p)
+static HRESULT WINAPI HTMLDocument3_get_uniqueID(IHTMLDocument3 *iface, BSTR *p)
 {
     HTMLDocument *This = impl_from_IHTMLDocument3(iface);
-    FIXME("(%p)->(%p)\n", This, p);
-    return E_NOTIMPL;
+
+    TRACE("(%p)->(%p)\n", This, p);
+
+    return elem_unique_id(++This->doc_node->unique_id, p);
 }
 
 static HRESULT WINAPI HTMLDocument3_attachEvent(IHTMLDocument3 *iface, BSTR event,
@@ -2371,18 +2376,44 @@ static HRESULT WINAPI HTMLDocument3_getElementsByTagName(IHTMLDocument3 *iface, 
 
     TRACE("(%p)->(%s %p)\n", This, debugstr_w(v), pelColl);
 
-    if(!This->doc_node->nsdoc) {
-        WARN("NULL nsdoc\n");
-        return E_UNEXPECTED;
+    if(This->doc_node->nsdoc) {
+        nsAString_InitDepend(&id_str, v);
+        nsres = nsIDOMHTMLDocument_GetElementsByTagName(This->doc_node->nsdoc, &id_str, &nslist);
+        nsAString_Finish(&id_str);
+        if(FAILED(nsres)) {
+            ERR("GetElementByName failed: %08x\n", nsres);
+            return E_FAIL;
+        }
+    }else {
+        nsIDOMDocumentFragment *docfrag;
+        nsAString nsstr;
+
+        if(v) {
+            const WCHAR *ptr;
+            for(ptr=v; *ptr; ptr++) {
+                if(!isalnumW(*ptr)) {
+                    FIXME("Unsupported invalid tag %s\n", debugstr_w(v));
+                    return E_NOTIMPL;
+                }
+            }
+        }
+
+        nsres = nsIDOMNode_QueryInterface(This->doc_node->node.nsnode, &IID_nsIDOMDocumentFragment, (void**)&docfrag);
+        if(NS_FAILED(nsres)) {
+            ERR("Could not get nsIDOMDocumentFragment iface: %08x\n", nsres);
+            return E_UNEXPECTED;
+        }
+
+        nsAString_InitDepend(&nsstr, v);
+        nsres = nsIDOMDocumentFragment_QuerySelectorAll(docfrag, &nsstr, &nslist);
+        nsAString_Finish(&nsstr);
+        nsIDOMDocumentFragment_Release(docfrag);
+        if(NS_FAILED(nsres)) {
+            ERR("QuerySelectorAll failed: %08x\n", nsres);
+            return E_FAIL;
+        }
     }
 
-    nsAString_InitDepend(&id_str, v);
-    nsres = nsIDOMHTMLDocument_GetElementsByTagName(This->doc_node->nsdoc, &id_str, &nslist);
-    nsAString_Finish(&id_str);
-    if(FAILED(nsres)) {
-        ERR("GetElementByName failed: %08x\n", nsres);
-        return E_FAIL;
-    }
 
     *pelColl = create_collection_from_nodelist(This->doc_node, nslist);
     nsIDOMNodeList_Release(nslist);
@@ -2402,7 +2433,7 @@ static const IHTMLDocument3Vtbl HTMLDocument3Vtbl = {
     HTMLDocument3_recalc,
     HTMLDocument3_createTextNode,
     HTMLDocument3_get_documentElement,
-    HTMLDocument3_uniqueID,
+    HTMLDocument3_get_uniqueID,
     HTMLDocument3_attachEvent,
     HTMLDocument3_detachEvent,
     HTMLDocument3_put_onrowsdelete,
@@ -2523,8 +2554,21 @@ static HRESULT WINAPI HTMLDocument4_focus(IHTMLDocument4 *iface)
 static HRESULT WINAPI HTMLDocument4_hasFocus(IHTMLDocument4 *iface, VARIANT_BOOL *pfFocus)
 {
     HTMLDocument *This = impl_from_IHTMLDocument4(iface);
-    FIXME("(%p)->(%p)\n", This, pfFocus);
-    return E_NOTIMPL;
+    cpp_bool has_focus;
+    nsresult nsres;
+
+    TRACE("(%p)->(%p)\n", This, pfFocus);
+
+    if(!This->doc_node->nsdoc) {
+        FIXME("Unimplemented for fragments.\n");
+        return E_NOTIMPL;
+    }
+
+    nsres = nsIDOMHTMLDocument_HasFocus(This->doc_node->nsdoc, &has_focus);
+    assert(nsres == NS_OK);
+
+    *pfFocus = has_focus ? VARIANT_TRUE : VARIANT_FALSE;
+    return S_OK;
 }
 
 static HRESULT WINAPI HTMLDocument4_put_onselectionchange(IHTMLDocument4 *iface, VARIANT v)

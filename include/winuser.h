@@ -385,6 +385,17 @@ typedef struct
     ULONG_PTR dwExtraInfo;
 } MOUSEHOOKSTRUCT, *PMOUSEHOOKSTRUCT, *LPMOUSEHOOKSTRUCT;
 
+typedef struct
+{
+    struct { /* MOUSEHOOKSTRUCT */
+        POINT pt;
+        HWND  hwnd;
+        UINT  wHitTestCode;
+        ULONG_PTR dwExtraInfo;
+    } DUMMYSTRUCTNAME;
+    DWORD mouseData;
+} MOUSEHOOKSTRUCTEX, *PMOUSEHOOKSTRUCTEX, *LPMOUSEHOOKSTRUCTEX;
+
 
     /* Hardware hook structure */
 
@@ -766,6 +777,21 @@ typedef struct tagWINDOWPLACEMENT
 #define RT_ANIICON        MAKEINTRESOURCE(22)
 #define RT_HTML           MAKEINTRESOURCE(23)
 
+#ifdef RC_INVOKED
+#define RT_MANIFEST                                        24
+#define CREATEPROCESS_MANIFEST_RESOURCE_ID                 1
+#define ISOLATIONAWARE_MANIFEST_RESOURCE_ID                2
+#define ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID 3
+#define MINIMUM_RESERVED_MANIFEST_RESOURCE_ID              1
+#define MAXIMUM_RESERVED_MANIFEST_RESOURCE_ID              16
+#else
+#define RT_MANIFEST                                        MAKEINTRESOURCE(24)
+#define CREATEPROCESS_MANIFEST_RESOURCE_ID                 MAKEINTRESOURCE(1)
+#define ISOLATIONAWARE_MANIFEST_RESOURCE_ID                MAKEINTRESOURCE(2)
+#define ISOLATIONAWARE_NOSTATICIMPORT_MANIFEST_RESOURCE_ID MAKEINTRESOURCE(3)
+#define MINIMUM_RESERVED_MANIFEST_RESOURCE_ID              MAKEINTRESOURCE(1)
+#define MAXIMUM_RESERVED_MANIFEST_RESOURCE_ID              MAKEINTRESOURCE(16)
+#endif
 
   /* cbWndExtra bytes for dialog class */
 #define DLGWINDOWEXTRA      30
@@ -1533,6 +1559,7 @@ typedef struct tagCURSORINFO
 } CURSORINFO, *PCURSORINFO, *LPCURSORINFO;
 
 #define CURSOR_SHOWING 0x00000001
+#define CURSOR_SUPPRESSED 0x00000002
 
 /* this is the 6 byte accel struct used in Win32 when presented to the user */
 typedef struct tagACCEL

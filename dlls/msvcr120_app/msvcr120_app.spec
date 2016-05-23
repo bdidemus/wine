@@ -844,7 +844,7 @@
 @ cdecl _Strftime(str long str ptr ptr) msvcr120._Strftime
 @ cdecl _W_Getdays() msvcr120._W_Getdays
 @ cdecl _W_Getmonths() msvcr120._W_Getmonths
-@ stub _W_Gettnames
+@ cdecl _W_Gettnames() msvcr120._W_Gettnames
 @ stub _Wcsftime
 @ cdecl _XcptFilter(long ptr) msvcr120._XcptFilter
 @ cdecl __AdjustPointer(ptr ptr) msvcr120.__AdjustPointer
@@ -1011,7 +1011,7 @@
 @ stub _atol_l
 @ cdecl _atoldbl(ptr str) msvcr120._atoldbl
 @ stub _atoldbl_l
-@ stub _atoll_l
+@ cdecl -ret64 _atoll_l(str ptr) msvcr120._atoll_l
 @ cdecl _byteswap_uint64(int64) msvcr120._byteswap_uint64
 @ cdecl _byteswap_ulong(long) msvcr120._byteswap_ulong
 @ cdecl _byteswap_ushort(long) msvcr120._byteswap_ushort
@@ -1038,8 +1038,8 @@
 @ cdecl _copysignf(float float) msvcr120._copysignf
 @ cdecl _creat(str long) msvcr120._creat
 @ cdecl _create_locale(long str) msvcr120._create_locale
-@ stub -arch=i386 _crt_debugger_hook
-@ stub -arch=arm,win64 __crt_debugger_hook
+@ cdecl -arch=i386 _crt_debugger_hook(long) msvcr120._crt_debugger_hook
+@ cdecl -arch=arm,win64 __crt_debugger_hook(long) msvcr120.__crt_debugger_hook
 @ cdecl _ctime32(ptr) msvcr120._ctime32
 @ cdecl _ctime32_s(str long ptr) msvcr120._ctime32_s
 @ cdecl _ctime64(ptr) msvcr120._ctime64
@@ -1049,7 +1049,7 @@
 @ cdecl _difftime32(long long) msvcr120._difftime32
 @ cdecl _difftime64(long long) msvcr120._difftime64
 @ stub _dosmaperr
-@ stub _dpcomp
+@ cdecl _dpcomp(double double) msvcr120._dpcomp
 @ cdecl _dsign(double) msvcr120._dsign
 @ extern _dstbias msvcr120._dstbias
 @ cdecl _dtest(ptr) msvcr120._dtest
@@ -1072,7 +1072,7 @@
 @ cdecl _fcvt_s(ptr long double long ptr ptr) msvcr120._fcvt_s
 @ cdecl _fdclass(float) msvcr120._fdclass
 @ cdecl _fdopen(long str) msvcr120._fdopen
-@ stub _fdpcomp
+@ cdecl _fdpcomp(float float) msvcr120._fdpcomp
 @ cdecl _fdsign(float) msvcr120._fdsign
 @ cdecl _fdtest(ptr) msvcr120._fdtest
 @ cdecl _fflush_nolock(ptr) msvcr120._fflush_nolock
@@ -1256,7 +1256,7 @@
 @ cdecl _j1(double) msvcr120._j1
 @ cdecl _jn(long double) msvcr120._jn
 @ cdecl _ldclass(double) msvcr120._ldclass
-@ stub _ldpcomp
+@ cdecl _ldpcomp(double double) msvcr120._ldpcomp
 @ cdecl _ldsign(double) msvcr120._ldsign
 @ cdecl _ldtest(ptr) msvcr120._ldtest
 @ cdecl _lfind(ptr ptr ptr long ptr) msvcr120._lfind
@@ -1446,7 +1446,7 @@
 @ cdecl -ret64 _strtoi64(str ptr long) msvcr120._strtoi64
 @ cdecl -ret64 _strtoi64_l(str ptr long ptr) msvcr120._strtoi64_l
 @ stub _strtoimax_l
-@ stub _strtol_l
+@ cdecl _strtol_l(str ptr long ptr) msvcr120._strtol_l
 @ stub _strtold_l
 @ cdecl -ret64 _strtoll_l(str ptr long ptr) msvcr120._strtoll_l
 @ cdecl -ret64 _strtoui64(str ptr long) msvcr120._strtoui64
@@ -1656,7 +1656,7 @@
 @ cdecl _wstrtime_s(ptr long) msvcr120._wstrtime_s
 @ cdecl _wtempnam(wstr wstr) msvcr120._wtempnam
 @ cdecl _wtmpnam(ptr) msvcr120._wtmpnam
-@ stub _wtmpnam_s
+@ cdecl _wtmpnam_s(ptr long) msvcr120._wtmpnam_s
 @ cdecl _wtof(wstr) msvcr120._wtof
 @ cdecl _wtof_l(wstr ptr) msvcr120._wtof_l
 @ cdecl _wtoi(wstr) msvcr120._wtoi
@@ -1665,8 +1665,8 @@
 @ cdecl _wtoi_l(wstr ptr) msvcr120._wtoi_l
 @ cdecl _wtol(wstr) msvcr120._wtol
 @ cdecl _wtol_l(wstr ptr) msvcr120._wtol_l
-@ stub _wtoll
-@ stub _wtoll_l
+@ cdecl -ret64 _wtoll(wstr) msvcr120._wtoll
+@ cdecl -ret64 _wtoll_l(wstr ptr) msvcr120._wtoll_l
 @ cdecl _wunlink(wstr) msvcr120._wunlink
 @ cdecl _wutime32(wstr ptr) msvcr120._wutime32
 @ cdecl _wutime64(wstr ptr) msvcr120._wutime64
@@ -1694,11 +1694,11 @@
 @ stub atanh
 @ stub atanhf
 @ stub atanhl
-@ cdecl atexit(ptr) msvcr120.atexit
+@ cdecl -private atexit(ptr) msvcr120.atexit
 @ cdecl atof(str) msvcr120.atof
 @ cdecl atoi(str) msvcr120.atoi
 @ cdecl atol(str) msvcr120.atol
-@ stub atoll
+@ cdecl -ret64 atoll(str) msvcr120.atoll
 @ cdecl bsearch(ptr ptr long long ptr) msvcr120.bsearch
 @ cdecl bsearch_s(ptr ptr long long ptr ptr) msvcr120.bsearch_s
 @ cdecl btowc(long) msvcr120.btowc
@@ -1962,9 +1962,9 @@
 @ stub nearbyint
 @ stub nearbyintf
 @ stub nearbyintl
-@ stub nextafter
-@ stub nextafterf
-@ stub nextafterl
+@ cdecl nextafter(double double) msvcr120.nextafter
+@ cdecl nextafterf(float float) msvcr120.nextafterf
+@ cdecl nextafterl(double double) msvcr120.nextafterl
 @ stub nexttoward
 @ stub nexttowardf
 @ stub nexttowardl
@@ -2073,7 +2073,7 @@
 @ cdecl tmpfile() msvcr120.tmpfile
 @ cdecl tmpfile_s(ptr) msvcr120.tmpfile_s
 @ cdecl tmpnam(ptr) msvcr120.tmpnam
-@ stub tmpnam_s
+@ cdecl tmpnam_s(ptr long) msvcr120.tmpnam_s
 @ cdecl tolower(long) msvcr120.tolower
 @ cdecl toupper(long) msvcr120.toupper
 @ stub towctrans

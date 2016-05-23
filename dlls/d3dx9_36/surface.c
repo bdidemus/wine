@@ -487,13 +487,11 @@ static HRESULT save_dds_surface_to_memory(ID3DXBuffer **dst_buffer, IDirect3DSur
 
     memset(header, 0, sizeof(*header));
     header->signature = MAKEFOURCC('D','D','S',' ');
-    header->size = sizeof(*header);
-    header->flags = DDS_CAPS | DDS_HEIGHT | DDS_WIDTH | DDS_PITCH | DDS_PIXELFORMAT | DDS_MIPMAPCOUNT;
+    /* The signature is not really part of the DDS header */
+    header->size = sizeof(*header) - FIELD_OFFSET(struct dds_header, size);
+    header->flags = DDS_CAPS | DDS_HEIGHT | DDS_WIDTH | DDS_PIXELFORMAT;
     header->height = src_desc.Height;
     header->width = src_desc.Width;
-    header->pitch_or_linear_size = dst_pitch;
-    header->depth = 1;
-    header->miplevels = 1;
     header->caps = DDS_CAPS_TEXTURE;
     hr = d3dformat_to_dds_pixel_format(&header->pixel_format, src_desc.Format);
     if (FAILED(hr))
@@ -1525,7 +1523,6 @@ void copy_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slice_pitch,
  * Copies the source buffer to the destination buffer, performing
  * any necessary format conversion and color keying.
  * Pixels outsize the source rect are blacked out.
- * Works only for ARGB formats with 1 - 4 bytes per pixel.
  */
 void convert_argb_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slice_pitch, const struct volume *src_size,
         const struct pixel_format_desc *src_format, BYTE *dst, UINT dst_row_pitch, UINT dst_slice_pitch,
@@ -1562,6 +1559,7 @@ void convert_argb_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slice_pit
 
             for (x = 0; x < min_width; x++) {
                 if (!src_format->to_rgba && !dst_format->from_rgba
+                        && src_format->type == dst_format->type
                         && src_format->bytes_per_pixel <= 4 && dst_format->bytes_per_pixel <= 4)
                 {
                     DWORD val;
@@ -1628,7 +1626,6 @@ void convert_argb_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slice_pit
  * Copies the source buffer to the destination buffer, performing
  * any necessary format conversion, color keying and stretching
  * using a point filter.
- * Works only for ARGB formats with 1 - 4 bytes per pixel.
  */
 void point_filter_argb_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slice_pitch, const struct volume *src_size,
         const struct pixel_format_desc *src_format, BYTE *dst, UINT dst_row_pitch, UINT dst_slice_pitch,
@@ -1665,6 +1662,7 @@ void point_filter_argb_pixels(const BYTE *src, UINT src_row_pitch, UINT src_slic
                 const BYTE *src_ptr = src_row_ptr + (x * src_size->width / dst_size->width) * src_format->bytes_per_pixel;
 
                 if (!src_format->to_rgba && !dst_format->from_rgba
+                        && src_format->type == dst_format->type
                         && src_format->bytes_per_pixel <= 4 && dst_format->bytes_per_pixel <= 4)
                 {
                     DWORD val;

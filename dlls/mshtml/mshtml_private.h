@@ -41,6 +41,8 @@
 
 #define NS_ERROR_GENERATE_FAILURE(module,code) \
     ((nsresult) (((UINT32)(1u<<31)) | ((UINT32)(module+0x45)<<16) | ((UINT32)(code))))
+#define NS_ERROR_GENERATE_SUCCESS(module,code) \
+    ((nsresult) (((UINT32)(module+0x45)<<16) | ((UINT32)(code))))
 
 #define NS_OK                     ((nsresult)0x00000000L)
 #define NS_ERROR_FAILURE          ((nsresult)0x80004005L)
@@ -57,6 +59,7 @@
 
 #define NS_BINDING_ABORTED         NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_NETWORK, 2)
 #define NS_ERROR_UNKNOWN_PROTOCOL  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_NETWORK, 18)
+#define NS_SUCCESS_DEFAULT_ACTION  NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_NETWORK, 66)
 
 #define NS_FAILED(res) ((res) & 0x80000000)
 #define NS_SUCCEEDED(res) (!NS_FAILED(res))
@@ -706,12 +709,14 @@ typedef struct {
     IHTMLElement2 IHTMLElement2_iface;
     IHTMLElement3 IHTMLElement3_iface;
     IHTMLElement4 IHTMLElement4_iface;
+    IHTMLUniqueName IHTMLUniqueName_iface;
 
     nsIDOMHTMLElement *nselem;
     HTMLStyle *style;
     HTMLStyle *runtime_style;
     HTMLAttributeCollection *attrs;
     WCHAR *filter;
+    unsigned unique_id;
 } HTMLElement;
 
 #define HTMLELEMENT_TIDS    \
@@ -720,7 +725,8 @@ typedef struct {
     IHTMLElement_tid,       \
     IHTMLElement2_tid,      \
     IHTMLElement3_tid,      \
-    IHTMLElement4_tid
+    IHTMLElement4_tid,      \
+    IHTMLUniqueName_tid
 
 extern cp_static_data_t HTMLElementEvents2_data DECLSPEC_HIDDEN;
 #define HTMLELEMENT_CPC {&DIID_HTMLElementEvents2, &HTMLElementEvents2_data}
@@ -775,6 +781,8 @@ struct HTMLDocumentNode {
     BOOL skip_mutation_notif;
 
     UINT charset;
+
+    unsigned unique_id;
 
     struct list selection_list;
     struct list range_list;
@@ -841,7 +849,7 @@ HRESULT ProtocolFactory_Create(REFCLSID,REFIID,void**) DECLSPEC_HIDDEN;
 BOOL load_gecko(void) DECLSPEC_HIDDEN;
 void close_gecko(void) DECLSPEC_HIDDEN;
 void register_nsservice(nsIComponentRegistrar*,nsIServiceManager*) DECLSPEC_HIDDEN;
-void init_nsio(nsIComponentManager*,nsIComponentRegistrar*) DECLSPEC_HIDDEN;
+void init_nsio(nsIComponentManager*) DECLSPEC_HIDDEN;
 void release_nsio(void) DECLSPEC_HIDDEN;
 BOOL is_gecko_path(const char*) DECLSPEC_HIDDEN;
 void set_viewer_zoom(NSContainer*,float) DECLSPEC_HIDDEN;
@@ -1015,6 +1023,8 @@ HRESULT get_elem_source_index(HTMLElement*,LONG*) DECLSPEC_HIDDEN;
 nsresult get_elem_attr_value(nsIDOMHTMLElement*,const WCHAR*,nsAString*,const PRUnichar**) DECLSPEC_HIDDEN;
 HRESULT elem_string_attr_getter(HTMLElement*,const WCHAR*,BOOL,BSTR*) DECLSPEC_HIDDEN;
 HRESULT elem_string_attr_setter(HTMLElement*,const WCHAR*,const WCHAR*) DECLSPEC_HIDDEN;
+
+HRESULT elem_unique_id(unsigned id, BSTR *p) DECLSPEC_HIDDEN;
 
 /* commands */
 typedef struct {
@@ -1264,6 +1274,7 @@ static inline void windowref_release(windowref_t *ref)
 }
 
 UINT cp_from_charset_string(BSTR) DECLSPEC_HIDDEN;
+BSTR charset_string_from_cp(UINT) DECLSPEC_HIDDEN;
 HDC get_display_dc(void) DECLSPEC_HIDDEN;
 HINSTANCE get_shdoclc(void) DECLSPEC_HIDDEN;
 void set_statustext(HTMLDocumentObj*,INT,LPCWSTR) DECLSPEC_HIDDEN;

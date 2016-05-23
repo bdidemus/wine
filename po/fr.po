@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: Wine\n"
 "Report-Msgid-Bugs-To: http://bugs.winehq.org\n"
 "POT-Creation-Date: N/A\n"
-"PO-Revision-Date: 2015-10-03 11:45+0100\n"
+"PO-Revision-Date: 2016-04-02 12:50+0100\n"
 "Last-Translator: Frédéric Delanoy <frederic.delanoy@gmail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -56,8 +56,8 @@ msgstr "&Supprimer"
 msgid "Support Information"
 msgstr "Informations de support"
 
-#: appwiz.rc:78 avifil32.rc:54 comctl32.rc:55 comdlg32.rc:231 comdlg32.rc:261
-#: comdlg32.rc:304 comdlg32.rc:358 comdlg32.rc:397 comdlg32.rc:451 credui.rc:52
+#: appwiz.rc:78 avifil32.rc:54 comctl32.rc:55 comdlg32.rc:232 comdlg32.rc:262
+#: comdlg32.rc:305 comdlg32.rc:359 comdlg32.rc:398 comdlg32.rc:452 credui.rc:52
 #: cryptui.rc:263 cryptui.rc:275 cryptui.rc:365 dinput.rc:46 ieframe.rc:96
 #: localui.rc:44 localui.rc:57 mpr.rc:49 msacm32.rc:53 mshtml.rc:47
 #: mshtml.rc:57 msvfw32.rc:36 oledlg.rc:62 oledlg.rc:94 serialui.rc:41
@@ -138,10 +138,10 @@ msgid "&Install"
 msgstr "&Installer"
 
 #: appwiz.rc:110 appwiz.rc:125 avifil32.rc:55 browseui.rc:40 comctl32.rc:56
-#: comctl32.rc:71 comdlg32.rc:170 comdlg32.rc:192 comdlg32.rc:210
-#: comdlg32.rc:232 comdlg32.rc:262 comdlg32.rc:305 comdlg32.rc:327
-#: comdlg32.rc:347 comdlg32.rc:359 comdlg32.rc:398 comdlg32.rc:452
-#: comdlg32.rc:477 comdlg32.rc:500 credui.rc:53 cryptui.rc:264 cryptui.rc:276
+#: comctl32.rc:71 comdlg32.rc:171 comdlg32.rc:193 comdlg32.rc:211
+#: comdlg32.rc:233 comdlg32.rc:263 comdlg32.rc:306 comdlg32.rc:328
+#: comdlg32.rc:348 comdlg32.rc:360 comdlg32.rc:399 comdlg32.rc:453
+#: comdlg32.rc:478 comdlg32.rc:501 credui.rc:53 cryptui.rc:264 cryptui.rc:276
 #: cryptui.rc:366 dinput.rc:47 ieframe.rc:97 inetcpl.rc:81 localui.rc:45
 #: localui.rc:58 mpr.rc:50 msacm32.rc:54 mshtml.rc:48 mshtml.rc:58
 #: msvfw32.rc:37 oledlg.rc:63 oledlg.rc:95 serialui.rc:42 setupapi.rc:42
@@ -312,11 +312,11 @@ msgstr "Annulation..."
 msgid "Properties for %s"
 msgstr "Propriétés de %s"
 
-#: comctl32.rc:57 comdlg32.rc:263
+#: comctl32.rc:57 comdlg32.rc:264
 msgid "&Apply"
 msgstr "&Appliquer"
 
-#: comctl32.rc:58 comctl32.rc:72 comdlg32.rc:306 user32.rc:88
+#: comctl32.rc:58 comctl32.rc:72 comdlg32.rc:307 user32.rc:88
 msgid "Help"
 msgstr "Aide"
 
@@ -349,9 +349,9 @@ msgstr "&Fermer"
 msgid "R&eset"
 msgstr "&Réinitialiser"
 
-#: comctl32.rc:86 comdlg32.rc:171 comdlg32.rc:193 comdlg32.rc:264
-#: comdlg32.rc:328 comdlg32.rc:348 comdlg32.rc:360 comdlg32.rc:478
-#: comdlg32.rc:501 ieframe.rc:58 msacm32.rc:52 oledlg.rc:96 shell32.rc:128
+#: comctl32.rc:86 comdlg32.rc:172 comdlg32.rc:194 comdlg32.rc:265
+#: comdlg32.rc:329 comdlg32.rc:349 comdlg32.rc:361 comdlg32.rc:479
+#: comdlg32.rc:502 ieframe.rc:58 msacm32.rc:52 oledlg.rc:96 shell32.rc:128
 #: clock.rc:44 notepad.rc:60 notepad.rc:119 oleview.rc:72 progman.rc:55
 #: progman.rc:108 progman.rc:126 progman.rc:144 progman.rc:160 progman.rc:184
 #: progman.rc:202 progman.rc:219 regedit.rc:79 taskmgr.rc:87 winefile.rc:82
@@ -405,400 +405,400 @@ msgstr "Aujourd'hui :"
 msgid "Go to today"
 msgstr "Aller à aujourd'hui"
 
-#: comdlg32.rc:156 comdlg32.rc:169 comdlg32.rc:458 comdlg32.rc:484
+#: comdlg32.rc:157 comdlg32.rc:170 comdlg32.rc:459 comdlg32.rc:485
 #: shell32.rc:167 oleview.rc:102
 msgid "Open"
 msgstr "Ouvrir"
 
-#: comdlg32.rc:159 comdlg32.rc:181
+#: comdlg32.rc:160 comdlg32.rc:182
 msgid "File &Name:"
 msgstr "&Nom de fichier :"
 
-#: comdlg32.rc:162 comdlg32.rc:184
+#: comdlg32.rc:163 comdlg32.rc:185
 msgid "&Directories:"
 msgstr "&Répertoires :"
 
-#: comdlg32.rc:165 comdlg32.rc:187
+#: comdlg32.rc:166 comdlg32.rc:188
 msgid "List Files of &Type:"
 msgstr "Liste des fichiers de &type :"
 
-#: comdlg32.rc:167 comdlg32.rc:189
+#: comdlg32.rc:168 comdlg32.rc:190
 msgid "Dri&ves:"
 msgstr "&Lecteurs :"
 
-#: comdlg32.rc:172 comdlg32.rc:194 winefile.rc:176
+#: comdlg32.rc:173 comdlg32.rc:195 winefile.rc:176
 msgid "&Read Only"
 msgstr "Lectu&re seule"
 
-#: comdlg32.rc:178
+#: comdlg32.rc:179
 msgid "Save As..."
 msgstr "Enregistrer sous..."
 
-#: comdlg32.rc:191 comdlg32.rc:145
+#: comdlg32.rc:192 comdlg32.rc:145
 msgid "Save As"
 msgstr "Enregistrer"
 
-#: comdlg32.rc:200 comdlg32.rc:209 comdlg32.rc:355 comdlg32.rc:54 hhctrl.rc:49
+#: comdlg32.rc:201 comdlg32.rc:210 comdlg32.rc:356 comdlg32.rc:54 hhctrl.rc:49
 #: wordpad.rc:165
 msgid "Print"
 msgstr "Imprimer"
 
-#: comdlg32.rc:203
+#: comdlg32.rc:204
 msgid "Printer:"
 msgstr "Imprimante :"
 
-#: comdlg32.rc:205 comdlg32.rc:382
+#: comdlg32.rc:206 comdlg32.rc:383
 msgid "Print range"
 msgstr "Zone d'impression"
 
-#: comdlg32.rc:206 comdlg32.rc:383 regedit.rc:219
+#: comdlg32.rc:207 comdlg32.rc:384 regedit.rc:219
 msgid "&All"
 msgstr "&Tout"
 
-#: comdlg32.rc:207
+#: comdlg32.rc:208
 msgid "S&election"
 msgstr "&Sélection"
 
-#: comdlg32.rc:208
+#: comdlg32.rc:209
 msgid "&Pages"
 msgstr "&Pages"
 
-#: comdlg32.rc:211 comdlg32.rc:233
+#: comdlg32.rc:212 comdlg32.rc:234
 msgid "&Setup"
 msgstr "&Configurer"
 
-#: comdlg32.rc:212
+#: comdlg32.rc:213
 msgid "&From:"
 msgstr "&De :"
 
-#: comdlg32.rc:213
+#: comdlg32.rc:214
 msgid "&To:"
 msgstr "&à :"
 
-#: comdlg32.rc:214 wineps.rc:42
+#: comdlg32.rc:215 wineps.rc:42
 msgid "Print &Quality:"
 msgstr "&Qualité d'impression :"
 
-#: comdlg32.rc:216
+#: comdlg32.rc:217
 msgid "Print to Fi&le"
 msgstr "Imprimer dans un &fichier"
 
-#: comdlg32.rc:217
+#: comdlg32.rc:218
 msgid "Condensed"
 msgstr "Copies t&riées"
 
-#: comdlg32.rc:223 comdlg32.rc:394
+#: comdlg32.rc:224 comdlg32.rc:395
 msgid "Print Setup"
 msgstr "Configuration de l'impression"
 
-#: comdlg32.rc:226 comdlg32.rc:362 comdlg32.rc:401
+#: comdlg32.rc:227 comdlg32.rc:363 comdlg32.rc:402
 msgid "Printer"
 msgstr "Imprimante"
 
-#: comdlg32.rc:227
+#: comdlg32.rc:228
 msgid "&Default Printer"
 msgstr "&Imprimante par défaut"
 
-#: comdlg32.rc:228
+#: comdlg32.rc:229
 msgid "[none]"
 msgstr "[aucune]"
 
-#: comdlg32.rc:229
+#: comdlg32.rc:230
 msgid "Specific &Printer"
 msgstr "Imprimante &spécifique"
 
-#: comdlg32.rc:234 comdlg32.rc:420 comdlg32.rc:439 wineps.rc:34
+#: comdlg32.rc:235 comdlg32.rc:421 comdlg32.rc:440 wineps.rc:34
 msgid "Orientation"
 msgstr "Orientation"
 
-#: comdlg32.rc:235
+#: comdlg32.rc:236
 msgid "Po&rtrait"
 msgstr "&Portrait"
 
-#: comdlg32.rc:236 comdlg32.rc:441 wineps.rc:37
+#: comdlg32.rc:237 comdlg32.rc:442 wineps.rc:37
 msgid "&Landscape"
 msgstr "P&aysage"
 
-#: comdlg32.rc:239 comdlg32.rc:414 comdlg32.rc:434 wineps.rc:28
+#: comdlg32.rc:240 comdlg32.rc:415 comdlg32.rc:435 wineps.rc:28
 msgid "Paper"
 msgstr "Papier"
 
-#: comdlg32.rc:240
+#: comdlg32.rc:241
 msgid "Si&ze"
 msgstr "&Taille"
 
-#: comdlg32.rc:241
+#: comdlg32.rc:242
 msgid "&Source"
 msgstr "&Source"
 
-#: comdlg32.rc:249 wineconsole.rc:85
+#: comdlg32.rc:250 wineconsole.rc:85
 msgid "Font"
 msgstr "Police"
 
-#: comdlg32.rc:252
+#: comdlg32.rc:253
 msgid "&Font:"
 msgstr "&Police :"
 
-#: comdlg32.rc:255
+#: comdlg32.rc:256
 msgid "Font St&yle:"
 msgstr "St&yle :"
 
-#: comdlg32.rc:258 comdlg32.rc:435 winecfg.rc:294
+#: comdlg32.rc:259 comdlg32.rc:436 winecfg.rc:294
 msgid "&Size:"
 msgstr "T&aille :"
 
-#: comdlg32.rc:265
+#: comdlg32.rc:266
 msgid "Effects"
 msgstr "Effets"
 
-#: comdlg32.rc:266
+#: comdlg32.rc:267
 msgid "Stri&keout"
 msgstr "&Barré"
 
-#: comdlg32.rc:267
+#: comdlg32.rc:268
 msgid "&Underline"
 msgstr "&Souligné"
 
-#: comdlg32.rc:268 winecfg.rc:292
+#: comdlg32.rc:269 winecfg.rc:292
 msgid "&Color:"
 msgstr "&Couleur :"
 
-#: comdlg32.rc:271
+#: comdlg32.rc:272
 msgid "Sample"
 msgstr "Aperçu"
 
-#: comdlg32.rc:273
+#: comdlg32.rc:274
 msgid "Scr&ipt:"
 msgstr "Sc&ript :"
 
-#: comdlg32.rc:281
+#: comdlg32.rc:282
 msgid "Color"
 msgstr "Couleurs"
 
-#: comdlg32.rc:284
+#: comdlg32.rc:285
 msgid "&Basic Colors:"
 msgstr "Couleurs de base :"
 
-#: comdlg32.rc:285
+#: comdlg32.rc:286
 msgid "&Custom Colors:"
 msgstr "Couleurs personnalisées :"
 
-#: comdlg32.rc:286 comdlg32.rc:309
+#: comdlg32.rc:287 comdlg32.rc:310
 msgid "Color |  Sol&id"
 msgstr "Couleur | &Uni"
 
-#: comdlg32.rc:287
+#: comdlg32.rc:288
 msgid "&Red:"
 msgstr "&Rouge :"
 
-#: comdlg32.rc:289
+#: comdlg32.rc:290
 msgid "&Green:"
 msgstr "&Vert :"
 
-#: comdlg32.rc:291
+#: comdlg32.rc:292
 msgid "&Blue:"
 msgstr "Bl&eu :"
 
-#: comdlg32.rc:293
+#: comdlg32.rc:294
 msgid "&Hue:"
 msgstr "&Teinte :"
 
-#: comdlg32.rc:295
+#: comdlg32.rc:296
 msgctxt "Saturation"
 msgid "&Sat:"
 msgstr "&Satur. :"
 
-#: comdlg32.rc:297
+#: comdlg32.rc:298
 msgctxt "Luminance"
 msgid "&Lum:"
 msgstr "&Lum. :"
 
-#: comdlg32.rc:307
+#: comdlg32.rc:308
 msgid "&Add to Custom Colors"
 msgstr "&Ajouter aux couleurs personnalisées"
 
-#: comdlg32.rc:308
+#: comdlg32.rc:309
 msgid "&Define Custom Colors >>"
 msgstr "&Définir les couleurs personnalisées >>"
 
-#: comdlg32.rc:315 regedit.rc:226 regedit.rc:236
+#: comdlg32.rc:316 regedit.rc:226 regedit.rc:236
 msgid "Find"
 msgstr "Recherche"
 
-#: comdlg32.rc:318 comdlg32.rc:337
+#: comdlg32.rc:319 comdlg32.rc:338
 msgid "Fi&nd What:"
 msgstr "&Rechercher :"
 
-#: comdlg32.rc:320 comdlg32.rc:341
+#: comdlg32.rc:321 comdlg32.rc:342
 msgid "Match &Whole Word Only"
 msgstr "Mots &entiers seulement"
 
-#: comdlg32.rc:321 comdlg32.rc:342
+#: comdlg32.rc:322 comdlg32.rc:343
 msgid "Match &Case"
 msgstr "Respecter la &casse"
 
-#: comdlg32.rc:322 joy.rc:71
+#: comdlg32.rc:323 joy.rc:71
 msgid "Direction"
 msgstr "Direction"
 
-#: comdlg32.rc:323 view.rc:42
+#: comdlg32.rc:324 view.rc:42
 msgid "&Up"
 msgstr "&Haut"
 
-#: comdlg32.rc:324 view.rc:43
+#: comdlg32.rc:325 view.rc:43
 msgid "&Down"
 msgstr "&Bas"
 
-#: comdlg32.rc:326 comdlg32.rc:344
+#: comdlg32.rc:327 comdlg32.rc:345
 msgid "&Find Next"
 msgstr "&Suivant"
 
-#: comdlg32.rc:334
+#: comdlg32.rc:335
 msgid "Replace"
 msgstr "Remplacer"
 
-#: comdlg32.rc:339
+#: comdlg32.rc:340
 msgid "Re&place With:"
 msgstr "R&emplacer par :"
 
-#: comdlg32.rc:345
+#: comdlg32.rc:346
 msgid "&Replace"
 msgstr "&Remplacer"
 
-#: comdlg32.rc:346
+#: comdlg32.rc:347
 msgid "Replace &All"
 msgstr "Remplacer &tout"
 
-#: comdlg32.rc:363
+#: comdlg32.rc:364
 msgid "Print to fi&le"
 msgstr "Imprimer dans un fichier"
 
-#: comdlg32.rc:364 comdlg32.rc:402 ieframe.rc:42 shdoclc.rc:61 shell32.rc:108
+#: comdlg32.rc:365 comdlg32.rc:403 ieframe.rc:42 shdoclc.rc:61 shell32.rc:108
 #: clock.rc:31 wineconsole.rc:30
 msgid "&Properties"
 msgstr "&Propriétés"
 
-#: comdlg32.rc:365 comdlg32.rc:403 msacm32.rc:34 winefile.rc:141
+#: comdlg32.rc:366 comdlg32.rc:404 msacm32.rc:34 winefile.rc:141
 msgid "&Name:"
 msgstr "&Nom :"
 
-#: comdlg32.rc:367 comdlg32.rc:405
+#: comdlg32.rc:368 comdlg32.rc:406
 msgid "Status:"
 msgstr "État :"
 
-#: comdlg32.rc:369 comdlg32.rc:407
+#: comdlg32.rc:370 comdlg32.rc:408
 msgid "Type:"
 msgstr "Type :"
 
-#: comdlg32.rc:371 comdlg32.rc:409
+#: comdlg32.rc:372 comdlg32.rc:410
 msgid "Where:"
 msgstr "Emplacement :"
 
-#: comdlg32.rc:373 comdlg32.rc:411
+#: comdlg32.rc:374 comdlg32.rc:412
 msgid "Comment:"
 msgstr "Commentaire :"
 
-#: comdlg32.rc:376
+#: comdlg32.rc:377
 msgid "Copies"
 msgstr "Copies"
 
-#: comdlg32.rc:377
+#: comdlg32.rc:378
 msgid "Number of &copies:"
 msgstr "Nombre de copies :"
 
-#: comdlg32.rc:379
+#: comdlg32.rc:380
 msgid "C&ollate"
 msgstr "Copies assemblées"
 
-#: comdlg32.rc:384
+#: comdlg32.rc:385
 msgid "Pa&ges"
 msgstr "&Pages"
 
-#: comdlg32.rc:385
+#: comdlg32.rc:386
 msgid "&Selection"
 msgstr "&Sélection"
 
-#: comdlg32.rc:388
+#: comdlg32.rc:389
 msgid "&from:"
 msgstr "&de :"
 
-#: comdlg32.rc:389
+#: comdlg32.rc:390
 msgid "&to:"
 msgstr "&à :"
 
-#: comdlg32.rc:415 winecfg.rc:300
+#: comdlg32.rc:416 winecfg.rc:300
 msgid "Si&ze:"
 msgstr "Tai&lle :"
 
-#: comdlg32.rc:417
+#: comdlg32.rc:418
 msgid "&Source:"
 msgstr "Source :"
 
-#: comdlg32.rc:422
+#: comdlg32.rc:423
 msgid "P&ortrait"
 msgstr "&Portrait"
 
-#: comdlg32.rc:423
+#: comdlg32.rc:424
 msgid "L&andscape"
 msgstr "Pa&ysage"
 
-#: comdlg32.rc:428
+#: comdlg32.rc:429
 msgid "Setup Page"
 msgstr "Mise en page"
 
-#: comdlg32.rc:437
+#: comdlg32.rc:438
 msgid "&Tray:"
 msgstr "&Bac :"
 
-#: comdlg32.rc:440 wineps.rc:35
+#: comdlg32.rc:441 wineps.rc:35
 msgid "&Portrait"
 msgstr "&Portrait"
 
-#: comdlg32.rc:443
+#: comdlg32.rc:444
 msgid "L&eft:"
 msgstr "&Gauche :"
 
-#: comdlg32.rc:445 notepad.rc:112
+#: comdlg32.rc:446 notepad.rc:112
 msgid "&Right:"
 msgstr "&Droite :"
 
-#: comdlg32.rc:447
+#: comdlg32.rc:448
 msgid "T&op:"
 msgstr "&Haut :"
 
-#: comdlg32.rc:449 notepad.rc:114
+#: comdlg32.rc:450 notepad.rc:114
 msgid "&Bottom:"
 msgstr "&Bas :"
 
-#: comdlg32.rc:453
+#: comdlg32.rc:454
 msgid "P&rinter..."
 msgstr "&Imprimante..."
 
-#: comdlg32.rc:461
+#: comdlg32.rc:462
 msgid "Look &in:"
 msgstr "&Rechercher dans :"
 
-#: comdlg32.rc:467
+#: comdlg32.rc:468
 msgid "File &name:"
 msgstr "&Nom du fichier :"
 
-#: comdlg32.rc:471
+#: comdlg32.rc:472
 msgid "Files of &type:"
 msgstr "Fichiers du &type :"
 
-#: comdlg32.rc:474
+#: comdlg32.rc:475
 msgid "Open as &read-only"
 msgstr "&Lecture seule"
 
-#: comdlg32.rc:476 comdlg32.rc:494 shdoclc.rc:127 shell32.rc:99
+#: comdlg32.rc:477 comdlg32.rc:495 shdoclc.rc:127 shell32.rc:99
 msgid "&Open"
 msgstr "&Ouvrir"
 
-#: comdlg32.rc:487
+#: comdlg32.rc:488
 msgid "File name:"
 msgstr "Nom du fichier :"
 
-#: comdlg32.rc:490
+#: comdlg32.rc:491
 msgid "Files of type:"
 msgstr "Fichiers du type :"
 
@@ -848,7 +848,7 @@ msgstr "Le fichier n'existe pas"
 
 #: comdlg32.rc:40
 msgid "The selection contains a non-folder object"
-msgstr "La sélection contient un objet non-dossier"
+msgstr "La sélection contient un élément qui n'est pas un dossier"
 
 #: comdlg32.rc:45
 msgid "Up One Level"
@@ -1042,6 +1042,10 @@ msgstr "Ouvrir le fichier"
 #: comdlg32.rc:147
 msgid "Select Folder"
 msgstr "Sélectionnez un dossier"
+
+#: comdlg32.rc:148
+msgid "Font size has to be a number."
+msgstr "La taille de police doit être un nombre."
 
 #: comdlg32.rc:83 oleview.rc:98
 msgid "Ready"
@@ -1489,7 +1493,7 @@ msgstr "Contraintes de nom"
 
 #: crypt32.rc:97
 msgid "Policy Mappings"
-msgstr "Mappings de politiques"
+msgstr "Correspondance de politiques"
 
 #: crypt32.rc:98
 msgid "Policy Constraints"
@@ -1505,7 +1509,7 @@ msgstr "Politiques applicatives"
 
 #: crypt32.rc:101
 msgid "Application Policy Mappings"
-msgstr "Mappings de politiques applicatives"
+msgstr "Correspondances de politiques applicatives"
 
 #: crypt32.rc:102
 msgid "Application Policy Constraints"
@@ -3205,7 +3209,7 @@ msgstr "Afficher les &onglets"
 msgid "Show"
 msgstr "Afficher"
 
-#: hhctrl.rc:43
+#: hhctrl.rc:43 winemac.rc:34
 msgid "Hide"
 msgstr "Cacher"
 
@@ -6671,7 +6675,7 @@ msgstr "Cette connexion réseau n'existe pas.\n"
 
 #: winerror.mc:3746
 msgid "Connection reset by peer.\n"
-msgstr "Connexion cloturée par le pair.\n"
+msgstr "Connexion fermée par le pair.\n"
 
 #: localspl.rc:31 localui.rc:31 winspool.rc:30
 msgid "Local Port"
@@ -8623,6 +8627,50 @@ msgstr "Sélection de fenêtre"
 msgid "&More Windows..."
 msgstr "&Plus de fenêtres..."
 
+#: winemac.rc:32 wineboot.rc:42
+msgid "Wine"
+msgstr "Wine"
+
+#: winemac.rc:33
+msgid "Hide %@"
+msgstr "Cacher %@"
+
+#: winemac.rc:35
+msgid "Hide Others"
+msgstr "Cacher les autres"
+
+#: winemac.rc:36
+msgid "Show All"
+msgstr "Tout afficher"
+
+#: winemac.rc:37
+msgid "Quit %@"
+msgstr "Quitter %@"
+
+#: winemac.rc:38
+msgid "Quit"
+msgstr "Quitter"
+
+#: winemac.rc:40
+msgid "Window"
+msgstr "Fenêtre"
+
+#: winemac.rc:41
+msgid "Minimize"
+msgstr "Réduire"
+
+#: winemac.rc:42
+msgid "Zoom"
+msgstr "Zoom"
+
+#: winemac.rc:43
+msgid "Enter Full Screen"
+msgstr "Plein écran"
+
+#: winemac.rc:44
+msgid "Bring All to Front"
+msgstr "Tout amener à l'avant-plan"
+
 #: wineps.rc:31
 msgid "Paper Si&ze:"
 msgstr "&Taille du papier :"
@@ -9601,7 +9649,7 @@ msgstr ""
 "\n"
 "Syntaxe :\n"
 "ATTRIB [+R | -R] [+A | -A ] [+S | -S] [+H | -H] [lecteur:][chemin]"
-"[nomFichier]\n"
+"[nom_fichier]\n"
 "       [/S [/D]]\n"
 "\n"
 "Où :\n"
@@ -9612,7 +9660,7 @@ msgstr ""
 "  A   Attribut de fichier archive.\n"
 "  S   Attribut de fichier système.\n"
 "  H   Attribut de fichier caché.\n"
-"  [lecteur:][chemin][nomFichier]\n"
+"  [lecteur:][chemin][nom_fichier]\n"
 "      Spécifie un ou plusieurs fichiers qu'attrib doit traiter.\n"
 "  /S  Traite les fichiers correspondants dans le dossier courant\n"
 "      et tous les sous-dossiers.\n"
@@ -9664,12 +9712,14 @@ msgid ""
 "Changes to default directory, environment variables etc made within a\n"
 "called procedure are inherited by the caller.\n"
 msgstr ""
-"CALL <fichierbatch> sert à appeler un fichier batch depuis un autre fichier\n"
-"batch. Quand le fichier batch sort, le contrôle revient au fichier qui l'a\n"
-"appelé. La commande CALL doit être suivie des de la procédure appelée.\n"
+"CALL <fichier_commandes> appelle un fichier de commandes depuis un autre\n"
+"fichier de commandes. Quand le fichier appelé sort, le contrôle revient au\n"
+"fichier appelant.\n"
+"La commande CALL peut fournir des paramètres du fichier invoqué.\n"
 "\n"
-"Les changements de répertoire courant, de variables d'environnement etc.\n"
-"effectués dans une procédure appelée sont transmis à l'appelant.\n"
+"Les changements de répertoire courant, de variables d'environnement et "
+"autres\n"
+"effectués dans le fichier appelé sont répercutés dans l'appelant.\n"
 
 #: cmd.rc:44
 msgid ""
@@ -9739,7 +9789,7 @@ msgid ""
 "\n"
 "The % sign must be doubled when using FOR in a batch file.\n"
 msgstr ""
-"L1 commande FOR sert à exécuter une commande pour chaque fichier d'une\n"
+"La commande FOR sert à exécuter une commande pour chaque fichier d'une\n"
 "liste de fichiers.\n"
 "\n"
 "Usage : FOR %variable IN (liste) DO commande\n"
@@ -9760,13 +9810,13 @@ msgid ""
 "GOTO has no effect when used interactively.\n"
 msgstr ""
 "La commande GOTO transfère l'exécution à une autre commande (située après\n"
-"une étiquette donnée) dans un fichier batch.\n"
+"une étiquette donnée) dans un fichier de commandes.\n"
 "\n"
 "L'étiquette cible du GOTO a une longueur de maximum 255 caractères mais ne\n"
 "peut inclure d'espaces (à la différence d'autres systèmes d'exploitation).\n"
 "Si deux étiquettes identiques (ou plus) existent dans le même fichier,\n"
 "seule la première sera utilisée. Essayer de sauter vers une étiquette non\n"
-"existante termine l'exécution du fichier batch.\n"
+"existante termine l'exécution du fichier de commandes.\n"
 "\n"
 "GOTO n'a pas d'effet si utilisé interactivement.\n"
 
@@ -9852,8 +9902,8 @@ msgid ""
 msgstr ""
 "PATH affiche ou change le chemin de recherche de cmd.\n"
 "\n"
-"Entrer PATH seul affiche le réglage courant de PATH (dont la valeur\n"
-"initiale provient de la base de registre). Pour changer le réglage, faites\n"
+"Entrer PATH seul affiche la valeur courante de PATH (qui vient\n"
+"initialement de la base de registre). Pour changer le réglage, faites\n"
 "suivre la commande PATH par la nouvelle valeur.\n"
 "\n"
 "Il est aussi possible de modifier le PATH en utilisant la variable\n"
@@ -9870,7 +9920,7 @@ msgstr ""
 "PAUSE affiche un message à l'écran demandant à l'utilisateur d'appuyer sur\n"
 "une touche.\n"
 "\n"
-"Principalement utilisé dans des fichiers batchs pour permettre à\n"
+"Principalement utilisé dans les fichiers de commandes pour permettre à\n"
 "l'utilisateur de lire la sortie de la dernière commande avant qu'elle ne\n"
 "disparaisse de l'écran.\n"
 
@@ -9916,9 +9966,9 @@ msgstr ""
 "lecteur courant) suivi d'un signe « plus grand que » (>).\n"
 "(c.-à-d. la commande PROMPT $p$g).\n"
 "\n"
-"L'invite peut aussi être adaptée en modifiant la variable d'environnement\n"
-"PROMPT ; ainsi la commande « SET PROMPT=texte » a le même effet que\n"
-"« PROMPT texte ».\n"
+"L'invite peut aussi être modifiée via la variable d'environnement PROMPT ;\n"
+"ainsi la commande « SET PROMPT=texte » a le même effet que « PROMPT "
+"texte ».\n"
 
 #: cmd.rc:173
 msgid ""
@@ -9926,7 +9976,8 @@ msgid ""
 "and can therefore be used as a comment in a batch file.\n"
 msgstr ""
 "Une ligne de commande commençant par REM (suivi d'une espace) n'induit\n"
-"aucune action, et peut donc servir de commentaire dans un fichier batch.\n"
+"aucune action, et peut donc servir de commentaire dans un fichier de "
+"commandes.\n"
 
 #: cmd.rc:176
 msgid "REN <filename> is the short version of RENAME. It renames a file.\n"
@@ -9986,9 +10037,10 @@ msgid ""
 "list, so parameter 2 becomes parameter 1 and so on. It has no effect if\n"
 "called from the command line.\n"
 msgstr ""
-"SHIFT est utilisé dans un fichier batch pour enlever le premier paramètre\n"
-"de la liste ; ainsi, le paramètre 2 devient paramètre 1 et ainsi de suite.\n"
-"Il est sans effet s'il est appelé depuis la ligne de commande.\n"
+"SHIFT est utilisé dans un fichier de commandes pour enlever le premier\n"
+"paramètre de la liste ; ainsi, le paramètre 2 devient le paramètre 1 et "
+"ainsi\n"
+"de suite. Il est sans effet s'il est appelé depuis la ligne de commande.\n"
 
 #: cmd.rc:212 start.rc:56
 msgid ""
@@ -10046,8 +10098,8 @@ msgstr ""
 "/affinity masque Lancer le programme avec le masque d'affinité spécifié.\n"
 "/wait            Attendre que le programme lancé se termine, puis renvoyer\n"
 "                 son code de sortie.\n"
-"/unix            Utiliser un chemin Unix et lancer le fichier comme windows\n"
-"                 explorer.\n"
+"/unix            Interpréter fichier_programme ou fichier_document comme un\n"
+"                 chemin Unix.\n"
 "/ProgIDOpen      Ouvrir un document via le programme identifié par progID.\n"
 "/?               Afficher cette aide et se terminer.\n"
 
@@ -10100,7 +10152,7 @@ msgid ""
 "were introduced by a preceding SETLOCAL.\n"
 msgstr ""
 "ENDLOCAL met fin aux modifications locales de l'environnement dans un\n"
-"fichier batch, introduites à la suite d'un SETLOCAL préalable.\n"
+"fichier de commandes, introduites à la suite d'un SETLOCAL préalable.\n"
 
 #: cmd.rc:271
 msgid ""
@@ -10112,12 +10164,14 @@ msgid ""
 "settings are restored.\n"
 msgstr ""
 "SETLOCAL entame les modifications locales à l'environnement dans un fichier\n"
-"batch.\n"
+"de commandes.\n"
 "\n"
-"Les modifications apportées à l'environnement après un SETLOCAL sont\n"
-"locales au fichier batch, et sont préservées jusqu'au prochain ENDLOCAL\n"
-"(ou à défaut jusqu'à la fin du fichier), après quoi les réglages\n"
-"antérieurs de l'environnement sont restaurés.\n"
+"Les modifications apportées à l'environnement après un SETLOCAL sont "
+"locales\n"
+"au fichier de commandes, et sont préservées jusqu'au prochain ENDLOCAL (ou "
+"à\n"
+"défaut jusqu'à la fin du fichier), après quoi les réglages antérieurs de\n"
+"l'environnement sont restaurés.\n"
 
 #: cmd.rc:275
 msgid ""
@@ -10146,14 +10200,12 @@ msgid ""
 msgstr ""
 "ASSOC affiche ou modifie les associations d'extensions de fichiers.\n"
 "\n"
-"Syntaxe : ASSOC [.ext[=[typeFichier]]]\n"
+"Syntaxe : ASSOC [.ext[=[type_fichier]]]\n"
 "\n"
-"ASSOC sans paramètre affiche les associations d'extensions de fichiers en\n"
-"cours.\n"
-"Si utilisé uniquement avec une extension de fichier, affiche l'association\n"
-"actuelle.\n"
-"Si aucun type de fichiers n'est spécifié après le signe égal, supprime\n"
-"l'association courante, si elle existe.\n"
+"Sans paramètre ASSOC affiche les associations d'extensions de fichiers\n"
+"existantes. Si seule une extension de fichier est spécifiée, affiche\n"
+"l'association actuelle. Si aucun type de fichier n'est spécifié après le\n"
+"signe égal, supprime l'association courante, si elle existe.\n"
 
 #: cmd.rc:300
 msgid ""
@@ -10168,15 +10220,15 @@ msgid ""
 "Specifying no open command after the equal sign removes the command string\n"
 "associated to the specified file type.\n"
 msgstr ""
-"FTYPE affiche ou modifie les commandes d'ouvertures associées à des types\n"
+"FTYPE affiche ou modifie les commandes d'ouverture associées à des types\n"
 "de fichiers.\n"
 "\n"
-"Syntaxe : FTYPE [typeFichier[=[commandeOuverture]]]\n"
+"Syntaxe : FTYPE [type_fichier[=[commande_ouverture]]]\n"
 "\n"
 "Sans paramètre, affiche les types de fichiers pour lesquels des chaînes de\n"
 "commande d'ouverture sont actuellement définies.\n"
-"Si seul un type de fichier est utilisé, affiche la chaîne de commande\n"
-"d'ouverture associée, si elle existe.\n"
+"Si seul un type de fichier est spécifié, affiche la chaîne de commande\n"
+"d'ouverture associée si elle existe.\n"
 "Ne spécifier aucune commande après le signe égal supprime la commande\n"
 "d'ouverture associée au type de fichier spécifié.\n"
 
@@ -10192,8 +10244,8 @@ msgid ""
 msgstr ""
 "CHOICE affiche un message et bloque jusqu'à ce que l'utilisateur appuie sur\n"
 "une des touches spécifiées dans une liste configurable.\n"
-"CHOICE est principalement utilisé pour construire une sélection de menu\n"
-"dans un fichier batch.\n"
+"CHOICE est principalement utilisé pour construire un menu dans un fichier\n"
+"de commandes.\n"
 
 #: cmd.rc:312
 msgid ""
@@ -10247,7 +10299,7 @@ msgstr ""
 "Les commandes intégrées de CMD sont :\n"
 "ASSOC\t\tAffiche ou modifie les associations d'extensions de fichiers\n"
 "ATTRIB\t\tAffiche ou modifie les attributs de fichiers DOS\n"
-"CALL\t\tInvoque un fichier batch à l'intérieur d'un autre\n"
+"CALL\t\tInvoque un fichier de commandes depuis un autre\n"
 "CD (CHDIR)\tChange le répertoire courant\n"
 "CHOICE\t\tAttend l'appui d'une touche appartenant à une liste configurable\n"
 "CLS\t\tEfface l'écran\n"
@@ -10258,15 +10310,15 @@ msgstr ""
 "DIR\t\tListe le contenu d'un répertoire\n"
 "ECHO\t\tAffiche du texte sur la console\n"
 "ENDLOCAL\tMet fin aux modifications locales de l'environnement dans un\n"
-"\t\tfichier batch\n"
-"FTYPE\t\tAffiche ou modifie les commandes d'ouvertures associées à des\n"
+"\t\tfichier de commandes\n"
+"FTYPE\t\tAffiche ou modifie les commandes d'ouverture associées à des\n"
 "\t\ttypes de fichiers\n"
 "HELP\t\tAffiche de brefs détails sur l'utilisation d'une commande\n"
 "MD (MKDIR)\tCrée un répertoire\n"
 "MORE\t\tAffiche du texte par pages\n"
 "MOVE\t\tDéplace un fichier, un groupe de fichiers ou un répertoire\n"
 "PATH\t\tRègle ou affiche le chemin de recherche\n"
-"PAUSE\t\tSuspend l'exécution d'un fichier batch\n"
+"PAUSE\t\tSuspend l'exécution d'un fichier de commandes\n"
 "POPD\t\tRemplace le répertoire courant par le dernier enregistré avec\n"
 "\t\tPUSHD\n"
 "PROMPT\t\tChange l'invite de commande\n"
@@ -10275,7 +10327,7 @@ msgstr ""
 "RD (RMDIR)\tEfface un répertoire\n"
 "SET\t\tRègle ou affiche les variables d'environnement\n"
 "SETLOCAL\tEntame les modifications locales à l'environnement dans un\n"
-"\t\tfichier batch\n"
+"\t\tfichier de commandes\n"
 "START\t\tLance un programme, ou ouvre un document dans le programme\n"
 "\t\tassocié\n"
 "TIME\t\tRègle ou affiche l'heure système courante\n"
@@ -10293,12 +10345,12 @@ msgstr ""
 msgid "Are you sure?"
 msgstr "Êtes-vous sûr(e) ?"
 
-#: cmd.rc:354 xcopy.rc:43
+#: cmd.rc:354 reg.rc:45 xcopy.rc:43
 msgctxt "Yes key"
 msgid "Y"
 msgstr "O"
 
-#: cmd.rc:355 xcopy.rc:44
+#: cmd.rc:355 reg.rc:46 xcopy.rc:44
 msgctxt "No key"
 msgid "N"
 msgstr "N"
@@ -10321,7 +10373,8 @@ msgstr "Plus..."
 
 #: cmd.rc:360
 msgid "Line in Batch processing possibly truncated. Using:\n"
-msgstr "Ligne du processus batch probablement tronquée. Utilisation de :\n"
+msgstr ""
+"Ligne du fichier de commandes probablement tronquée. Utilisation de :\n"
 
 #: cmd.rc:362
 msgid "Argument missing\n"
@@ -10365,7 +10418,8 @@ msgstr "Impossible d'ouvrir « %1 »\n"
 
 #: cmd.rc:373
 msgid "Cannot call batch label outside of a batch script\n"
-msgstr "Impossible d'appeler une étiquette de batch hors d'un script batch\n"
+msgstr ""
+"Impossible de sauter vers une étiquette hors d'un fichier de commandes\n"
 
 #: cmd.rc:374 xcopy.rc:45
 msgctxt "All key"
@@ -10436,7 +10490,7 @@ msgstr "Le volume dans le lecteur %1!c! est %2\n"
 msgid "Volume in drive %1!c! has no label.\n"
 msgstr "Le volume dans le lecteur %1!c! n'a pas de label.\n"
 
-#: cmd.rc:390
+#: cmd.rc:390 reg.rc:44
 msgid " (Yes|No)"
 msgstr " (Oui|Non)"
 
@@ -10449,7 +10503,7 @@ msgid ""
 "Can't recognize '%1' as an internal or external command, or batch script.\n"
 msgstr ""
 "Ne reconnaît pas « %1 » comme commande interne ou externe, ou fichier de "
-"traitement par lots.\n"
+"commandes.\n"
 
 #: cmd.rc:393
 msgid "Division by zero error.\n"
@@ -10749,11 +10803,11 @@ msgstr "Octets"
 
 #: netstat.rc:39
 msgid "Unicast packets"
-msgstr "Paquets monodiffusion"
+msgstr "Paquets unicast"
 
 #: netstat.rc:40
 msgid "Non-unicast packets"
-msgstr "Paquets non monodiffusion"
+msgstr "Paquets non unicast"
 
 #: netstat.rc:41
 msgid "Discards"
@@ -11653,27 +11707,72 @@ msgid "The operation completed successfully\n"
 msgstr "L'opération s'est terminée avec succès\n"
 
 #: reg.rc:35
-msgid "Error: Invalid key name\n"
+#, fuzzy
+#| msgid "Error: Invalid key name\n"
+msgid "reg: Invalid key name\n"
 msgstr "Erreur : nom de clé invalide\n"
 
 #: reg.rc:36
-msgid "Error: Invalid command line parameters\n"
+#, fuzzy
+#| msgid "Error: Invalid command line parameters\n"
+msgid "reg: Invalid command line parameters\n"
 msgstr "Erreur : paramètre de ligne de commande invalide\n"
 
 #: reg.rc:37
-msgid "Error: Unable to access remote machine\n"
+#, fuzzy
+#| msgid "Error: Unable to access remote machine\n"
+msgid "reg: Unable to access remote machine\n"
 msgstr "Erreur : impossible d'accéder à une machine distante\n"
 
 #: reg.rc:38
+#, fuzzy
+#| msgid ""
+#| "Error: The system was unable to find the specified registry key or value\n"
 msgid ""
-"Error: The system was unable to find the specified registry key or value\n"
+"reg: The system was unable to find the specified registry key or value\n"
 msgstr ""
 "Erreur : le système n'a pas pu trouver la clé ou la valeur de registre "
 "spécifiée\n"
 
 #: reg.rc:39
-msgid "Error: Unsupported type\n"
+#, fuzzy
+#| msgid "Error: Unsupported type\n"
+msgid "reg: Unsupported registry data type [%1]\n"
 msgstr "Erreur : type non pris en charge\n"
+
+#: reg.rc:40
+#, fuzzy
+#| msgid ""
+#| "uninstaller: The option '--remove' must be followed by an application "
+#| "GUID\n"
+msgid "reg: The option [/d] must be followed by a valid integer\n"
+msgstr ""
+"uninstaller : l'option « --remove » doit être suivie d'un GUID "
+"d'application\n"
+
+#: reg.rc:41
+#, fuzzy
+#| msgid ""
+#| "uninstaller: The option '--remove' must be followed by an application "
+#| "GUID\n"
+msgid "reg: The option [/d] must be followed by a valid hexadecimal value\n"
+msgstr ""
+"uninstaller : l'option « --remove » doit être suivie d'un GUID "
+"d'application\n"
+
+#: reg.rc:42
+msgid "reg: Unhandled registry data type [/t 0x%1!x!, /d %2]\n"
+msgstr ""
+
+#: reg.rc:43
+#, fuzzy
+#| msgid "The specified file already exists. Do you want to replace it?"
+msgid "The registry value '%1' already exists. Do you want to overwrite it?"
+msgstr "Le fichier spécifié existe déjà. Voulez-vous le remplacer ?"
+
+#: reg.rc:47
+msgid "The registry operation was cancelled\n"
+msgstr ""
 
 #: regedit.rc:34
 msgid "&Registry"
@@ -12051,7 +12150,7 @@ msgid ""
 "\n"
 msgstr ""
 "Usage :\n"
-"  regsvr32 [/u] [/s] [/n] [/i[:commande]] NomDLL\n"
+"  regsvr32 [/u] [/s] [/n] [/i[:commande]] nom_dll\n"
 "\n"
 "Options:\n"
 "  [/u]  Annuler l'enregistrement d'un serveur.\n"
@@ -12068,7 +12167,7 @@ msgid ""
 "regsvr32: Invalid or unrecognized switch [%1]\n"
 "\n"
 msgstr ""
-"regsvr32: Option [%1] invalide ou non reconnue\n"
+"regsvr32 : Option [%1] invalide ou non reconnue\n"
 "\n"
 
 #: regsvr32.rc:42
@@ -12129,7 +12228,7 @@ msgstr ""
 
 #: taskkill.rc:30
 msgid "Usage: taskkill [/?] [/f] [/im ProcessName | /pid ProcessID]\n"
-msgstr "Usage : taskkill [/?] [/f] [/im NomProcessus | /pid IdProcessus]\n"
+msgstr "Usage : taskkill [/?] [/f] [/im nom_processus | /pid id_processus]\n"
 
 #: taskkill.rc:31
 msgid "Error: Unknown or invalid command line option specified.\n"
@@ -13049,7 +13148,7 @@ msgstr ""
 "\n"
 "Options :\n"
 "  --help\t    Afficher ces informations.\n"
-"  --list\t    Lister toutes les applications installées dans ce préfix "
+"  --list\t    Lister toutes les applications installées dans ce préfixe "
 "Wine.\n"
 "  --remove {GUID}   Désinstaller l'application spécifiée.\n"
 "\t\t    Utilisez « --list » pour déterminer le GUID de l'application.\n"
@@ -13095,10 +13194,6 @@ msgstr ""
 "mais ce programme ne répond pas.\n"
 "\n"
 "Si vous l'arrêtez, vous pouvez perdre toutes les données non enregistrées."
-
-#: wineboot.rc:42
-msgid "Wine"
-msgstr "Wine"
 
 #: wineboot.rc:46
 msgid "The Wine configuration in %s is being updated, please wait..."
@@ -13146,8 +13241,8 @@ msgstr ""
 "onglets."
 
 #: winecfg.rc:159
-msgid "&Add application..."
-msgstr "&Ajouter une application..."
+msgid "Add appli&cation..."
+msgstr "Ajouter une appli&cation..."
 
 #: winecfg.rc:160
 msgid "&Remove application"
@@ -13208,9 +13303,9 @@ msgstr ""
 msgid "&New override for library:"
 msgstr "&Nouveau remplacement pour :"
 
-#: winecfg.rc:196 wordpad.rc:247
-msgid "&Add"
-msgstr "A&jouter"
+#: winecfg.rc:196
+msgid "A&dd"
+msgstr "Ajou&ter"
 
 #: winecfg.rc:197
 msgid "Existing &overrides:"
@@ -13237,7 +13332,7 @@ msgid "&Native (Windows)"
 msgstr "&native (Windows)"
 
 #: winecfg.rc:211
-msgid "Bui&ltin then Native"
+msgid "Buil&tin then Native"
 msgstr "i&ntégrée puis native"
 
 #: winecfg.rc:212
@@ -13261,24 +13356,24 @@ msgstr ""
 "n'a pu être éditée."
 
 #: winecfg.rc:236
-msgid "&Add..."
-msgstr "&Ajouter..."
+msgid "A&dd..."
+msgstr "Ajo&uter..."
 
 #: winecfg.rc:238
-msgid "Auto&detect"
-msgstr "&Détection automatique"
+msgid "Aut&odetect"
+msgstr "Aut&o-détection"
 
 #: winecfg.rc:241
 msgid "&Path:"
 msgstr "&Chemin :"
 
 #: winecfg.rc:248 winecfg.rc:38
-msgid "Show &Advanced"
-msgstr "Afficher les dé&tails"
+msgid "Show Advan&ced"
+msgstr "Afficher les &détails"
 
 #: winecfg.rc:249
 msgid "De&vice:"
-msgstr "&Périphérique :"
+msgstr "Périp&hérique :"
 
 #: winecfg.rc:251
 msgid "Bro&wse..."
@@ -13286,15 +13381,15 @@ msgstr "&Parcourir..."
 
 #: winecfg.rc:253
 msgid "&Label:"
-msgstr "É&tiquette :"
+msgstr "Ét&iquette :"
 
 #: winecfg.rc:255
 msgid "S&erial:"
-msgstr "N° de &série :"
+msgstr "N° de sé&rie :"
 
 #: winecfg.rc:258
-msgid "Show &dot files"
-msgstr "Montrer les fichiers cachés"
+msgid "&Show dot files"
+msgstr "&Montrer les fichiers cachés"
 
 #: winecfg.rc:265
 msgid "Driver diagnostics"
@@ -13373,8 +13468,8 @@ msgid "Select the Unix target directory, please."
 msgstr "Veuillez sélectionner le répertoire Unix cible."
 
 #: winecfg.rc:37
-msgid "Hide &Advanced"
-msgstr "Cacher les dé&tails"
+msgid "Hide Advan&ced"
+msgstr "Cacher les &détails"
 
 #: winecfg.rc:39
 msgid "(No Theme)"
@@ -13438,7 +13533,7 @@ msgstr "(Valeur par défaut du système)"
 
 #: winecfg.rc:91
 msgid "5.1 Surround"
-msgstr "Ambiophonique 5.1"
+msgstr "Multicanal 5.1"
 
 #: winecfg.rc:92
 msgid "Quadraphonic"
@@ -13837,7 +13932,11 @@ msgid "Configuration error"
 msgstr "Erreur de configuration"
 
 #: wineconsole.rc:42
-msgid "Screen buffer size must be greater or equal to the window's one"
+#, fuzzy
+#| msgid "Screen buffer size must be greater or equal to the window's one"
+msgid ""
+"The size of the screen buffer must be greater than or equal to the size of "
+"the window."
 msgstr ""
 "La taille du tampon écran doit être plus grande ou égale à celle du tampon "
 "de la fenêtre"
@@ -14547,6 +14646,10 @@ msgstr "Tabulations"
 #: wordpad.rc:245
 msgid "Tab stops"
 msgstr "Taquets de tabulation"
+
+#: wordpad.rc:247
+msgid "&Add"
+msgstr "A&jouter"
 
 #: wordpad.rc:251
 msgid "Remove al&l"

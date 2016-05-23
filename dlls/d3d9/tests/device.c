@@ -22,6 +22,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#define WINVER 0x0602 /* for CURSOR_SUPPRESSED */
 #define COBJMACROS
 #include <d3d9.h>
 #include "wine/test.h"
@@ -1002,9 +1003,94 @@ cleanup:
 
 static void test_checkdevicemultisampletype(void)
 {
-    IDirect3DDevice9 *device;
     DWORD quality_levels;
     IDirect3D9 *d3d;
+    HWND window;
+    HRESULT hr;
+
+    window = CreateWindowA("d3d9_test_wc", "d3d9_test", WS_OVERLAPPEDWINDOW,
+            0, 0, 640, 480, NULL, NULL, NULL, NULL);
+    ok(!!window, "Failed to create a window.\n");
+    d3d = Direct3DCreate9(D3D_SDK_VERSION);
+    ok(!!d3d, "Failed to create a D3D object.\n");
+
+    if (IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_2_SAMPLES, NULL) == D3DERR_NOTAVAILABLE)
+    {
+        skip("Multisampling not supported for D3DFMT_X8R8G8B8, skipping test.\n");
+        goto cleanup;
+    }
+
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_UNKNOWN, TRUE, D3DMULTISAMPLE_NONE, NULL);
+    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            65536, TRUE, D3DMULTISAMPLE_NONE, NULL);
+    todo_wine ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONE, NULL);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+
+    quality_levels = 0;
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONE, &quality_levels);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    ok(quality_levels == 1, "Got unexpected quality_levels %u.\n", quality_levels);
+    quality_levels = 0;
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, FALSE, D3DMULTISAMPLE_NONE, &quality_levels);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    ok(quality_levels == 1, "Got unexpected quality_levels %u.\n", quality_levels);
+
+    quality_levels = 0;
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONMASKABLE, NULL);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONMASKABLE, &quality_levels);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    ok(quality_levels, "Got unexpected quality_levels %u.\n", quality_levels);
+
+    quality_levels = 0;
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_2_SAMPLES, NULL);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_2_SAMPLES, &quality_levels);
+    ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+    ok(quality_levels, "Got unexpected quality_levels %u.\n", quality_levels);
+
+    /* We assume D3DMULTISAMPLE_15_SAMPLES is never supported in practice. */
+    quality_levels = 0;
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_15_SAMPLES, NULL);
+    ok(hr == D3DERR_NOTAVAILABLE, "Got unexpected hr %#x.\n", hr);
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_15_SAMPLES, &quality_levels);
+    ok(hr == D3DERR_NOTAVAILABLE, "Got unexpected hr %#x.\n", hr);
+    ok(quality_levels == 1, "Got unexpected quality_levels %u.\n", quality_levels);
+
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, 65536, NULL);
+    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+
+    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_DXT5, TRUE, D3DMULTISAMPLE_2_SAMPLES, NULL);
+    ok(hr == D3DERR_NOTAVAILABLE, "Got unexpected hr %#x.\n", hr);
+
+cleanup:
+    IDirect3D9_Release(d3d);
+    DestroyWindow(window);
+}
+
+static void test_invalid_multisample(void)
+{
+    IDirect3DDevice9 *device;
+    IDirect3DSurface9 *rt;
+    DWORD quality_levels;
+    IDirect3D9 *d3d;
+    BOOL available;
     ULONG refcount;
     HWND window;
     HRESULT hr;
@@ -1014,34 +1100,58 @@ static void test_checkdevicemultisampletype(void)
     ok(!!window, "Failed to create a window.\n");
     d3d = Direct3DCreate9(D3D_SDK_VERSION);
     ok(!!d3d, "Failed to create a D3D object.\n");
+
     if (!(device = create_device(d3d, window, NULL)))
     {
         skip("Failed to create a 3D device, skipping test.\n");
         goto cleanup;
     }
 
-    quality_levels = 0;
-    hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
-            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONE, &quality_levels);
-    ok(SUCCEEDED(hr) || hr == D3DERR_NOTAVAILABLE, "CheckDeviceMultiSampleType failed with (%08x)\n", hr);
-    if (hr == D3DERR_NOTAVAILABLE)
+    available = SUCCEEDED(IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+                    D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_NONMASKABLE, &quality_levels));
+    hr = IDirect3DDevice9_CreateRenderTarget(device, 128, 128,
+            D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONMASKABLE, 0, FALSE, &rt, NULL);
+    if (available)
     {
-        skip("IDirect3D9_CheckDeviceMultiSampleType not available\n");
-        goto cleanup;
+        ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+        IDirect3DSurface9_Release(rt);
+        hr = IDirect3DDevice9_CreateRenderTarget(device, 128, 128,
+                D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONMASKABLE, quality_levels, FALSE, &rt, NULL);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
     }
-    ok(quality_levels == 1, "Got unexpected quality_levels %u.\n", quality_levels);
+    else
+    {
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+    }
 
+    available = SUCCEEDED(IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_2_SAMPLES, &quality_levels));
+    hr = IDirect3DDevice9_CreateRenderTarget(device, 128, 128,
+            D3DFMT_X8R8G8B8, D3DMULTISAMPLE_2_SAMPLES, 0, FALSE, &rt, NULL);
+    if (available)
+    {
+        ok(SUCCEEDED(hr), "Got unexpected hr %#x.\n", hr);
+        IDirect3DSurface9_Release(rt);
+        hr = IDirect3DDevice9_CreateRenderTarget(device, 128, 128,
+                D3DFMT_X8R8G8B8, D3DMULTISAMPLE_2_SAMPLES, quality_levels, FALSE, &rt, NULL);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+    }
+    else
+    {
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+    }
+
+    /* We assume D3DMULTISAMPLE_15_SAMPLES is never supported in practice. */
     hr = IDirect3D9_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
-            D3DFMT_X8R8G8B8, FALSE, D3DMULTISAMPLE_NONE, &quality_levels);
-    ok(SUCCEEDED(hr), "CheckDeviceMultiSampleType failed with (%08x)\n", hr);
-    ok(quality_levels == 1, "Got unexpected quality_levels %u.\n", quality_levels);
+            D3DFMT_X8R8G8B8, TRUE, D3DMULTISAMPLE_15_SAMPLES, NULL);
+    ok(hr == D3DERR_NOTAVAILABLE, "Got unexpected hr %#x.\n", hr);
+    hr = IDirect3DDevice9_CreateRenderTarget(device, 128, 128,
+            D3DFMT_X8R8G8B8, D3DMULTISAMPLE_15_SAMPLES, 0, FALSE, &rt, NULL);
+    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
 
+    refcount = IDirect3DDevice9_Release(device);
+    ok(!refcount, "Device has %u references left.\n", refcount);
 cleanup:
-    if (device)
-    {
-        refcount = IDirect3DDevice9_Release(device);
-        ok(!refcount, "Device has %u references left.\n", refcount);
-    }
     IDirect3D9_Release(d3d);
     DestroyWindow(window);
 }
@@ -1657,7 +1767,7 @@ static void test_cursor(void)
     memset(&info, 0, sizeof(info));
     info.cbSize = sizeof(info);
     ok(GetCursorInfo(&info), "GetCursorInfo failed\n");
-    ok(info.flags & CURSOR_SHOWING, "The gdi cursor is hidden (%08x)\n", info.flags);
+    ok(info.flags & (CURSOR_SHOWING|CURSOR_SUPPRESSED), "The gdi cursor is hidden (%08x)\n", info.flags);
     ok(info.hCursor == cur, "The cursor handle is %p\n", info.hCursor); /* unchanged */
 
     /* Still hidden */
@@ -1671,7 +1781,7 @@ static void test_cursor(void)
     memset(&info, 0, sizeof(info));
     info.cbSize = sizeof(info);
     ok(GetCursorInfo(&info), "GetCursorInfo failed\n");
-    ok(info.flags & CURSOR_SHOWING, "The gdi cursor is hidden (%08x)\n", info.flags);
+    ok(info.flags & (CURSOR_SHOWING|CURSOR_SUPPRESSED), "The gdi cursor is hidden (%08x)\n", info.flags);
     ok(info.hCursor != cur, "The cursor handle is %p\n", info.hCursor);
 
     refcount = IDirect3DDevice9_Release(device);
@@ -7031,12 +7141,30 @@ static void test_lockrect_invalid(void)
     IDirect3DSurface9 *surface = NULL;
     D3DLOCKED_RECT locked_rect;
     IDirect3DDevice9 *device;
+    IDirect3DTexture9 *texture;
+    IDirect3DCubeTexture9 *cube_texture;
     IDirect3D9 *d3d;
-    unsigned int i;
+    unsigned int i, r;
     ULONG refcount;
     HWND window;
     BYTE *base;
     HRESULT hr;
+    static const struct
+    {
+        D3DRESOURCETYPE type;
+        D3DPOOL pool;
+        const char *name;
+    }
+    resources[] =
+    {
+        {D3DRTYPE_SURFACE, D3DPOOL_SCRATCH, "scratch surface"},
+        {D3DRTYPE_TEXTURE, D3DPOOL_MANAGED, "managed texture"},
+        {D3DRTYPE_TEXTURE, D3DPOOL_SYSTEMMEM, "sysmem texture"},
+        {D3DRTYPE_TEXTURE, D3DPOOL_SCRATCH, "scratch texture"},
+        {D3DRTYPE_CUBETEXTURE, D3DPOOL_MANAGED, "default cube texture"},
+        {D3DRTYPE_CUBETEXTURE, D3DPOOL_SYSTEMMEM, "sysmem cube texture"},
+        {D3DRTYPE_CUBETEXTURE, D3DPOOL_SCRATCH, "scratch cube texture"},
+    };
 
     window = CreateWindowA("d3d9_test_wc", "d3d9_test", WS_OVERLAPPEDWINDOW,
             0, 0, 640, 480, 0, 0, 0, 0);
@@ -7050,68 +7178,226 @@ static void test_lockrect_invalid(void)
         return;
     }
 
-    hr = IDirect3DDevice9_CreateOffscreenPlainSurface(device, 128, 128,
-            D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, NULL);
-    ok(SUCCEEDED(hr), "Failed to create surface, hr %#x.\n", hr);
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
-    ok(SUCCEEDED(hr), "Failed to lock surface, hr %#x.\n", hr);
-    base = locked_rect.pBits;
-    hr = IDirect3DSurface9_UnlockRect(surface);
-    ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x.\n", hr);
-
-    for (i = 0; i < (sizeof(test_data) / sizeof(*test_data)); ++i)
+    for (r = 0; r < sizeof(resources) / sizeof(*resources); ++r)
     {
-        unsigned int offset, expected_offset;
-        const RECT *rect = &test_data[i].rect;
+        texture = NULL;
+        cube_texture = NULL;
+        switch (resources[r].type)
+        {
+            case D3DRTYPE_SURFACE:
+                hr = IDirect3DDevice9_CreateOffscreenPlainSurface(device, 128, 128,
+                        D3DFMT_A8R8G8B8, D3DPOOL_SCRATCH, &surface, NULL);
+                ok(SUCCEEDED(hr), "Failed to create surface, hr %#x, type %s.\n",
+                        hr, resources[r].name);
+                break;
 
-        locked_rect.pBits = (BYTE *)0xdeadbeef;
-        locked_rect.Pitch = 0xdeadbeef;
+            case D3DRTYPE_TEXTURE:
+                hr = IDirect3DDevice9_CreateTexture(device, 128, 128, 1, 0, D3DFMT_A8R8G8B8,
+                        resources[r].pool, &texture, NULL);
+                ok(SUCCEEDED(hr), "Failed to create texture, hr %#x, type %s.\n",
+                        hr, resources[r].name);
+                hr = IDirect3DTexture9_GetSurfaceLevel(texture, 0, &surface);
+                ok(SUCCEEDED(hr), "Failed to get surface level, hr %#x, type %s.\n",
+                        hr, resources[r].name);
+                break;
 
-        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, rect, 0);
-        /* Windows XP accepts invalid locking rectangles, windows 7 rejects
-         * them. Some games (C&C3) depend on the XP behavior, mark the Win 7
-         * one broken. */
-        ok(SUCCEEDED(hr) || broken(hr == test_data[i].win7_result),
-                "Failed to lock surface with rect [%d, %d]->[%d, %d], hr %#x.\n",
-                rect->left, rect->top, rect->right, rect->bottom, hr);
-        if (FAILED(hr))
-            continue;
+            case D3DRTYPE_CUBETEXTURE:
+                hr = IDirect3DDevice9_CreateCubeTexture(device, 128, 1, 0, D3DFMT_A8R8G8B8,
+                        resources[r].pool, &cube_texture, NULL);
+                ok(SUCCEEDED(hr), "Failed to create cube texture, hr %#x, type %s.\n",
+                        hr, resources[r].name);
+                hr = IDirect3DCubeTexture9_GetCubeMapSurface(cube_texture,
+                        D3DCUBEMAP_FACE_NEGATIVE_X, 0, &surface);
+                ok(SUCCEEDED(hr), "Failed to get surface level, hr %#x, type %s.\n",
+                        hr, resources[r].name);
+                break;
 
-        offset = (BYTE *)locked_rect.pBits - base;
-        expected_offset = rect->top * locked_rect.Pitch + rect->left * 4;
-        ok(offset == expected_offset,
-                "Got unexpected offset %u (expected %u) for rect [%d, %d]->[%d, %d].\n",
-                offset, expected_offset, rect->left, rect->top, rect->right, rect->bottom);
+            default:
+                break;
+        }
 
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
+        ok(SUCCEEDED(hr), "Failed to lock surface, hr %#x, type %s.\n", hr, resources[r].name);
+        base = locked_rect.pBits;
         hr = IDirect3DSurface9_UnlockRect(surface);
-        ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x.\n", hr);
+        ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x, type %s.\n", hr, resources[r].name);
+
+        for (i = 0; i < sizeof(test_data) / sizeof(*test_data); ++i)
+        {
+            unsigned int offset, expected_offset;
+            const RECT *rect = &test_data[i].rect;
+
+            locked_rect.pBits = (BYTE *)0xdeadbeef;
+            locked_rect.Pitch = 0xdeadbeef;
+
+            hr = IDirect3DSurface9_LockRect(surface, &locked_rect, rect, 0);
+            /* Windows XP accepts invalid locking rectangles, windows 7 rejects
+             * them. Some games (C&C3) depend on the XP behavior, mark the Win 7
+             * one broken. */
+            ok(SUCCEEDED(hr) || broken(hr == test_data[i].win7_result),
+                    "Failed to lock surface with rect [%d, %d]->[%d, %d], hr %#x, type %s.\n",
+                    rect->left, rect->top, rect->right, rect->bottom, hr, resources[r].name);
+            if (FAILED(hr))
+                continue;
+
+            offset = (BYTE *)locked_rect.pBits - base;
+            expected_offset = rect->top * locked_rect.Pitch + rect->left * 4;
+            ok(offset == expected_offset,
+                    "Got unexpected offset %u (expected %u) for rect [%d, %d]->[%d, %d], type %s.\n",
+                    offset, expected_offset, rect->left, rect->top,
+                    rect->right, rect->bottom, resources[r].name);
+
+            hr = IDirect3DSurface9_UnlockRect(surface);
+            ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x, type %s.\n", hr, resources[r].name);
+
+            if (texture)
+            {
+                hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, rect, 0);
+                ok(SUCCEEDED(hr),
+                        "Failed to lock texture with rect [%d, %d]->[%d, %d], hr %#x, type %s.\n",
+                        rect->left, rect->top, rect->right, rect->bottom, hr, resources[r].name);
+                if (FAILED(hr))
+                    continue;
+
+                offset = (BYTE *)locked_rect.pBits - base;
+                expected_offset = rect->top * locked_rect.Pitch + rect->left * 4;
+                ok(offset == expected_offset,
+                        "Got unexpected offset %u (expected %u) for rect [%d, %d]->[%d, %d], type %s.\n",
+                        offset, expected_offset, rect->left, rect->top,
+                        rect->right, rect->bottom, resources[r].name);
+
+                hr = IDirect3DTexture9_UnlockRect(texture, 0);
+                ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+            }
+            if (cube_texture)
+            {
+                hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                        &locked_rect, rect, 0);
+                ok(SUCCEEDED(hr),
+                        "Failed to lock texture with rect [%d, %d]->[%d, %d], hr %#x, type %s.\n",
+                        rect->left, rect->top, rect->right, rect->bottom, hr, resources[r].name);
+                if (FAILED(hr))
+                    continue;
+
+                offset = (BYTE *)locked_rect.pBits - base;
+                expected_offset = rect->top * locked_rect.Pitch + rect->left * 4;
+                ok(offset == expected_offset,
+                        "Got unexpected offset %u (expected %u) for rect [%d, %d]->[%d, %d], type %s.\n",
+                        offset, expected_offset, rect->left, rect->top,
+                        rect->right, rect->bottom, resources[r].name);
+
+                hr = IDirect3DCubeTexture9_UnlockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0);
+                ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+            }
+        }
+
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
+        ok(SUCCEEDED(hr), "Failed to lock surface with rect NULL, hr %#x, type %s.\n", hr, resources[r].name);
+        locked_rect.pBits = (BYTE *)0xdeadbeef;
+        locked_rect.Pitch = 1;
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x, type %s.\n", hr, resources[r].name);
+        ok(locked_rect.pBits == (BYTE *)0xdeadbeef, "Got unexpected pBits: %p, type %s.\n",
+                locked_rect.pBits, resources[r].name);
+        ok(locked_rect.Pitch == 1, "Got unexpected pitch %d, type %s.\n",
+                locked_rect.Pitch, resources[r].name);
+        hr = IDirect3DSurface9_UnlockRect(surface);
+        ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x, type %s.\n", hr, resources[r].name);
+
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_data[0].rect, 0);
+        ok(hr == D3D_OK, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                hr, test_data[0].rect.left, test_data[0].rect.top,
+                test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_data[0].rect, 0);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                hr, test_data[0].rect.left, test_data[0].rect.top,
+                test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+        hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_rect_2, 0);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                hr, test_rect_2.left, test_rect_2.top,
+                test_rect_2.right, test_rect_2.bottom, resources[r].name);
+        hr = IDirect3DSurface9_UnlockRect(surface);
+        ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x, type %s.\n", hr, resources[r].name);
+
+        IDirect3DSurface9_Release(surface);
+
+        if (texture)
+        {
+            hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, NULL, 0);
+            ok(SUCCEEDED(hr), "Failed to lock texture with rect NULL, hr %#x, type %s.\n",
+                    hr, resources[r].name);
+            locked_rect.pBits = (BYTE *)0xdeadbeef;
+            locked_rect.Pitch = 1;
+            hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, NULL, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x, type %s.\n", hr, resources[r].name);
+            ok(locked_rect.pBits == (BYTE *)0xdeadbeef, "Got unexpected pBits: %p, type %s.\n",
+                    locked_rect.pBits, resources[r].name);
+            ok(locked_rect.Pitch == 1, "Got unexpected pitch %d, type %s.\n",
+                    locked_rect.Pitch, resources[r].name);
+            hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x, type %s.\n", hr, resources[r].name);
+            hr = IDirect3DTexture9_UnlockRect(texture, 0);
+            ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+
+            hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, &test_data[0].rect, 0);
+            ok(hr == D3D_OK, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_data[0].rect.left, test_data[0].rect.top,
+                    test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+            hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, &test_data[0].rect, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_data[0].rect.left, test_data[0].rect.top,
+                    test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+            hr = IDirect3DTexture9_LockRect(texture, 0, &locked_rect, &test_rect_2, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_rect_2.left, test_rect_2.top,
+                    test_rect_2.right, test_rect_2.bottom, resources[r].name);
+            hr = IDirect3DTexture9_UnlockRect(texture, 0);
+            ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+
+            IDirect3DTexture9_Release(texture);
+        }
+        if (cube_texture)
+        {
+            hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                    &locked_rect, NULL, 0);
+            ok(SUCCEEDED(hr), "Failed to lock texture with rect NULL, hr %#x, type %s.\n",
+                    hr, resources[r].name);
+            locked_rect.pBits = (BYTE *)0xdeadbeef;
+            locked_rect.Pitch = 1;
+            hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                    &locked_rect, NULL, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x, type %s.\n", hr, resources[r].name);
+            ok(locked_rect.pBits == (BYTE *)0xdeadbeef, "Got unexpected pBits: %p, type %s.\n",
+                    locked_rect.pBits, resources[r].name);
+            ok(locked_rect.Pitch == 1, "Got unexpected pitch %d, type %s.\n",
+                    locked_rect.Pitch, resources[r].name);
+            hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x, type %s.\n", hr, resources[r].name);
+            hr = IDirect3DCubeTexture9_UnlockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0);
+            ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+
+            hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                    &locked_rect, &test_data[0].rect, 0);
+            ok(hr == D3D_OK, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_data[0].rect.left, test_data[0].rect.top,
+                    test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+            hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                    &locked_rect, &test_data[0].rect, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_data[0].rect.left, test_data[0].rect.top,
+                    test_data[0].rect.right, test_data[0].rect.bottom, resources[r].name);
+            hr = IDirect3DCubeTexture9_LockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0,
+                    &locked_rect, &test_rect_2, 0);
+            ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d], type %s.\n",
+                    hr, test_rect_2.left, test_rect_2.top,
+                    test_rect_2.right, test_rect_2.bottom, resources[r].name);
+            hr = IDirect3DCubeTexture9_UnlockRect(cube_texture, D3DCUBEMAP_FACE_NEGATIVE_X, 0);
+            ok(SUCCEEDED(hr), "Failed to unlock texture, hr %#x, type %s.\n", hr, resources[r].name);
+
+            IDirect3DCubeTexture9_Release(cube_texture);
+        }
     }
 
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
-    ok(SUCCEEDED(hr), "Failed to lock surface with rect NULL, hr %#x.\n", hr);
-    locked_rect.pBits = (BYTE *)0xdeadbeef;
-    locked_rect.Pitch = 1;
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, NULL, 0);
-    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
-    ok(locked_rect.pBits == (BYTE *)0xdeadbeef, "Got unexpected pBits: %p\n",
-            locked_rect.pBits);
-    ok(locked_rect.Pitch == 1, "Got unexpected pitch %d\n", locked_rect.Pitch);
-    hr = IDirect3DSurface9_UnlockRect(surface);
-    ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x.\n", hr);
-
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_data[0].rect, 0);
-    ok(hr == D3D_OK, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d].\n",
-            hr, test_data[0].rect.left, test_data[0].rect.top, test_data[0].rect.right, test_data[0].rect.bottom);
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_data[0].rect, 0);
-    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d].\n",
-            hr, test_data[0].rect.left, test_data[0].rect.top, test_data[0].rect.right, test_data[0].rect.bottom);
-    hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &test_rect_2, 0);
-    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x for rect [%d, %d]->[%d, %d].\n",
-            hr, test_rect_2.left, test_rect_2.top, test_rect_2.right, test_rect_2.bottom);
-    hr = IDirect3DSurface9_UnlockRect(surface);
-    ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x.\n", hr);
-
-    IDirect3DSurface9_Release(surface);
     refcount = IDirect3DDevice9_Release(device);
     ok(!refcount, "Device has %u references left.\n", refcount);
     IDirect3D9_Release(d3d);
@@ -7645,7 +7931,7 @@ static void test_surface_blocks(void)
     IDirect3DSurface9 *surface;
     D3DLOCKED_RECT locked_rect;
     IDirect3DDevice9 *device;
-    unsigned int i, j, w, h;
+    unsigned int i, j, k, w, h;
     BOOL surface_only;
     IDirect3D9 *d3d;
     ULONG refcount;
@@ -7654,6 +7940,21 @@ static void test_surface_blocks(void)
     RECT rect;
     BOOL tex_pow2, cube_pow2;
     D3DCAPS9 caps;
+    static const RECT invalid[] =
+    {
+        {60, 60, 60, 68},       /* 0 height */
+        {60, 60, 68, 60},       /* 0 width */
+        {68, 60, 60, 68},       /* left > right */
+        {60, 68, 68, 60},       /* top > bottom */
+        {-8, 60,  0, 68},       /* left < surface */
+        {60, -8, 68,  0},       /* top < surface */
+        {-16, 60, -8, 68},      /* right < surface */
+        {60, -16, 68, -8},      /* bottom < surface */
+        {60, 60, 136, 68},      /* right > surface */
+        {60, 60, 68, 136},      /* bottom > surface */
+        {136, 60, 144, 68},     /* left > surface */
+        {60, 136, 68, 144},     /* top > surface */
+    };
 
     window = CreateWindowA("d3d9_test_wc", "d3d9_test", WS_OVERLAPPEDWINDOW,
             0, 0, 640, 480, 0, 0, 0, 0);
@@ -7902,6 +8203,19 @@ static void test_surface_blocks(void)
                 }
             }
 
+            for (k = 0; k < sizeof(invalid) / sizeof(*invalid); ++k)
+            {
+                hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &invalid[k], 0);
+                ok(FAILED(hr) == !pools[j].success, "Invalid lock %s(%#x), expected %s, format %s, pool %s, case %u.\n",
+                        SUCCEEDED(hr) ? "succeeded" : "failed", hr, pools[j].success ? "success" : "failure",
+                        formats[i].name, pools[j].name, k);
+                if (SUCCEEDED(hr))
+                {
+                    hr = IDirect3DSurface9_UnlockRect(surface);
+                    ok(SUCCEEDED(hr), "Failed to unlock surface, hr %#x.\n", hr);
+                }
+            }
+
             SetRect(&rect, 0, 0, formats[i].block_width, formats[i].block_height);
             hr = IDirect3DSurface9_LockRect(surface, &locked_rect, &rect, 0);
             ok(SUCCEEDED(hr), "Got unexpected hr %#x for format %s, pool %s.\n", hr, formats[i].name, pools[j].name);
@@ -7943,7 +8257,7 @@ static void test_surface_blocks(void)
         rect.right = formats[i].block_width;
         rect.bottom = formats[i].block_height;
         hr = IDirect3DTexture9_LockRect(texture, 1, &locked_rect, &rect, 0);
-        todo_wine ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+        ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
         if (SUCCEEDED(hr))
             IDirect3DTexture9_UnlockRect(texture, 1);
 
@@ -8088,6 +8402,83 @@ static void test_swvp_buffer(void)
         {
             ok(FALSE, "Vertex %u is %f,%f,%f, expected %f,%f,%f\n", i,
                     ptr2[i].x, ptr2[i].y, ptr2[i].z, i * 1.0f, i * 2.0f, i * 3.0f);
+            break;
+        }
+    }
+    hr = IDirect3DVertexBuffer9_Unlock(buffer);
+    ok(SUCCEEDED(hr), "Failed to unlock buffer, hr %#x.\n", hr);
+
+    IDirect3DVertexBuffer9_Release(buffer);
+    refcount = IDirect3DDevice9_Release(device);
+    ok(!refcount, "Device has %u references left.\n", refcount);
+    IDirect3D9_Release(d3d9);
+    DestroyWindow(window);
+}
+
+static void test_managed_buffer(void)
+{
+    static const unsigned int vertex_count = 1024;
+    IDirect3DVertexBuffer9 *buffer;
+    D3DVERTEXBUFFER_DESC desc;
+    IDirect3DDevice9 *device;
+    struct vec3 *ptr, *ptr2;
+    IDirect3D9 *d3d9;
+    unsigned int i;
+    UINT refcount;
+    HWND window;
+    HRESULT hr;
+
+    window = CreateWindowA("static", "d3d9_test", WS_OVERLAPPEDWINDOW,
+            0, 0, 640, 480, 0, 0, 0, 0);
+    d3d9 = Direct3DCreate9(D3D_SDK_VERSION);
+    ok(!!d3d9, "Failed to create a D3D object.\n");
+    if (!(device = create_device(d3d9, window, NULL)))
+    {
+        skip("Failed to create a D3D device, skipping tests.\n");
+        IDirect3D9_Release(d3d9);
+        DestroyWindow(window);
+        return;
+    }
+
+    hr = IDirect3DDevice9_CreateVertexBuffer(device, vertex_count * sizeof(*ptr),
+            0, 0, D3DPOOL_MANAGED, &buffer, NULL);
+    ok(SUCCEEDED(hr), "Failed to create buffer, hr %#x.\n", hr);
+    hr = IDirect3DVertexBuffer9_GetDesc(buffer, &desc);
+    ok(SUCCEEDED(hr), "Failed to get desc, hr %#x.\n", hr);
+    ok(desc.Pool == D3DPOOL_MANAGED, "Got unexpected pool %#x.\n", desc.Pool);
+    ok(!desc.Usage, "Got unexpected usage %#x.\n", desc.Usage);
+
+    hr = IDirect3DVertexBuffer9_Lock(buffer, 0, vertex_count * sizeof(*ptr), (void **)&ptr, D3DLOCK_DISCARD);
+    ok(SUCCEEDED(hr), "Failed to lock buffer, hr %#x.\n", hr);
+    for (i = 0; i < vertex_count; ++i)
+    {
+        ptr[i].x = i * 1.0f;
+        ptr[i].y = i * 2.0f;
+        ptr[i].z = i * 3.0f;
+    }
+    hr = IDirect3DVertexBuffer9_Unlock(buffer);
+    ok(SUCCEEDED(hr), "Failed to unlock buffer, hr %#x.\n", hr);
+
+    hr = IDirect3DDevice9_SetFVF(device, D3DFVF_XYZ);
+    ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
+    hr = IDirect3DDevice9_SetStreamSource(device, 0, buffer, 0, sizeof(*ptr));
+    ok(SUCCEEDED(hr), "Failed to set stream source, hr %#x.\n", hr);
+    hr = IDirect3DDevice9_BeginScene(device);
+    ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+    hr = IDirect3DDevice9_DrawPrimitive(device, D3DPT_TRIANGLELIST, 0, 2);
+    ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+    hr = IDirect3DDevice9_EndScene(device);
+    ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+
+    hr = IDirect3DVertexBuffer9_Lock(buffer, 0, vertex_count * sizeof(*ptr2), (void **)&ptr2, D3DLOCK_DISCARD);
+    ok(SUCCEEDED(hr), "Failed to lock buffer, hr %#x.\n", hr);
+    ok(ptr2 == ptr, "Got unexpected ptr2 %p, expected %p.\n", ptr2, ptr);
+    for (i = 0; i < vertex_count; ++i)
+    {
+        if (ptr2[i].x != i * 1.0f || ptr2[i].y != i * 2.0f || ptr2[i].z != i * 3.0f)
+        {
+            ok(FALSE, "Got unexpected vertex %u {%.8e, %.8e, %.8e}, expected {%.8e, %.8e, %.8e}.\n",
+                    i, ptr2[i].x, ptr2[i].y, ptr2[i].z, i * 1.0f, i * 2.0f, i * 3.0f);
             break;
         }
     }
@@ -9881,7 +10272,7 @@ static void test_mipmap_lock(void)
     hr = IDirect3DDevice9_UpdateSurface(device, surface, NULL, surface_dst, NULL);
     ok(SUCCEEDED(hr), "Failed to update surface, hr %#x.\n", hr);
     hr = IDirect3DDevice9_UpdateSurface(device, surface2, NULL, surface_dst2, NULL);
-    todo_wine ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
+    ok(hr == D3DERR_INVALIDCALL, "Got unexpected hr %#x.\n", hr);
 
     /* Apparently there's no validation on the container. */
     hr = IDirect3DDevice9_UpdateTexture(device, (IDirect3DBaseTexture9 *)texture,
@@ -10352,6 +10743,32 @@ static void test_swapchain_parameters(void)
     DestroyWindow(window);
 }
 
+static void test_check_device_format(void)
+{
+    IDirect3D9 *d3d;
+    HRESULT hr;
+
+    d3d = Direct3DCreate9(D3D_SDK_VERSION);
+    ok(!!d3d, "Failed to create a D3D object.\n");
+
+    if (IDirect3D9_CheckDeviceFormat(d3d, 0, D3DDEVTYPE_HAL,
+            D3DFMT_X8R8G8B8, D3DUSAGE_QUERY_SRGBWRITE, D3DRTYPE_TEXTURE, D3DFMT_A8R8G8B8) != D3D_OK)
+    {
+        skip("D3DFMT_A8R8G8B8 textures with SRGBWRITE not supported.\n");
+    }
+    else
+    {
+        hr = IDirect3D9_CheckDeviceFormat(d3d, 0, D3DDEVTYPE_HAL,
+                D3DFMT_X8R8G8B8, D3DUSAGE_RENDERTARGET | D3DUSAGE_QUERY_SRGBWRITE, D3DRTYPE_SURFACE, D3DFMT_A8R8G8B8);
+        ok(hr == D3D_OK, "Got unexpected hr %#x.\n", hr);
+        hr = IDirect3D9_CheckDeviceFormat(d3d, 0, D3DDEVTYPE_HAL,
+                D3DFMT_X8R8G8B8, D3DUSAGE_QUERY_SRGBWRITE, D3DRTYPE_SURFACE, D3DFMT_A8R8G8B8);
+        ok(FAILED(hr), "Got unexpected hr %#x.\n", hr);
+    }
+
+    IDirect3D9_Release(d3d);
+}
+
 START_TEST(device)
 {
     WNDCLASSA wc = {0};
@@ -10395,6 +10812,7 @@ START_TEST(device)
     test_refcount();
     test_mipmap_levels();
     test_checkdevicemultisampletype();
+    test_invalid_multisample();
     test_cursor();
     test_cursor_pos();
     test_reset_fullscreen();
@@ -10445,6 +10863,7 @@ START_TEST(device)
     test_surface_blocks();
     test_set_palette();
     test_swvp_buffer();
+    test_managed_buffer();
     test_npot_textures();
     test_vidmem_accounting();
     test_volume_locking();
@@ -10463,6 +10882,7 @@ START_TEST(device)
     test_lost_device();
     test_resource_priority();
     test_swapchain_parameters();
+    test_check_device_format();
 
     UnregisterClassA("d3d9_test_wc", GetModuleHandleA(NULL));
 }

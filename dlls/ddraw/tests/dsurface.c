@@ -61,158 +61,6 @@ static void ReleaseDirectDraw(void)
     }
 }
 
-static void MipMapCreationTest(void)
-{
-    IDirectDrawSurface *lpDDSMipMapTest;
-    DDSURFACEDESC ddsd;
-    HRESULT rc;
-
-    /* First mipmap creation test: create a surface with DDSCAPS_COMPLEX,
-       DDSCAPS_MIPMAP, and DDSD_MIPMAPCOUNT. This create the number of
-        requested mipmap levels. */
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-    U2(ddsd).dwMipMapCount = 3;
-    ddsd.dwWidth = 128;
-    ddsd.dwHeight = 32;
-    rc = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSMipMapTest, NULL);
-    ok(rc==DD_OK,"CreateSurface returned: %x\n",rc);
-    if (FAILED(rc))
-    {
-        skip("failed to create surface\n");
-        return;
-    }
-
-    /* Check the number of created mipmaps */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    rc = IDirectDrawSurface_GetSurfaceDesc(lpDDSMipMapTest, &ddsd);
-    ok(rc==DD_OK,"GetSurfaceDesc returned: %x\n",rc);
-    ok(ddsd.dwFlags & DDSD_MIPMAPCOUNT,
-        "GetSurfaceDesc returned no mipmapcount.\n");
-    ok(U2(ddsd).dwMipMapCount == 3, "Incorrect mipmap count: %d.\n",
-        U2(ddsd).dwMipMapCount);
-
-    /* Destroy the surface. */
-    IDirectDrawSurface_Release(lpDDSMipMapTest);
-
-
-    /* Second mipmap creation test: create a surface without a mipmap
-       count, with DDSCAPS_MIPMAP and without DDSCAPS_COMPLEX.
-       This creates a single mipmap level. */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_MIPMAP;
-    ddsd.dwWidth = 128;
-    ddsd.dwHeight = 32;
-    rc = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSMipMapTest, NULL);
-    ok(rc==DD_OK,"CreateSurface returned: %x\n",rc);
-    if (FAILED(rc))
-    {
-        skip("failed to create surface\n");
-        return;
-    }
-    /* Check the number of created mipmaps */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    rc = IDirectDrawSurface_GetSurfaceDesc(lpDDSMipMapTest, &ddsd);
-    ok(rc==DD_OK,"GetSurfaceDesc returned: %x\n",rc);
-    ok(ddsd.dwFlags & DDSD_MIPMAPCOUNT,
-        "GetSurfaceDesc returned no mipmapcount.\n");
-    ok(U2(ddsd).dwMipMapCount == 1, "Incorrect mipmap count: %d.\n",
-        U2(ddsd).dwMipMapCount);
-
-    /* Destroy the surface. */
-    IDirectDrawSurface_Release(lpDDSMipMapTest);
-
-
-    /* Third mipmap creation test: create a surface with DDSCAPS_MIPMAP,
-        DDSCAPS_COMPLEX and without DDSD_MIPMAPCOUNT.
-       It's an undocumented features where a chain of mipmaps, starting from
-       he specified size and down to the smallest size, is automatically
-       created.
-       Anarchy Online needs this feature to work. */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-    ddsd.dwWidth = 128;
-    ddsd.dwHeight = 32;
-    rc = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSMipMapTest, NULL);
-    ok(rc==DD_OK,"CreateSurface returned: %x\n",rc);
-    if (FAILED(rc))
-    {
-        skip("failed to create surface\n");
-        return;
-    }
-
-    /* Check the number of created mipmaps */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    rc = IDirectDrawSurface_GetSurfaceDesc(lpDDSMipMapTest, &ddsd);
-    ok(rc==DD_OK,"GetSurfaceDesc returned: %x\n",rc);
-    ok(ddsd.dwFlags & DDSD_MIPMAPCOUNT,
-        "GetSurfaceDesc returned no mipmapcount.\n");
-    ok(U2(ddsd).dwMipMapCount == 6, "Incorrect mipmap count: %d.\n",
-        U2(ddsd).dwMipMapCount);
-
-    /* Destroy the surface. */
-    IDirectDrawSurface_Release(lpDDSMipMapTest);
-
-
-    /* Fourth mipmap creation test: same as above with a different texture
-       size.
-       The purpose is to verify that the number of generated mipmaps is
-       dependent on the smallest dimension. */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-    ddsd.dwWidth = 32;
-    ddsd.dwHeight = 64;
-    rc = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSMipMapTest, NULL);
-    ok(rc==DD_OK,"CreateSurface returned: %x\n",rc);
-    if (FAILED(rc))
-    {
-        skip("failed to create surface\n");
-        return;
-    }
-
-    /* Check the number of created mipmaps */
-    memset(&ddsd, 0, sizeof(DDSURFACEDESC));
-    ddsd.dwSize = sizeof(ddsd);
-    rc = IDirectDrawSurface_GetSurfaceDesc(lpDDSMipMapTest, &ddsd);
-    ok(rc==DD_OK,"GetSurfaceDesc returned: %x\n",rc);
-    ok(ddsd.dwFlags & DDSD_MIPMAPCOUNT,
-        "GetSurfaceDesc returned no mipmapcount.\n");
-    ok(U2(ddsd).dwMipMapCount == 6, "Incorrect mipmap count: %d.\n",
-        U2(ddsd).dwMipMapCount);
-
-    /* Destroy the surface. */
-    IDirectDrawSurface_Release(lpDDSMipMapTest);
-
-
-    /* Fifth mipmap creation test: try to create a surface with
-       DDSCAPS_COMPLEX, DDSCAPS_MIPMAP, DDSD_MIPMAPCOUNT,
-       where dwMipMapCount = 0. This should fail. */
-
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-    U2(ddsd).dwMipMapCount = 0;
-    ddsd.dwWidth = 128;
-    ddsd.dwHeight = 32;
-    rc = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSMipMapTest, NULL);
-    ok(rc==DDERR_INVALIDPARAMS,"CreateSurface returned: %x\n",rc);
-
-    /* Destroy the surface. */
-    if( rc == DD_OK )
-        IDirectDrawSurface_Release(lpDDSMipMapTest);
-
-}
-
 static void SrcColorKey32BlitTest(void)
 {
     IDirectDrawSurface *lpSrc;
@@ -1101,7 +949,7 @@ struct compare
 {
     DWORD width, height;
     DWORD caps, caps2;
-    UINT mips;
+    UINT mipmaps;
 };
 
 static HRESULT WINAPI CubeTestPaletteEnum(IDirectDrawSurface7 *surface, DDSURFACEDESC2 *desc, void *context)
@@ -1121,9 +969,9 @@ static HRESULT WINAPI CubeTestPaletteEnum(IDirectDrawSurface7 *surface, DDSURFAC
 
 static HRESULT WINAPI CubeTestLvl2Enum(IDirectDrawSurface7 *surface, DDSURFACEDESC2 *desc, void *context)
 {
-    UINT *mips = context;
+    UINT *mipmaps = context;
 
-    (*mips)++;
+    (*mipmaps)++;
     IDirectDrawSurface7_EnumAttachedSurfaces(surface,
                                              context,
                                              CubeTestLvl2Enum);
@@ -1133,7 +981,7 @@ static HRESULT WINAPI CubeTestLvl2Enum(IDirectDrawSurface7 *surface, DDSURFACEDE
 
 static HRESULT WINAPI CubeTestLvl1Enum(IDirectDrawSurface7 *surface, DDSURFACEDESC2 *desc, void *context)
 {
-    UINT mips = 0;
+    UINT mipmaps = 0;
     UINT *num = context;
     static const struct compare expected[] =
     {
@@ -1175,16 +1023,16 @@ static HRESULT WINAPI CubeTestLvl1Enum(IDirectDrawSurface7 *surface, DDSURFACEDE
         },
     };
 
-    mips = 0;
+    mipmaps = 0;
     IDirectDrawSurface7_EnumAttachedSurfaces(surface,
-                                             &mips,
+                                             &mipmaps,
                                              CubeTestLvl2Enum);
 
     ok(desc->dwWidth == expected[*num].width, "Surface width is %d expected %d\n", desc->dwWidth, expected[*num].width);
     ok(desc->dwHeight == expected[*num].height, "Surface height is %d expected %d\n", desc->dwHeight, expected[*num].height);
     ok(desc->ddsCaps.dwCaps == expected[*num].caps, "Surface caps are %08x expected %08x\n", desc->ddsCaps.dwCaps, expected[*num].caps);
     ok(desc->ddsCaps.dwCaps2 == expected[*num].caps2, "Surface caps2 are %08x expected %08x\n", desc->ddsCaps.dwCaps2, expected[*num].caps2);
-    ok(mips == expected[*num].mips, "Surface has %d mipmaps, expected %d\n", mips, expected[*num].mips);
+    ok(mipmaps == expected[*num].mipmaps, "Surface has %d mipmaps, expected %d\n", mipmaps, expected[*num].mipmaps);
 
     (*num)++;
 
@@ -1358,126 +1206,6 @@ static void CubeMapTest(void)
 
     err:
     if (dd7) IDirectDraw7_Release(dd7);
-}
-
-static void test_lockrect_invalid(void)
-{
-    unsigned int i, j;
-
-    RECT valid[] = {
-        {60, 60, 68, 68},
-        {60, 60, 60, 68},
-        {60, 60, 68, 60},
-        {120, 60, 128, 68},
-        {60, 120, 68, 128},
-    };
-
-    RECT invalid[] = {
-        {68, 60, 60, 68},       /* left > right */
-        {60, 68, 68, 60},       /* top > bottom */
-        {-8, 60,  0, 68},       /* left < surface */
-        {60, -8, 68,  0},       /* top < surface */
-        {-16, 60, -8, 68},      /* right < surface */
-        {60, -16, 68, -8},      /* bottom < surface */
-        {60, 60, 136, 68},      /* right > surface */
-        {60, 60, 68, 136},      /* bottom > surface */
-        {136, 60, 144, 68},     /* left > surface */
-        {60, 136, 68, 144},     /* top > surface */
-    };
-
-    const DWORD dds_caps[] = {
-        DDSCAPS_OFFSCREENPLAIN
-    };
-
-    for (j = 0; j < (sizeof(dds_caps) / sizeof(*dds_caps)); ++j)
-    {
-        IDirectDrawSurface *surface = 0;
-        DDSURFACEDESC surface_desc = {0};
-        DDSURFACEDESC locked_desc = {0};
-        HRESULT hr;
-
-        surface_desc.dwSize = sizeof(surface_desc);
-        surface_desc.ddpfPixelFormat.dwSize = sizeof(surface_desc.ddpfPixelFormat);
-        surface_desc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
-        surface_desc.ddsCaps.dwCaps = dds_caps[j];
-        surface_desc.dwWidth = 128;
-        surface_desc.dwHeight = 128;
-        surface_desc.ddpfPixelFormat.dwFlags = DDPF_RGB;
-        U1(surface_desc.ddpfPixelFormat).dwRGBBitCount = 32;
-        U2(surface_desc.ddpfPixelFormat).dwRBitMask = 0xFF0000;
-        U3(surface_desc.ddpfPixelFormat).dwGBitMask = 0x00FF00;
-        U4(surface_desc.ddpfPixelFormat).dwBBitMask = 0x0000FF;
-
-        hr = IDirectDraw_CreateSurface(lpDD, &surface_desc, &surface, NULL);
-        ok(SUCCEEDED(hr), "CreateSurface failed (0x%08x)\n", hr);
-        if (FAILED(hr))
-        {
-            skip("failed to create surface\n");
-            continue;
-        }
-
-        hr = IDirectDrawSurface_Lock(surface, NULL, NULL, DDLOCK_WAIT, NULL);
-        ok(hr == DDERR_INVALIDPARAMS, "Lock returned 0x%08x for NULL DDSURFACEDESC,"
-                " expected DDERR_INVALIDPARAMS (0x%08x)\n", hr, DDERR_INVALIDPARAMS);
-
-        for (i = 0; i < (sizeof(valid) / sizeof(*valid)); ++i)
-        {
-            RECT *rect = &valid[i];
-
-            memset(&locked_desc, 0, sizeof(locked_desc));
-            locked_desc.dwSize = sizeof(locked_desc);
-
-            hr = IDirectDrawSurface_Lock(surface, rect, &locked_desc, DDLOCK_WAIT, NULL);
-            ok(SUCCEEDED(hr), "Lock failed (0x%08x) for rect [%d, %d]->[%d, %d]\n",
-                    hr, rect->left, rect->top, rect->right, rect->bottom);
-
-            hr = IDirectDrawSurface_Unlock(surface, NULL);
-            ok(SUCCEEDED(hr), "Unlock failed (0x%08x)\n", hr);
-        }
-
-        for (i = 0; i < (sizeof(invalid) / sizeof(*invalid)); ++i)
-        {
-            RECT *rect = &invalid[i];
-
-            memset(&locked_desc, 1, sizeof(locked_desc));
-            locked_desc.dwSize = sizeof(locked_desc);
-
-            hr = IDirectDrawSurface_Lock(surface, rect, &locked_desc, DDLOCK_WAIT, NULL);
-            ok(hr == DDERR_INVALIDPARAMS, "Lock returned 0x%08x for rect [%d, %d]->[%d, %d]"
-                    ", expected DDERR_INVALIDPARAMS (0x%08x)\n", hr, rect->left, rect->top,
-                    rect->right, rect->bottom, DDERR_INVALIDPARAMS);
-            ok(!locked_desc.lpSurface, "IDirectDrawSurface_Lock did not set lpSurface in the surface desc to zero.\n");
-        }
-
-        hr = IDirectDrawSurface_Lock(surface, NULL, &locked_desc, DDLOCK_WAIT, NULL);
-        ok(hr == DD_OK, "IDirectDrawSurface_Lock(rect = NULL) failed (0x%08x)\n", hr);
-        hr = IDirectDrawSurface_Lock(surface, NULL, &locked_desc, DDLOCK_WAIT, NULL);
-        ok(hr == DDERR_SURFACEBUSY, "Double lock(rect = NULL) returned 0x%08x\n", hr);
-        if(SUCCEEDED(hr)) {
-            hr = IDirectDrawSurface_Unlock(surface, NULL);
-            ok(SUCCEEDED(hr), "Unlock failed (0x%08x)\n", hr);
-        }
-        hr = IDirectDrawSurface_Unlock(surface, NULL);
-        ok(SUCCEEDED(hr), "Unlock failed (0x%08x)\n", hr);
-
-        memset(&locked_desc, 0, sizeof(locked_desc));
-        locked_desc.dwSize = sizeof(locked_desc);
-        hr = IDirectDrawSurface_Lock(surface, &valid[0], &locked_desc, DDLOCK_WAIT, NULL);
-        ok(hr == DD_OK, "IDirectDrawSurface_Lock(rect = [%d, %d]->[%d, %d]) failed (0x%08x)\n",
-           valid[0].left, valid[0].top, valid[0].right, valid[0].bottom, hr);
-        hr = IDirectDrawSurface_Lock(surface, &valid[0], &locked_desc, DDLOCK_WAIT, NULL);
-        ok(hr == DDERR_SURFACEBUSY, "Double lock(rect = [%d, %d]->[%d, %d]) failed (0x%08x)\n",
-           valid[0].left, valid[0].top, valid[0].right, valid[0].bottom, hr);
-
-        /* Locking a different rectangle returns DD_OK, but it seems to break the surface.
-         * Afterwards unlocking the surface fails(NULL rectangle, and both locked rectangles
-         */
-
-        hr = IDirectDrawSurface_Unlock(surface, NULL);
-        ok(hr == DD_OK, "Unlock returned (0x%08x)\n", hr);
-
-        IDirectDrawSurface_Release(surface);
-    }
 }
 
 static void CompressedTest(void)
@@ -3932,7 +3660,6 @@ START_TEST(dsurface)
         return;
     }
 
-    MipMapCreationTest();
     SrcColorKey32BlitTest();
     QueryInterface();
     GetDDInterface_1();
@@ -3941,7 +3668,6 @@ START_TEST(dsurface)
     GetDDInterface_7();
     EnumTest();
     CubeMapTest();
-    test_lockrect_invalid();
     CompressedTest();
     SizeTest();
     BltParamTest();

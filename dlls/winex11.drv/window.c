@@ -128,7 +128,7 @@ static void remove_startup_notification(Display *display, Window window)
 
     pos = snprintf(message, sizeof(message), "remove: ID=");
     message[pos++] = '"';
-    for (i = 0; id[i] && pos < sizeof(message) - 2; i++)
+    for (i = 0; id[i] && pos < sizeof(message) - 3; i++)
     {
         if (id[i] == '"' || id[i] == '\\')
             message[pos++] = '\\';
@@ -1501,7 +1501,7 @@ static void create_whole_window( struct x11drv_win_data *data )
     else if (cy > 65535) cy = 65535;
 
     pos = virtual_screen_to_root( data->whole_rect.left, data->whole_rect.top );
-    data->whole_window = XCreateWindow( data->display, root_window, pos.y, pos.y,
+    data->whole_window = XCreateWindow( data->display, root_window, pos.x, pos.y,
                                         cx, cy, 0, data->vis.depth, InputOutput,
                                         data->vis.visual, mask, &attr );
     if (!data->whole_window) goto done;

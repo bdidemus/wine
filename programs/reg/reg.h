@@ -31,3 +31,11 @@
 #define STRING_NO_REMOTE        108
 #define STRING_CANNOT_FIND      109
 #define STRING_UNSUPPORTED_TYPE 110
+#define STRING_MISSING_INTEGER  111
+#define STRING_MISSING_HEXDATA  112
+#define STRING_UNHANDLED_TYPE   113
+#define STRING_OVERWRITE_VALUE  114
+#define STRING_YESNO            115
+#define STRING_YES              116
+#define STRING_NO               117
+#define STRING_CANCELLED        118

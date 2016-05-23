@@ -1018,11 +1018,28 @@ int CDECL MSVCRT_atoi(const char *str)
 #endif
 
 /******************************************************************
- *		strtol (MSVCRT.@)
+ *      _atoll_l (MSVCR120.@)
  */
-MSVCRT_long CDECL MSVCRT_strtol(const char* nptr, char** end, int base)
+MSVCRT_longlong CDECL MSVCRT__atoll_l(const char* str, MSVCRT__locale_t locale)
 {
-    __int64 ret = MSVCRT_strtoi64_l(nptr, end, base, NULL);
+    return MSVCRT_strtoi64_l(str, NULL, 10, locale);
+}
+
+/******************************************************************
+ *      atoll (MSVCR120.@)
+ */
+MSVCRT_longlong CDECL MSVCRT_atoll(const char* str)
+{
+    return MSVCRT__atoll_l(str, NULL);
+}
+
+/******************************************************************
+ *		_strtol_l (MSVCRT.@)
+ */
+MSVCRT_long CDECL MSVCRT__strtol_l(const char* nptr,
+        char** end, int base, MSVCRT__locale_t locale)
+{
+    __int64 ret = MSVCRT_strtoi64_l(nptr, end, base, locale);
 
     if(ret > MSVCRT_LONG_MAX) {
         ret = MSVCRT_LONG_MAX;
@@ -1033,6 +1050,14 @@ MSVCRT_long CDECL MSVCRT_strtol(const char* nptr, char** end, int base)
     }
 
     return ret;
+}
+
+/******************************************************************
+ *		strtol (MSVCRT.@)
+ */
+MSVCRT_long CDECL MSVCRT_strtol(const char* nptr, char** end, int base)
+{
+    return MSVCRT__strtol_l(nptr, end, base, NULL);
 }
 
 /******************************************************************

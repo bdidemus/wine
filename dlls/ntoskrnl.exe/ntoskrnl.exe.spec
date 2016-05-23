@@ -100,8 +100,8 @@
 @ stub CcUnpinRepinnedBcb
 @ stub CcWaitForCurrentLazyWriterActivity
 @ stub CcZeroData
-@ stub CmRegisterCallback
-@ stub CmUnRegisterCallback
+@ stdcall CmRegisterCallback(ptr ptr ptr)
+@ stdcall CmUnRegisterCallback(int64)
 @ stdcall DbgBreakPoint() ntdll.DbgBreakPoint
 @ stub DbgBreakPointWithStatus
 @ stub DbgLoadImageSymbols
@@ -123,8 +123,8 @@
 @ stub ExAllocatePoolWithTagPriority
 @ stub ExConvertExclusiveToSharedLite
 @ stdcall ExCreateCallback(ptr ptr long long)
-@ stub ExDeleteNPagedLookasideList
-@ stub ExDeletePagedLookasideList
+@ stdcall ExDeleteNPagedLookasideList(ptr)
+@ stdcall ExDeletePagedLookasideList(ptr)
 @ stdcall ExDeleteResourceLite(ptr)
 @ stub ExDesktopObjectType
 @ stub ExDisableResourceBoostLite
@@ -688,7 +688,7 @@
 @ stub MmLockPagableDataSection
 @ stub MmLockPagableImageSection
 @ stdcall MmLockPagableSectionByHandle(ptr)
-@ stdcall MmMapIoSpace(long long long long)
+@ stdcall MmMapIoSpace(int64 long long)
 @ stub MmMapLockedPages
 @ stdcall MmMapLockedPagesSpecifyCache(ptr long long ptr long long)
 @ stub MmMapLockedPagesWithReservedMapping
@@ -835,8 +835,8 @@
 @ stub PoShutdownBugCheck
 @ stub PoStartNextPowerIrp
 @ stub PoUnregisterSystemState
-@ stub ProbeForRead
-@ stub ProbeForWrite
+@ stdcall ProbeForRead(ptr long long)
+@ stdcall ProbeForWrite(ptr long long)
 @ stub PsAssignImpersonationToken
 @ stub PsChargePoolQuota
 @ stub PsChargeProcessNonPagedPoolQuota
@@ -898,7 +898,7 @@
 @ stub PsProcessType
 @ stub PsReferenceImpersonationToken
 @ stub PsReferencePrimaryToken
-@ stub PsRemoveCreateThreadNotifyRoutine
+@ stdcall PsRemoveCreateThreadNotifyRoutine(ptr)
 @ stub PsRemoveLoadImageNotifyRoutine
 @ stub PsRestoreImpersonation
 @ stub PsReturnPoolQuota
@@ -1055,12 +1055,12 @@
 @ stdcall RtlInitUnicodeString(ptr wstr) ntdll.RtlInitUnicodeString
 @ stdcall RtlInitializeBitMap(ptr long long) ntdll.RtlInitializeBitMap
 @ stdcall RtlInitializeGenericTable(ptr ptr ptr ptr ptr) ntdll.RtlInitializeGenericTable
-@ stub RtlInitializeGenericTableAvl
+@ stdcall RtlInitializeGenericTableAvl(ptr ptr ptr ptr ptr) ntdll.RtlInitializeGenericTableAvl
 @ stub RtlInitializeRangeList
 @ stdcall RtlInitializeSid(ptr ptr long) ntdll.RtlInitializeSid
 @ stub RtlInitializeUnicodePrefix
 @ stub RtlInsertElementGenericTable
-@ stub RtlInsertElementGenericTableAvl
+@ stdcall RtlInsertElementGenericTableAvl(ptr ptr long ptr) ntdll.RtlInsertElementGenericTableAvl
 @ stub RtlInsertElementGenericTableFull
 @ stub RtlInsertElementGenericTableFullAvl
 @ stub RtlInsertUnicodePrefix

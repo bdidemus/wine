@@ -24,6 +24,7 @@
 #define WINVER 0x0600 /* for WM_GETTITLEBARINFOEX */
 
 #include <assert.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -32,6 +33,7 @@
 #include "wingdi.h"
 #include "winuser.h"
 #include "winnls.h"
+#include "dbt.h"
 
 #include "wine/test.h"
 
@@ -76,6 +78,7 @@ static BOOL   (WINAPI *pActivateActCtx)(HANDLE,ULONG_PTR*);
 static HANDLE (WINAPI *pCreateActCtxW)(PCACTCTXW);
 static BOOL   (WINAPI *pDeactivateActCtx)(DWORD,ULONG_PTR);
 static BOOL   (WINAPI *pGetCurrentActCtx)(HANDLE *);
+static BOOL   (WINAPI *pQueryActCtxW)(DWORD,HANDLE,void*,ULONG,void*,SIZE_T,SIZE_T*);
 static void   (WINAPI *pReleaseActCtx)(HANDLE);
 
 /* encoded DRAWITEMSTRUCT into an LPARAM */
@@ -4519,6 +4522,47 @@ static void test_MsgWaitForMultipleObjects(HWND hwnd)
     ok(ret == WAIT_IO_COMPLETION, "MsgWaitForMultipleObjectsEx returned %x\n", ret);
 }
 
+static void test_WM_DEVICECHANGE(HWND hwnd)
+{
+    DWORD ret;
+    MSG msg;
+    int i;
+    static const WPARAM wparams[] = {0,
+                                     DBT_DEVNODES_CHANGED,
+                                     DBT_QUERYCHANGECONFIG,
+                                     DBT_CONFIGCHANGED,
+                                     DBT_CONFIGCHANGECANCELED,
+                                     DBT_NO_DISK_SPACE,
+                                     DBT_LOW_DISK_SPACE,
+                                     DBT_CONFIGMGPRIVATE, /* 0x7fff */
+                                     DBT_DEVICEARRIVAL,   /* 0x8000 */
+                                     DBT_DEVICEQUERYREMOVE,
+                                     DBT_DEVICEQUERYREMOVEFAILED,
+                                     DBT_DEVICEREMOVEPENDING,
+                                     DBT_DEVICEREMOVECOMPLETE,
+                                     DBT_DEVICETYPESPECIFIC,
+                                     DBT_CUSTOMEVENT};
+
+    for (i = 0; i < sizeof(wparams)/sizeof(wparams[0]); i++)
+    {
+        SetLastError(0xdeadbeef);
+        ret = PostMessageA(hwnd, WM_DEVICECHANGE, wparams[i], 0);
+        if (wparams[i] & 0x8000)
+        {
+            ok(ret == FALSE, "PostMessage should returned %d\n", ret);
+            ok(GetLastError() == ERROR_MESSAGE_SYNC_ONLY, "PostMessage error %08x\n", GetLastError());
+        }
+        else
+        {
+            ret = MsgWaitForMultipleObjects(0, NULL, FALSE, 0, QS_POSTMESSAGE);
+            ok(ret == WAIT_OBJECT_0, "MsgWaitForMultipleObjects returned %x\n", ret);
+            memset(&msg, 0, sizeof(msg));
+            ok(PeekMessageA(&msg, 0, 0, 0, PM_REMOVE), "PeekMessage should succeed\n");
+            ok(msg.message == WM_DEVICECHANGE, "got %04x instead of WM_DEVICECHANGE\n", msg.message);
+        }
+    }
+}
+
 static DWORD CALLBACK show_window_thread(LPVOID arg)
 {
    HWND hwnd = arg;
@@ -4910,6 +4954,7 @@ static void test_messages(void)
     flush_sequence();
 
     test_MsgWaitForMultipleObjects(hparent);
+    test_WM_DEVICECHANGE(hparent);
 
     /* the following test causes an exception in user.exe under win9x */
     if (!PostMessageW( hparent, WM_USER, 0, 0 ))
@@ -5892,7 +5937,96 @@ static const struct message WmSetPosComboSeq[] =
     { 0 }
 };
 
-static WNDPROC old_combobox_proc;
+static const struct message WMSetFocusComboBoxSeq[] =
+{
+    { WM_SETFOCUS, sent },
+    { WM_KILLFOCUS, sent|parent },
+    { WM_SETFOCUS, sent },
+    { WM_COMMAND, sent|defwinproc|wparam, MAKEWPARAM(1001, EN_SETFOCUS) },
+    { EM_SETSEL, sent|defwinproc|wparam|lparam, 0, INT_MAX },
+    { WM_CTLCOLOREDIT, sent|defwinproc|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_CTLCOLOREDIT, sent|parent|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_SETFOCUS) },
+    { 0 }
+};
+
+static const struct message SetFocusButtonSeq[] =
+{
+    { WM_KILLFOCUS, sent },
+    { CB_GETCOMBOBOXINFO, sent|optional },/* Windows 2000 */
+    { 0x0167, sent|optional },/* Undocumented message. Sent on all versions except Windows 2000 */
+    { WM_LBUTTONUP, sent|defwinproc },
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_SELENDCANCEL) },
+    { EM_SETSEL, sent|defwinproc|wparam|lparam, 0, 0 },
+    { WM_CTLCOLOREDIT, sent|defwinproc|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_CTLCOLOREDIT, sent|parent|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_KILLFOCUS) },
+    { WM_CTLCOLORBTN, sent|parent },
+    { 0 }
+};
+
+static const struct message SetFocusComboBoxSeq[] =
+{
+    { WM_CTLCOLORBTN, sent|parent },
+    { WM_SETFOCUS, sent },
+    { WM_KILLFOCUS, sent|defwinproc },
+    { WM_SETFOCUS, sent },
+    { WM_COMMAND, sent|defwinproc|wparam, MAKEWPARAM(1001, EN_SETFOCUS) },
+    { EM_SETSEL, sent|defwinproc|wparam|lparam, 0, INT_MAX },
+    { WM_CTLCOLOREDIT, sent|defwinproc|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_CTLCOLOREDIT, sent|parent|optional },/* Not sent on W2000, XP or Server 2003 */
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_SETFOCUS) },
+    { 0 }
+};
+
+static const struct message SetFocusButtonSeq2[] =
+{
+    { WM_KILLFOCUS, sent },
+    { CB_GETCOMBOBOXINFO, sent|optional },/* Windows 2000 */
+    { 0x0167, sent|optional },/* Undocumented message. Sent on all versions except Windows 2000 */
+    { WM_LBUTTONUP, sent|defwinproc },
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_SELENDCANCEL) },
+    { EM_SETSEL, sent|defwinproc|wparam|lparam, 0, 0 },
+    { WM_CTLCOLOREDIT, sent|defwinproc },
+    { WM_CTLCOLOREDIT, sent|parent },
+    { WM_COMMAND, sent|parent|wparam, MAKEWPARAM(ID_COMBOBOX, CBN_KILLFOCUS) },
+    { WM_CTLCOLORBTN, sent|parent },
+    { 0 }
+};
+
+static WNDPROC old_combobox_proc, edit_window_proc;
+
+static LRESULT CALLBACK combobox_subclass_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    static LONG defwndproc_counter = 0;
+    LRESULT ret;
+    struct recvd_message msg;
+
+    /* do not log painting messages */
+    if (message != WM_PAINT &&
+        message != WM_NCPAINT &&
+        message != WM_SYNCPAINT &&
+        message != WM_ERASEBKGND &&
+        message != WM_NCHITTEST &&
+        message != WM_GETTEXT &&
+        !ignore_message( message ))
+    {
+        msg.hwnd = hwnd;
+        msg.message = message;
+        msg.flags = sent|wparam|lparam;
+        if (defwndproc_counter) msg.flags |= defwinproc;
+        msg.wParam = wParam;
+        msg.lParam = lParam;
+        msg.descr = "combo";
+        add_message(&msg);
+    }
+
+    defwndproc_counter++;
+    ret = CallWindowProcA(edit_window_proc, hwnd, message, wParam, lParam);
+    defwndproc_counter--;
+
+    return ret;
+}
 
 static LRESULT CALLBACK combobox_hook_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -5943,8 +6077,11 @@ static void subclass_combobox(void)
 
 static void test_combobox_messages(void)
 {
-    HWND parent, combo;
+    HWND parent, combo, button, edit;
     LRESULT ret;
+    BOOL (WINAPI *pGetComboBoxInfo)(HWND, PCOMBOBOXINFO);
+    COMBOBOXINFO cbInfo;
+    BOOL res;
 
     subclass_combobox();
 
@@ -5983,6 +6120,65 @@ static void test_combobox_messages(void)
     SetWindowPos(combo, 0, 10, 10, 120, 130, SWP_NOZORDER);
     ok_sequence(WmSetPosComboSeq, "repositioning messages on a ComboBox", FALSE);
 
+    DestroyWindow(combo);
+    DestroyWindow(parent);
+
+    /* Start again. Test combobox text selection when getting and losing focus */
+    pGetComboBoxInfo = (void *)GetProcAddress(GetModuleHandleA("user32.dll"), "GetComboBoxInfo");
+    if (!pGetComboBoxInfo)
+    {
+        win_skip("GetComboBoxInfo is not available\n");
+        return;
+    }
+
+    parent = CreateWindowExA(0, "TestParentClass", "Parent", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                             10, 10, 300, 300, NULL, NULL, NULL, NULL);
+    ok(parent != 0, "Failed to create parent window\n");
+
+    combo = CreateWindowExA(0, "my_combobox_class", "test", WS_CHILD | WS_VISIBLE | CBS_DROPDOWN,
+                            5, 5, 100, 100, parent, (HMENU)ID_COMBOBOX, NULL, NULL);
+    ok(combo != 0, "Failed to create combobox window\n");
+
+    cbInfo.cbSize = sizeof(COMBOBOXINFO);
+    SetLastError(0xdeadbeef);
+    res = pGetComboBoxInfo(combo, &cbInfo);
+    ok(res, "Failed to get COMBOBOXINFO structure; LastError: %u\n", GetLastError());
+    edit = cbInfo.hwndItem;
+
+    edit_window_proc = (WNDPROC)SetWindowLongPtrA(edit, GWLP_WNDPROC, (ULONG_PTR)combobox_subclass_proc);
+
+    button = CreateWindowExA(0, "Button", "OK", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+                             5, 50, 100, 20, parent, NULL,
+                             (HINSTANCE)GetWindowLongPtrA(parent, GWLP_HINSTANCE), NULL);
+    ok(button != 0, "Failed to create button window\n");
+
+    flush_sequence();
+    log_all_parent_messages++;
+    SendMessageA(combo, WM_SETFOCUS, 0, (LPARAM)edit);
+    log_all_parent_messages--;
+    ok_sequence(WMSetFocusComboBoxSeq, "WM_SETFOCUS on a ComboBox", TRUE);
+
+    flush_sequence();
+    log_all_parent_messages++;
+    SetFocus(button);
+    log_all_parent_messages--;
+    ok_sequence(SetFocusButtonSeq, "SetFocus on a Button", TRUE);
+
+    SendMessageA(combo, WM_SETTEXT, 0, (LPARAM)"Wine Test");
+
+    flush_sequence();
+    log_all_parent_messages++;
+    SetFocus(combo);
+    log_all_parent_messages--;
+    ok_sequence(SetFocusComboBoxSeq, "SetFocus on a ComboBox", TRUE);
+
+    flush_sequence();
+    log_all_parent_messages++;
+    SetFocus(button);
+    log_all_parent_messages--;
+    ok_sequence(SetFocusButtonSeq2, "SetFocus on a Button (2)", TRUE);
+
+    DestroyWindow(button);
     DestroyWindow(combo);
     DestroyWindow(parent);
 }
@@ -7300,7 +7496,7 @@ static const struct message WmAltPressRelease[] = {
     { EVENT_SYSTEM_CAPTURESTART, winevent_hook|wparam|lparam, 0, 0 },
     { WM_INITMENU, sent|defwinproc },
     { EVENT_SYSTEM_MENUSTART, winevent_hook|wparam|lparam, OBJID_SYSMENU, 0 },
-    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE) },
+    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE), 0, MAKEWPARAM(0,MF_RIGHTJUSTIFY) },
     { EVENT_OBJECT_FOCUS, winevent_hook|wparam|lparam, OBJID_SYSMENU, 1 },
 
     { HCBT_KEYSKIPPED, hook|wparam|lparam|optional, VK_MENU, 0x30000001 }, /* XP */
@@ -7367,7 +7563,7 @@ static const struct message WmVkF10Seq[] = {
     { EVENT_SYSTEM_CAPTURESTART, winevent_hook|wparam|lparam, 0, 0 },
     { WM_INITMENU, sent|defwinproc },
     { EVENT_SYSTEM_MENUSTART, winevent_hook|wparam|lparam, OBJID_SYSMENU, 0 },
-    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE) },
+    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE), 0, MAKEWPARAM(0,MF_RIGHTJUSTIFY) },
     { EVENT_OBJECT_FOCUS, winevent_hook|wparam|lparam, OBJID_SYSMENU, 1 },
 
     { HCBT_KEYSKIPPED, hook|wparam|lparam|optional, VK_F10, 0x10000001 }, /* XP */
@@ -7399,7 +7595,7 @@ static const struct message WmShiftF10Seq[] = {
     { HCBT_SYSCOMMAND, hook },
     { WM_ENTERMENULOOP, sent|defwinproc|wparam|lparam, 0, 0 },
     { WM_INITMENU, sent|defwinproc },
-    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE) },
+    { WM_MENUSELECT, sent|defwinproc|wparam, MAKEWPARAM(0,MF_SYSMENU|MF_POPUP|MF_HILITE), 0, MAKEWPARAM(0,MF_RIGHTJUSTIFY) },
     { HCBT_KEYSKIPPED, hook|wparam|lparam|optional, VK_SHIFT, 0xd0000001 }, /* XP */
     { HCBT_KEYSKIPPED, hook|wparam|lparam|optional, VK_ESCAPE, 0x10000001 }, /* XP */
     { WM_CAPTURECHANGED, sent|defwinproc|wparam|lparam, 0, 0 },
@@ -7742,6 +7938,7 @@ static LRESULT MsgCheckProc (BOOL unicode, HWND hwnd, UINT message,
 
 	case WM_USER+10:
 	{
+	    ACTIVATION_CONTEXT_BASIC_INFORMATION basicinfo;
 	    HANDLE handle, event = (HANDLE)lParam;
 	    BOOL ret;
 
@@ -7749,6 +7946,14 @@ static LRESULT MsgCheckProc (BOOL unicode, HWND hwnd, UINT message,
 	    ret = pGetCurrentActCtx(&handle);
 	    ok(ret, "failed to get current context, %u\n", GetLastError());
 	    ok(handle == 0, "got active context %p\n", handle);
+
+	    memset(&basicinfo, 0xff, sizeof(basicinfo));
+	    ret = pQueryActCtxW(QUERY_ACTCTX_FLAG_USE_ACTIVE_ACTCTX, handle, 0, ActivationContextBasicInformation,
+	        &basicinfo, sizeof(basicinfo), NULL);
+	    ok(ret, "got %d, error %d\n", ret, GetLastError());
+	    ok(basicinfo.hActCtx == NULL, "got %p\n", basicinfo.hActCtx);
+	    ok(basicinfo.dwFlags == 0, "got %x\n", basicinfo.dwFlags);
+
 	    if (event) SetEvent(event);
 	    return 1;
 	}
@@ -8558,9 +8763,11 @@ static void test_timers(void)
 
 static void test_timers_no_wnd(void)
 {
+    static UINT_PTR ids[0xffff];
     UINT_PTR id, id2;
     DWORD start;
     MSG msg;
+    int i;
 
     count = 0;
     id = SetTimer(NULL, 0, 100, callback_count);
@@ -8595,6 +8802,18 @@ static void test_timers_no_wnd(void)
        count, TIMER_COUNT_EXPECTED);
     KillTimer(NULL, id);
     /* Note: SetSystemTimer doesn't support a NULL window, see test_timers */
+
+    /* Check what happens when we're running out of timers */
+    for (i=0; i<sizeof(ids)/sizeof(ids[0]); i++)
+    {
+        SetLastError(0xdeadbeef);
+        ids[i] = SetTimer(NULL, 0, USER_TIMER_MAXIMUM, tfunc);
+        if (!ids[i]) break;
+    }
+    ok(i != sizeof(ids)/sizeof(ids[0]), "all timers were created successfully\n");
+    ok(GetLastError()==ERROR_NO_MORE_USER_HANDLES || broken(GetLastError()==0xdeadbeef),
+            "GetLastError() = %d\n", GetLastError());
+    while (i > 0) KillTimer(NULL, ids[--i]);
 }
 
 static void test_timers_exception(DWORD code)
@@ -9239,7 +9458,7 @@ static void test_recursive_hook(void)
 
     hook_depth = 0;
     GetMessageW(&msg, hook_hwnd, 0, 0);
-    ok(15 < max_hook_depth && max_hook_depth < 45, "max_hook_depth = %d\n", max_hook_depth);
+    ok(15 <= max_hook_depth && max_hook_depth < 45, "max_hook_depth = %d\n", max_hook_depth);
     trace("max_hook_depth = %d\n", max_hook_depth);
 
     b = UnhookWindowsHookEx(recursive_hook);
@@ -14906,6 +15125,33 @@ else
     flush_sequence();
 }
 
+static const struct message DoubleSetCaptureSeq[] =
+{
+    { WM_CAPTURECHANGED, sent },
+    { 0 }
+};
+
+static void test_DoubleSetCapture(void)
+{
+    HWND hwnd;
+
+    hwnd = CreateWindowExA(0, "TestWindowClass", "Test DoubleSetCapture",
+                           WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                           100, 100, 200, 200, 0, 0, 0, NULL);
+    ok (hwnd != 0, "Failed to create overlapped window\n");
+
+    ShowWindow( hwnd, SW_SHOW );
+    UpdateWindow( hwnd );
+    flush_events();
+    flush_sequence();
+
+    SetCapture( hwnd );
+    SetCapture( hwnd );
+    ok_sequence(DoubleSetCaptureSeq, "SetCapture( hwnd ) twice", FALSE);
+
+    DestroyWindow(hwnd);
+}
+
 static void init_funcs(void)
 {
     HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
@@ -14915,6 +15161,7 @@ static void init_funcs(void)
     X(CreateActCtxW);
     X(DeactivateActCtx);
     X(GetCurrentActCtx);
+    X(QueryActCtxW);
     X(ReleaseActCtx);
 #undef X
 }
@@ -15045,6 +15292,7 @@ START_TEST(msg)
     test_layered_window();
     test_TrackPopupMenu();
     test_TrackPopupMenuEmpty();
+    test_DoubleSetCapture();
     /* keep it the last test, under Windows it tends to break the tests
      * which rely on active/foreground windows being correct.
      */

@@ -29,6 +29,7 @@
 WINE_DEFAULT_DEBUG_CHANNEL(ddraw);
 
 static const struct ddraw *exclusive_ddraw;
+static HWND exclusive_window;
 
 /* Device identifier. Don't relay it to WineD3D */
 static const DDDEVICEIDENTIFIER2 deviceidentifier =
@@ -900,6 +901,12 @@ static HRESULT ddraw_set_cooperative_level(struct ddraw *ddraw, HWND window,
         }
     }
 
+    if ((cooplevel & DDSCL_EXCLUSIVE) && exclusive_window != window)
+    {
+        ddraw->device_state = DDRAW_DEVICE_STATE_NOT_RESTORED;
+        exclusive_window = window;
+    }
+
     if (cooplevel & DDSCL_MULTITHREADED && !(ddraw->cooperative_level & DDSCL_MULTITHREADED))
         wined3d_device_set_multithreaded(ddraw->wined3d_device);
 
@@ -991,7 +998,7 @@ static HRESULT ddraw_set_cooperative_level(struct ddraw *ddraw, HWND window,
     ddraw->cooperative_level = cooplevel;
     ddraw->dest_window = window;
 
-    TRACE("SetCooperativeLevel retuning DD_OK\n");
+    TRACE("SetCooperativeLevel returning DD_OK\n");
     hr = DD_OK;
 done:
     ddraw->flags &= ~DDRAW_SCL_RECURSIVE;
@@ -1113,7 +1120,6 @@ static HRESULT WINAPI ddraw7_SetDisplayMode(IDirectDraw7 *iface, DWORD width, DW
 
     /* TODO: The possible return values from msdn suggest that the screen mode
      * can't be changed if a surface is locked or some drawing is in progress. */
-    /* TODO: Lose the primary surface. */
     if (SUCCEEDED(hr = wined3d_set_adapter_display_mode(ddraw->wined3d, WINED3DADAPTER_DEFAULT, &mode)))
         ddraw->flags |= DDRAW_RESTORE_MODE;
 
@@ -2183,7 +2189,7 @@ static HRESULT WINAPI ddraw7_TestCooperativeLevel(IDirectDraw7 *iface)
 
     TRACE("iface %p.\n", iface);
 
-    return ddraw->device_state == DDRAW_DEVICE_STATE_OK ? DD_OK : DDERR_NOEXCLUSIVEMODE;
+    return ddraw->device_state == DDRAW_DEVICE_STATE_LOST ? DDERR_NOEXCLUSIVEMODE : DD_OK;
 }
 
 static HRESULT WINAPI ddraw4_TestCooperativeLevel(IDirectDraw4 *iface)
@@ -2615,29 +2621,38 @@ static HRESULT WINAPI ddraw4_GetDeviceIdentifier(IDirectDraw4 *iface,
  *  Always returns DD_OK because it's a stub
  *
  *****************************************************************************/
-static HRESULT WINAPI ddraw7_GetSurfaceFromDC(IDirectDraw7 *iface, HDC hdc,
-        IDirectDrawSurface7 **Surface)
+static HRESULT WINAPI ddraw7_GetSurfaceFromDC(IDirectDraw7 *iface,
+        HDC dc, IDirectDrawSurface7 **surface)
 {
     struct ddraw *ddraw = impl_from_IDirectDraw7(iface);
-    struct wined3d_surface *wined3d_surface;
     struct ddraw_surface *surface_impl;
 
-    TRACE("iface %p, dc %p, surface %p.\n", iface, hdc, Surface);
+    TRACE("iface %p, dc %p, surface %p.\n", iface, dc, surface);
 
-    if (!Surface) return E_INVALIDARG;
+    if (!surface)
+        return E_INVALIDARG;
 
-    if (!(wined3d_surface = wined3d_device_get_surface_from_dc(ddraw->wined3d_device, hdc)))
+    if (!dc)
+        goto done;
+
+    wined3d_mutex_lock();
+    LIST_FOR_EACH_ENTRY(surface_impl, &ddraw->surface_list, struct ddraw_surface, surface_list_entry)
     {
-        TRACE("No surface found for dc %p.\n", hdc);
-        *Surface = NULL;
-        return DDERR_NOTFOUND;
-    }
+        if (surface_impl->dc != dc)
+            continue;
 
-    surface_impl = wined3d_surface_get_parent(wined3d_surface);
-    *Surface = &surface_impl->IDirectDrawSurface7_iface;
-    IDirectDrawSurface7_AddRef(*Surface);
-    TRACE("Returning surface %p.\n", Surface);
-    return DD_OK;
+        TRACE("Found surface %p for dc %p.\n", surface_impl, dc);
+        *surface = &surface_impl->IDirectDrawSurface7_iface;
+        IDirectDrawSurface7_AddRef(*surface);
+        wined3d_mutex_unlock();
+        return DD_OK;
+    }
+    wined3d_mutex_unlock();
+
+done:
+    TRACE("No surface found for dc %p.\n", dc);
+    *surface = NULL;
+    return DDERR_NOTFOUND;
 }
 
 static HRESULT WINAPI ddraw4_GetSurfaceFromDC(IDirectDraw4 *iface, HDC dc,
@@ -4668,6 +4683,8 @@ static void CDECL device_parent_wined3d_device_created(struct wined3d_device_par
 
 /* This is run from device_process_message() in wined3d, we can't take the
  * wined3d mutex. */
+/* FIXME: We only get mode change notifications in exclusive mode, but we
+ * should mark surfaces as lost on mode changes in DDSCL_NORMAL mode as well. */
 static void CDECL device_parent_mode_changed(struct wined3d_device_parent *device_parent)
 {
     struct ddraw *ddraw = ddraw_from_device_parent(device_parent);
@@ -4697,6 +4714,8 @@ static void CDECL device_parent_mode_changed(struct wined3d_device_parent *devic
     if (!SetWindowPos(ddraw->swapchain_window, HWND_TOP, r->left, r->top,
                       r->right - r->left, r->bottom - r->top, SWP_SHOWWINDOW | SWP_NOACTIVATE))
         ERR("Failed to resize window.\n");
+
+    InterlockedCompareExchange(&ddraw->device_state, DDRAW_DEVICE_STATE_NOT_RESTORED, DDRAW_DEVICE_STATE_OK);
 }
 
 static void CDECL device_parent_activate(struct wined3d_device_parent *device_parent, BOOL activate)
@@ -4706,9 +4725,28 @@ static void CDECL device_parent_activate(struct wined3d_device_parent *device_pa
     TRACE("device_parent %p, activate %#x.\n", device_parent, activate);
 
     if (!activate)
-        InterlockedCompareExchange(&ddraw->device_state, DDRAW_DEVICE_STATE_LOST, DDRAW_DEVICE_STATE_OK);
+    {
+        ddraw->device_state = DDRAW_DEVICE_STATE_LOST;
+        exclusive_window = NULL;
+    }
     else
-        InterlockedCompareExchange(&ddraw->device_state, DDRAW_DEVICE_STATE_OK, DDRAW_DEVICE_STATE_LOST);
+    {
+        InterlockedCompareExchange(&ddraw->device_state, DDRAW_DEVICE_STATE_NOT_RESTORED, DDRAW_DEVICE_STATE_LOST);
+    }
+}
+
+void ddraw_update_lost_surfaces(struct ddraw *ddraw)
+{
+    struct ddraw_surface *surface;
+
+    if (ddraw->device_state != DDRAW_DEVICE_STATE_NOT_RESTORED)
+        return;
+
+    LIST_FOR_EACH_ENTRY(surface, &ddraw->surface_list, struct ddraw_surface, surface_list_entry)
+    {
+        surface->is_lost = TRUE;
+    }
+    ddraw->device_state = DDRAW_DEVICE_STATE_OK;
 }
 
 static HRESULT CDECL device_parent_surface_created(struct wined3d_device_parent *device_parent,
@@ -4736,8 +4774,10 @@ static HRESULT CDECL device_parent_surface_created(struct wined3d_device_parent 
         return DDERR_OUTOFVIDEOMEMORY;
     }
 
-    ddraw_surface_init(ddraw_surface, ddraw, wined3d_texture_get_parent(wined3d_texture), surface, parent_ops);
+    ddraw_surface_init(ddraw_surface, ddraw, wined3d_texture, sub_resource_idx, surface, parent_ops);
     *parent = ddraw_surface;
+
+    ddraw_update_lost_surfaces(ddraw);
     list_add_head(&ddraw->surface_list, &ddraw_surface->surface_list_entry);
 
     TRACE("Created ddraw surface %p.\n", ddraw_surface);
@@ -4785,13 +4825,13 @@ static HRESULT CDECL device_parent_create_swapchain_texture(struct wined3d_devic
     }
 
     if (FAILED(hr = wined3d_texture_create(ddraw->wined3d_device, desc, 1,
-            WINED3D_SURFACE_MAPPABLE, NULL, ddraw, &ddraw_frontbuffer_parent_ops, texture)))
+            WINED3D_TEXTURE_CREATE_MAPPABLE, NULL, ddraw, &ddraw_frontbuffer_parent_ops, texture)))
     {
         WARN("Failed to create texture, hr %#x.\n", hr);
         return hr;
     }
 
-    ddraw->wined3d_frontbuffer = wined3d_surface_from_resource(wined3d_texture_get_sub_resource(*texture, 0));
+    ddraw->wined3d_frontbuffer = *texture;
 
     return hr;
 }

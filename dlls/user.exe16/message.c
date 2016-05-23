@@ -1836,6 +1836,9 @@ BOOL16 WINAPI IsDialogMessage16( HWND16 hwndDlg, MSG16 *msg16 )
         msg.message = msg16->message;
         msg.wParam  = msg16->wParam;
         msg.lParam  = msg16->lParam;
+        msg.time    = msg16->time;
+        msg.pt.x    = msg16->pt.x;
+        msg.pt.y    = msg16->pt.y;
         return IsDialogMessageA( hwndDlg32, &msg );
     }
 
@@ -2648,17 +2651,11 @@ static DWORD wait_message16( DWORD count, const HANDLE *handles, DWORD timeout, 
  */
 HWND create_window16( CREATESTRUCTW *cs, LPCWSTR className, HINSTANCE instance, BOOL unicode )
 {
-    DWORD lock;
-    HWND ret;
-
     /* map to module handle */
     if (instance && !((ULONG_PTR)instance >> 16))
         instance = HINSTANCE_32( GetExePtr( HINSTANCE_16(instance) ));
 
-    ReleaseThunkLock( &lock );
-    ret = wow_handlers32.create_window( cs, className, instance, unicode );
-    RestoreThunkLock( lock );
-    return ret;
+    return wow_handlers32.create_window( cs, className, instance, unicode );
 }
 
 

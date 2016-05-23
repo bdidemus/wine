@@ -48,6 +48,7 @@ EXTRACFLAGS     = @EXTRACFLAGS@
 MSVCRTFLAGS     = @BUILTINFLAG@
 TARGETFLAGS     = @TARGETFLAGS@
 UNWINDFLAGS     = @UNWINDFLAGS@
+LDEXECFLAGS     = @LDEXECFLAGS@
 LIBS            = @LIBS@
 BISON           = @BISON@
 FLEX            = @FLEX@
@@ -71,6 +72,7 @@ ICOTOOL         = @ICOTOOL@
 MSGFMT          = @MSGFMT@
 CROSSTARGET     = @CROSSTARGET@
 LINGUAS         = @LINGUAS@
+SUBDIRS         = @SUBDIRS@
 RUNTESTFLAGS    = -q -P wine
 MAKEDEP         = $(TOOLSDIR)/tools/makedep$(TOOLSEXT)
 WINEBUILD       = $(TOOLSDIR)/tools/winebuild/winebuild$(TOOLSEXT)
@@ -79,6 +81,7 @@ LIBPORT         = $(top_builddir)/libs/port/libwine_port.a
 LIBWPP          = $(top_builddir)/libs/wpp/libwpp.a
 LIBWINE         = -L$(top_builddir)/libs/wine -lwine
 LIBWINE_STATIC  = $(top_builddir)/libs/wine/libwine_static.a
+PACKAGE_VERSION = @PACKAGE_VERSION@
 SED_CMD         = LC_ALL=C sed -e 's,@bindir\@,$(bindir),g' -e 's,@dlldir\@,$(dlldir),g' -e 's,@PACKAGE_STRING\@,@PACKAGE_STRING@,g' -e 's,@PACKAGE_VERSION\@,@PACKAGE_VERSION@,g'
 LDRPATH_INSTALL = @LDRPATH_INSTALL@
 LDRPATH_LOCAL   = @LDRPATH_LOCAL@
@@ -88,6 +91,16 @@ INSTALL_DATA    = $(top_srcdir)/tools/install-sh -m 644 $(INSTALL_DATA_FLAGS)
 prog_manext     = 1
 api_manext      = 3w
 conf_manext     = 5
+WINELOADER_PROGRAMS = @WINELOADER_PROGRAMS@
+WINELOADER_DEPENDS  = @WINELOADER_DEPENDS@
+WINELOADER_INSTALL  = @WINELOADER_INSTALL@
+LIBWINE_SHAREDLIB   = @LIBWINE_SHAREDLIB@
+LIBWINE_IMPORTLIB   = @LIBWINE_IMPORTLIB@
+LIBWINE_INSTALL_LIB = @LIBWINE_INSTALL_LIB@
+LIBWINE_INSTALL_DEV = @LIBWINE_INSTALL_DEV@
+LIBWINE_LDFLAGS     = @LIBWINE_LDFLAGS@
+LIBWINE_DEPENDS     = @LIBWINE_DEPENDS@
+ALL_TEST_RESOURCES  = @ALL_TEST_RESOURCES@
 @ALL_VARS_RULES@
 @SET_MAKE@
 

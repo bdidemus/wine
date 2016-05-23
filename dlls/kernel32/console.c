@@ -211,15 +211,18 @@ static BOOL put_console_into_raw_mode(int fd)
 static BOOL restore_console_mode(HANDLE hin)
 {
     int         fd;
-    BOOL        ret;
+    BOOL        ret = TRUE;
 
-    if (!S_termios_raw ||
-        RtlGetCurrentPeb()->ProcessParameters->ConsoleHandle != KERNEL32_CONSOLE_SHELL)
-        return TRUE;
-    if ((fd = get_console_bare_fd(hin)) == -1) return FALSE;
-    ret = tcsetattr(fd, TCSANOW, &S_termios) >= 0;
-    close(fd);
-    TERM_Exit();
+    if (S_termios_raw)
+    {
+        if ((fd = get_console_bare_fd(hin)) == -1) return FALSE;
+        ret = tcsetattr(fd, TCSANOW, &S_termios) >= 0;
+        close(fd);
+    }
+
+    if (RtlGetCurrentPeb()->ProcessParameters->ConsoleHandle == KERNEL32_CONSOLE_SHELL)
+        TERM_Exit();
+
     return ret;
 }
 
@@ -1357,6 +1360,22 @@ DWORD WINAPI GetConsoleTitleW(LPWSTR title, DWORD size)
     return ret;
 }
 
+static COORD get_largest_console_window_size(HANDLE hConsole)
+{
+    COORD c = {0,0};
+
+    SERVER_START_REQ(get_console_output_info)
+    {
+        req->handle = console_handle_unmap(hConsole);
+        if (!wine_server_call_err(req))
+        {
+            c.X = reply->max_width;
+            c.Y = reply->max_height;
+        }
+    }
+    SERVER_END_REQ;
+    return c;
+}
 
 /***********************************************************************
  *            GetLargestConsoleWindowSize   (KERNEL32.@)
@@ -1375,33 +1394,21 @@ DWORD WINAPI GetLargestConsoleWindowSize(HANDLE hConsoleOutput)
 	COORD c;
 	DWORD w;
     } x;
-    x.c.X = 80;
-    x.c.Y = 24;
+    x.c = get_largest_console_window_size(hConsoleOutput);
     TRACE("(%p), returning %dx%d (%x)\n", hConsoleOutput, x.c.X, x.c.Y, x.w);
     return x.w;
 }
-#endif /* defined(__i386__) */
 
+#else
 
-/***********************************************************************
- *            GetLargestConsoleWindowSize   (KERNEL32.@)
- *
- * NOTE
- *	This should return a COORD, but calling convention for returning
- *      structures is different between Windows and gcc on i386.
- *
- * VERSION: [!i386]
- */
-#ifndef __i386__
 COORD WINAPI GetLargestConsoleWindowSize(HANDLE hConsoleOutput)
 {
     COORD c;
-    c.X = 80;
-    c.Y = 24;
+    c = get_largest_console_window_size(hConsoleOutput);
     TRACE("(%p), returning %dx%d\n", hConsoleOutput, c.X, c.Y);
     return c;
 }
-#endif /* defined(__i386__) */
+#endif /* !defined(__i386__) */
 
 static WCHAR*	S_EditString /* = NULL */;
 static unsigned S_EditStrPos /* = 0 */;
@@ -2143,8 +2150,8 @@ BOOL WINAPI GetConsoleScreenBufferInfo(HANDLE hConsoleOutput, LPCONSOLE_SCREEN_B
             csbi->srWindow.Right        = reply->win_right;
             csbi->srWindow.Top          = reply->win_top;
             csbi->srWindow.Bottom       = reply->win_bottom;
-            csbi->dwMaximumWindowSize.X = reply->max_width;
-            csbi->dwMaximumWindowSize.Y = reply->max_height;
+            csbi->dwMaximumWindowSize.X = min(reply->width, reply->max_width);
+            csbi->dwMaximumWindowSize.Y = min(reply->height, reply->max_height);
         }
     }
     SERVER_END_REQ;
@@ -3239,6 +3246,12 @@ DWORD WINAPI GetNumberOfConsoleFonts(void)
     return 1;
 }
 
+BOOL WINAPI SetConsoleFont(HANDLE hConsole, DWORD index)
+{
+    FIXME("(%p, %u): stub!\n", hConsole, index);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+}
 
 BOOL WINAPI SetConsoleKeyShortcuts(BOOL set, BYTE keys, VOID *a, DWORD b)
 {
@@ -3254,20 +3267,21 @@ BOOL WINAPI GetCurrentConsoleFont(HANDLE hConsole, BOOL maxwindow, LPCONSOLE_FON
 
     memset(fontinfo, 0, sizeof(CONSOLE_FONT_INFO));
 
-    if (maxwindow)
-    {
-        FIXME(": (%p, %d, %p) stub!\n", hConsole, maxwindow, fontinfo);
-        SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-        return FALSE;
-    }
-
     SERVER_START_REQ(get_console_output_info)
     {
         req->handle = console_handle_unmap(hConsole);
         if ((ret = !wine_server_call_err(req)))
         {
-            fontinfo->dwFontSize.X = reply->win_right - reply->win_left + 1;
-            fontinfo->dwFontSize.Y = reply->win_bottom - reply->win_top + 1;
+            if (maxwindow)
+            {
+                fontinfo->dwFontSize.X = min(reply->width, reply->max_width);
+                fontinfo->dwFontSize.Y = min(reply->height, reply->max_height);
+            }
+            else
+            {
+                fontinfo->dwFontSize.X = reply->win_right - reply->win_left + 1;
+                fontinfo->dwFontSize.Y = reply->win_bottom - reply->win_top + 1;
+            }
         }
     }
     SERVER_END_REQ;
@@ -3318,3 +3332,17 @@ COORD WINAPI GetConsoleFontSize(HANDLE hConsole, DWORD index)
     return get_console_font_size(hConsole, index);
 }
 #endif /* !defined(__i386__) */
+
+BOOL WINAPI GetConsoleScreenBufferInfoEx(HANDLE hConsole, CONSOLE_SCREEN_BUFFER_INFOEX *csbix)
+{
+    FIXME("(%p %p): stub!\n", hConsole, csbix);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+}
+
+BOOL WINAPI SetConsoleScreenBufferInfoEx(HANDLE hConsole, CONSOLE_SCREEN_BUFFER_INFOEX *csbix)
+{
+    FIXME("(%p %p): stub!\n", hConsole, csbix);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+}

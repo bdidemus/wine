@@ -245,6 +245,8 @@ HEADER_SRCS = \
 	d3drmwin.h \
 	d3dtypes.h \
 	d3dvec.inl \
+	d3dx10.h \
+	d3dx10async.h \
 	d3dx9.h \
 	d3dx9anim.h \
 	d3dx9core.h \
@@ -274,6 +276,7 @@ HEADER_SRCS = \
 	ddk/hidtypes.h \
 	ddk/imm.h \
 	ddk/mountmgr.h \
+	ddk/ndis.h \
 	ddk/ntddcdvd.h \
 	ddk/ntddk.h \
 	ddk/ntddser.h \

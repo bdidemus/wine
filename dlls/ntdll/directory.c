@@ -331,28 +331,19 @@ static char *get_default_com_device( int num )
 {
     char *ret = NULL;
 
-    if (!num || num > 9) return ret;
+    if (num < 1 || num > 256) return NULL;
 #ifdef linux
-    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/ttyS0") );
-    if (ret)
-    {
-        strcpy( ret, "/dev/ttyS0" );
-        ret[strlen(ret) - 1] = '0' + num - 1;
-    }
+    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/ttyS256") );
+    if (!ret) return NULL;
+    sprintf( ret, "/dev/ttyS%d", num - 1 );
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/cuau0") );
-    if (ret)
-    {
-        strcpy( ret, "/dev/cuau0" );
-        ret[strlen(ret) - 1] = '0' + num - 1;
-    }
+    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/cuau256") );
+    if (!ret) return NULL;
+    sprintf( ret, "/dev/cuau%d", num - 1 );
 #elif defined(__DragonFly__)
-    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/cuaa0") );
-    if (ret)
-    {
-        strcpy( ret, "/dev/cuaa0" );
-        ret[strlen(ret) - 1] = '0' + num - 1;
-    }
+    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/cuaa256") );
+    if (!ret) return NULL;
+    sprintf( ret, "/dev/cuaa%d", num - 1 );
 #else
     FIXME( "no known default for device com%d\n", num );
 #endif
@@ -369,14 +360,11 @@ static char *get_default_lpt_device( int num )
 {
     char *ret = NULL;
 
-    if (!num || num > 9) return ret;
+    if (num < 1 || num > 256) return NULL;
 #ifdef linux
-    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/lp0") );
-    if (ret)
-    {
-        strcpy( ret, "/dev/lp0" );
-        ret[strlen(ret) - 1] = '0' + num - 1;
-    }
+    ret = RtlAllocateHeap( GetProcessHeap(), 0, sizeof("/dev/lp256") );
+    if (!ret) return NULL;
+    sprintf( ret, "/dev/lp%d", num - 1 );
 #else
     FIXME( "no known default for device lpt%d\n", num );
 #endif
@@ -1005,7 +993,7 @@ static void add_fs_cache( dev_t dev, fsid_t fsid, BOOLEAN case_sensitive )
  */
 static int get_dir_case_sensitivity_attr( const char *dir )
 {
-    char *mntpoint = NULL;
+    char *mntpoint;
     struct attrlist attr;
     struct vol_caps caps;
     struct get_fsid get_fsid;
@@ -2120,15 +2108,6 @@ static int read_directory_stat( int fd, IO_STATUS_BLOCK *io, void *buffer, ULONG
             }
             else io->u.Status = restart_scan ? STATUS_NO_SUCH_FILE : STATUS_NO_MORE_FILES;
         }
-        else if (!case_sensitive && ret && (errno == ENOENT || errno == ENOTDIR))
-        {
-            /* If the file does not exist, return that info.
-             * If the file DOES exist, return failure and fallback to the next
-             * read_directory_* function (we need to return the case-preserved
-             * filename stored on the filesystem). */
-            ret = 0;
-            io->u.Status = restart_scan ? STATUS_NO_SUCH_FILE : STATUS_NO_MORE_FILES;
-        }
         else
         {
             ret = -1;
@@ -2214,11 +2193,6 @@ static int read_directory_getattrlist( int fd, IO_STATUS_BLOCK *io, void *buffer
             }
             else io->u.Status = restart_scan ? STATUS_NO_SUCH_FILE : STATUS_NO_MORE_FILES;
         }
-        else if ((errno == ENOENT || errno == ENOTDIR) && !get_dir_case_sensitivity("."))
-        {
-            io->u.Status = restart_scan ? STATUS_NO_SUCH_FILE : STATUS_NO_MORE_FILES;
-            ret = 0;
-        }
     }
     else ret = -1;
 
@@ -2236,7 +2210,8 @@ done:
  *  NtQueryDirectoryFile	[NTDLL.@]
  *  ZwQueryDirectoryFile	[NTDLL.@]
  */
-NTSTATUS WINAPI NtQueryDirectoryFile( HANDLE handle, HANDLE event,
+DEFINE_SYSCALL_ENTRYPOINT( NtQueryDirectoryFile, 11 );
+NTSTATUS WINAPI SYSCALL(NtQueryDirectoryFile)( HANDLE handle, HANDLE event,
                                       PIO_APC_ROUTINE apc_routine, PVOID apc_context,
                                       PIO_STATUS_BLOCK io,
                                       PVOID buffer, ULONG length,
@@ -3371,7 +3346,7 @@ NTSTATUS DIR_get_unix_cwd( char **cwd )
         attr.SecurityDescriptor = NULL;
         attr.SecurityQualityOfService = NULL;
 
-        status = NtOpenFile( &handle, 0, &attr, &io, 0,
+        status = NtOpenFile( &handle, SYNCHRONIZE, &attr, &io, 0,
                              FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT );
         RtlFreeUnicodeString( &dirW );
         if (status != STATUS_SUCCESS) goto done;

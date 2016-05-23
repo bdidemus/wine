@@ -81,6 +81,8 @@ static const struct object_ops process_ops =
     default_get_sd,              /* get_sd */
     default_set_sd,              /* set_sd */
     no_lookup_name,              /* lookup_name */
+    no_link_name,                /* link_name */
+    NULL,                        /* unlink_name */
     no_open_file,                /* open_file */
     no_close_handle,             /* close_handle */
     process_destroy              /* destroy */
@@ -129,6 +131,8 @@ static const struct object_ops startup_info_ops =
     default_get_sd,                /* get_sd */
     default_set_sd,                /* set_sd */
     no_lookup_name,                /* lookup_name */
+    no_link_name,                  /* link_name */
+    NULL,                          /* unlink_name */
     no_open_file,                  /* open_file */
     no_close_handle,               /* close_handle */
     startup_info_destroy           /* destroy */
@@ -170,6 +174,8 @@ static const struct object_ops job_ops =
     default_get_sd,                /* get_sd */
     default_set_sd,                /* set_sd */
     no_lookup_name,                /* lookup_name */
+    directory_link_name,           /* link_name */
+    default_unlink_name,           /* unlink_name */
     no_open_file,                  /* open_file */
     job_close_handle,              /* close_handle */
     job_destroy                    /* destroy */
@@ -513,7 +519,7 @@ struct thread *create_process( int fd, struct thread *parent_thread, int inherit
     process->priority        = PROCESS_PRIOCLASS_NORMAL;
     process->suspend         = 0;
     process->is_system       = 0;
-    process->debug_children  = 0;
+    process->debug_children  = 1;
     process->is_terminating  = 0;
     process->job             = NULL;
     process->console         = NULL;
@@ -1228,7 +1234,7 @@ DECL_HANDLER(new_process)
     else if (parent->debugger && parent->debug_children)
     {
         set_process_debugger( process, parent->debugger );
-        process->debug_children = 1;
+        /* debug_children is set to 1 by default */
     }
 
     if (!(req->create_flags & CREATE_NEW_PROCESS_GROUP))
@@ -1359,6 +1365,7 @@ DECL_HANDLER(get_process_info)
         reply->end_time         = process->end_time;
         reply->cpu              = process->cpu;
         reply->debugger_present = !!process->debugger;
+        reply->debug_children   = process->debug_children;
         release_object( process );
     }
 }
@@ -1537,26 +1544,31 @@ DECL_HANDLER(create_job)
 {
     struct job *job;
     struct unicode_str name;
-    struct directory *root = NULL;
-    const struct object_attributes *objattr = get_req_data();
+    struct directory *root;
     const struct security_descriptor *sd;
+    const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, &root );
 
-    if (!objattr_is_valid( objattr, get_req_data_size() )) return;
+    if (!objattr) return;
 
-    sd = objattr->sd_len ? (const struct security_descriptor *)(objattr + 1) : NULL;
-    objattr_get_name( objattr, &name );
-
-    if (objattr->rootdir && !(root = get_directory_obj( current->process, objattr->rootdir, 0 ))) return;
-
-    if ((job = create_job_object( root, &name, req->attributes, sd )))
+    if ((job = create_job_object( root, &name, objattr->attributes, sd )))
     {
         if (get_error() == STATUS_OBJECT_NAME_EXISTS)
-            reply->handle = alloc_handle( current->process, job, req->access, req->attributes );
+            reply->handle = alloc_handle( current->process, job, req->access, objattr->attributes );
         else
-            reply->handle = alloc_handle_no_access_check( current->process, job, req->access, req->attributes );
+            reply->handle = alloc_handle_no_access_check( current->process, job,
+                                                          req->access, objattr->attributes );
         release_object( job );
     }
     if (root) release_object( root );
+}
+
+/* open a job object */
+DECL_HANDLER(open_job)
+{
+    struct unicode_str name = get_req_unicode_str();
+
+    reply->handle = open_object( current->process, req->rootdir, req->access,
+                                 &job_ops, &name, req->attributes );
 }
 
 /* assign a job object to a process */

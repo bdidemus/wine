@@ -60,12 +60,14 @@ struct FvfToDecl
 #define DDRAW_STRIDE_ALIGNMENT  8
 
 #define DDRAW_WINED3D_FLAGS     (WINED3D_LEGACY_DEPTH_BIAS | WINED3D_VIDMEM_ACCOUNTING \
-        | WINED3D_RESTORE_MODE_ON_ACTIVATE | WINED3D_FOCUS_MESSAGES | WINED3D_PIXEL_CENTER_INTEGER)
+        | WINED3D_RESTORE_MODE_ON_ACTIVATE | WINED3D_FOCUS_MESSAGES | WINED3D_PIXEL_CENTER_INTEGER \
+        | WINED3D_SRGB_READ_WRITE_CONTROL)
 
 enum ddraw_device_state
 {
     DDRAW_DEVICE_STATE_OK,
     DDRAW_DEVICE_STATE_LOST,
+    DDRAW_DEVICE_STATE_NOT_RESTORED,
 };
 
 struct ddraw
@@ -91,7 +93,7 @@ struct ddraw
 
     struct ddraw_surface *primary;
     RECT primary_lock;
-    struct wined3d_surface *wined3d_frontbuffer;
+    struct wined3d_texture *wined3d_frontbuffer;
     struct wined3d_swapchain *wined3d_swapchain;
     HWND swapchain_window;
 
@@ -126,6 +128,7 @@ HRESULT ddraw_init(struct ddraw *ddraw, DWORD flags, enum wined3d_device_type de
 void ddraw_d3dcaps1_from_7(D3DDEVICEDESC *caps1, D3DDEVICEDESC7 *caps7) DECLSPEC_HIDDEN;
 void ddraw_destroy_swapchain(struct ddraw *ddraw) DECLSPEC_HIDDEN;
 HRESULT ddraw_get_d3dcaps(const struct ddraw *ddraw, D3DDEVICEDESC7 *caps) DECLSPEC_HIDDEN;
+void ddraw_update_lost_surfaces(struct ddraw *ddraw) DECLSPEC_HIDDEN;
 
 static inline void ddraw_set_swapchain_window(struct ddraw *ddraw, HWND window)
 {
@@ -159,8 +162,8 @@ struct ddraw_surface
 
     /* Connections to other Objects */
     struct ddraw *ddraw;
-    struct wined3d_surface *wined3d_surface;
     struct wined3d_texture *wined3d_texture;
+    unsigned int sub_resource_idx;
     struct wined3d_rendertarget_view *wined3d_rtv;
     struct wined3d_private_store private_store;
     struct d3d_device *device1;
@@ -181,6 +184,7 @@ struct ddraw_surface
      * but no pointer to prevent temptations to traverse it in the wrong direction.
      */
     BOOL                    is_complex_root;
+    BOOL is_lost;
 
     /* Surface description, for GetAttachedSurface */
     DDSURFACEDESC2          surface_desc;
@@ -193,6 +197,7 @@ struct ddraw_surface
     struct list             surface_list_entry;
 
     DWORD                   Handle;
+    HDC dc;
 };
 
 struct ddraw_texture
@@ -206,7 +211,8 @@ struct ddraw_texture
 HRESULT ddraw_surface_create(struct ddraw *ddraw, const DDSURFACEDESC2 *surface_desc,
         struct ddraw_surface **surface, IUnknown *outer_unknown, unsigned int version) DECLSPEC_HIDDEN;
 struct wined3d_rendertarget_view *ddraw_surface_get_rendertarget_view(struct ddraw_surface *surface) DECLSPEC_HIDDEN;
-void ddraw_surface_init(struct ddraw_surface *surface, struct ddraw *ddraw, struct ddraw_texture *texture,
+void ddraw_surface_init(struct ddraw_surface *surface, struct ddraw *ddraw,
+        struct wined3d_texture *wined3d_texture, unsigned int sub_resource_idx,
         struct wined3d_surface *wined3d_surface, const struct wined3d_parent_ops **parent_ops) DECLSPEC_HIDDEN;
 ULONG ddraw_surface_release_iface(struct ddraw_surface *This) DECLSPEC_HIDDEN;
 HRESULT ddraw_surface_update_frontbuffer(struct ddraw_surface *surface,

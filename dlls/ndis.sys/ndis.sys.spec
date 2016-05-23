@@ -12,11 +12,11 @@
 @ stub NdisAllocateBufferPool
 @ stub NdisAllocateFromBlockPool
 @ stub NdisAllocateMemory
-@ stub NdisAllocateMemoryWithTag
+@ stdcall NdisAllocateMemoryWithTag(ptr long long)
 @ stub NdisAllocatePacket
 @ stub NdisAllocatePacketPool
 @ stub NdisAllocatePacketPoolEx
-@ stub NdisAllocateSpinLock
+@ stdcall NdisAllocateSpinLock(ptr)
 @ stub NdisAnsiStringToUnicodeString
 @ stub NdisBufferLength
 @ stub NdisBufferVirtualAddress
@@ -130,7 +130,7 @@
 @ stub NdisImmediateWritePortUshort
 @ stub NdisImmediateWriteSharedMemory
 @ stub NdisInitAnsiString
-@ stub NdisInitUnicodeString
+@ stdcall NdisInitUnicodeString(ptr wstr) ntdll.RtlInitUnicodeString
 @ stub NdisInitializeEvent
 @ stub NdisInitializeReadWriteLock
 @ stub NdisInitializeString

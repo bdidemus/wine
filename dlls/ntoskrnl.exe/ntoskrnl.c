@@ -36,6 +36,7 @@
 #include "ddk/csq.h"
 #include "ddk/ntddk.h"
 #include "ddk/ntifs.h"
+#include "ddk/wdm.h"
 #include "wine/unicode.h"
 #include "wine/server.h"
 #include "wine/list.h"
@@ -1039,9 +1040,44 @@ PDEVICE_OBJECT WINAPI IoGetAttachedDevice( PDEVICE_OBJECT device )
 NTSTATUS WINAPI IoGetDeviceProperty( DEVICE_OBJECT *device, DEVICE_REGISTRY_PROPERTY device_property,
                                      ULONG buffer_length, PVOID property_buffer, PULONG result_length )
 {
-    FIXME( "%p %d %u %p %p: stub\n", device, device_property, buffer_length,
+    NTSTATUS status = STATUS_NOT_IMPLEMENTED;
+    TRACE( "%p %d %u %p %p\n", device, device_property, buffer_length,
            property_buffer, result_length );
-    return STATUS_NOT_IMPLEMENTED;
+    switch (device_property)
+    {
+        case DevicePropertyPhysicalDeviceObjectName:
+        {
+            ULONG used_len, len = buffer_length + sizeof(OBJECT_NAME_INFORMATION);
+            OBJECT_NAME_INFORMATION *name = HeapAlloc(GetProcessHeap(), 0, len);
+
+            status = NtQueryObject(device->Reserved, ObjectNameInformation, name, len, &used_len);
+            if (status == STATUS_SUCCESS)
+            {
+                /* Ensure room for NULL termination */
+                if (buffer_length >= name->Name.MaximumLength)
+                    memcpy(property_buffer, name->Name.Buffer, name->Name.MaximumLength);
+                else
+                    status = STATUS_BUFFER_TOO_SMALL;
+                *result_length = name->Name.MaximumLength;
+            }
+            else
+            {
+                if (status == STATUS_INFO_LENGTH_MISMATCH ||
+                    status == STATUS_BUFFER_OVERFLOW)
+                {
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    *result_length = used_len - sizeof(OBJECT_NAME_INFORMATION);
+                }
+                else
+                    *result_length = 0;
+            }
+            HeapFree(GetProcessHeap(), 0, name);
+            break;
+        }
+        default:
+            FIXME("unhandled property %d\n", device_property);
+    }
+    return status;
 }
 
 
@@ -1427,6 +1463,24 @@ NTSTATUS WINAPI ExCreateCallback(PCALLBACK_OBJECT *obj, POBJECT_ATTRIBUTES attr,
     FIXME("(%p, %p, %u, %u): stub\n", obj, attr, create, allow_multiple);
 
     return STATUS_NOT_IMPLEMENTED;
+}
+
+
+/***********************************************************************
+ *           ExDeleteNPagedLookasideList   (NTOSKRNL.EXE.@)
+ */
+void WINAPI ExDeleteNPagedLookasideList( PNPAGED_LOOKASIDE_LIST lookaside )
+{
+    FIXME("(%p) stub\n", lookaside);
+}
+
+
+/***********************************************************************
+ *           ExDeletePagedLookasideList  (NTOSKRNL.EXE.@)
+ */
+void WINAPI ExDeletePagedLookasideList( PPAGED_LOOKASIDE_LIST lookaside )
+{
+    FIXME("(%p) stub\n", lookaside);
 }
 
 
@@ -2048,6 +2102,16 @@ NTSTATUS WINAPI PsSetCreateThreadNotifyRoutine( PCREATE_THREAD_NOTIFY_ROUTINE No
 
 
 /***********************************************************************
+ *           PsRemoveCreateThreadNotifyRoutine  (NTOSKRNL.EXE.@)
+ */
+NTSTATUS WINAPI PsRemoveCreateThreadNotifyRoutine( PCREATE_THREAD_NOTIFY_ROUTINE NotifyRoutine )
+{
+    FIXME( "stub: %p\n", NotifyRoutine );
+    return STATUS_SUCCESS;
+}
+
+
+/***********************************************************************
  *           PsTerminateSystemThread   (NTOSKRNL.EXE.@)
  */
 NTSTATUS WINAPI PsTerminateSystemThread(NTSTATUS ExitStatus)
@@ -2343,4 +2407,38 @@ void WINAPI KeEnterCriticalRegion(void)
 void WINAPI KeLeaveCriticalRegion(void)
 {
     FIXME(": stub\n");
+}
+
+/***********************************************************************
+ *           ProbeForRead   (NTOSKRNL.EXE.@)
+ */
+void WINAPI ProbeForRead(void *address, SIZE_T length, ULONG alignment)
+{
+    FIXME("(%p %lu %u) stub\n", address, length, alignment);
+}
+
+/***********************************************************************
+ *           ProbeForWrite   (NTOSKRNL.EXE.@)
+ */
+void WINAPI ProbeForWrite(void *address, SIZE_T length, ULONG alignment)
+{
+    FIXME("(%p %lu %u) stub\n", address, length, alignment);
+}
+
+/***********************************************************************
+ *           CmRegisterCallback  (NTOSKRNL.EXE.@)
+ */
+NTSTATUS WINAPI CmRegisterCallback(EX_CALLBACK_FUNCTION *function, void *context, LARGE_INTEGER *cookie)
+{
+    FIXME("(%p %p %p): stub\n", function, context, cookie);
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/***********************************************************************
+ *           CmUnRegisterCallback  (NTOSKRNL.EXE.@)
+ */
+NTSTATUS WINAPI CmUnRegisterCallback(LARGE_INTEGER cookie)
+{
+    FIXME("(%s): stub\n", wine_dbgstr_longlong(cookie.QuadPart));
+    return STATUS_NOT_IMPLEMENTED;
 }

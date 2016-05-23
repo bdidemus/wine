@@ -99,6 +99,9 @@
 #endif
 
 
+#include "macdrv_res.h"
+
+
 /* Must match the values of Cocoa's NSDragOperation enum. */
 enum {
     DRAG_OP_NONE    = 0,
@@ -156,6 +159,7 @@ extern int allow_immovable_windows DECLSPEC_HIDDEN;
 extern int cursor_clipping_locks_windows DECLSPEC_HIDDEN;
 extern int use_precise_scrolling DECLSPEC_HIDDEN;
 extern int gl_surface_mode DECLSPEC_HIDDEN;
+extern CFDictionaryRef localized_strings DECLSPEC_HIDDEN;
 
 extern int macdrv_start_cocoa_app(unsigned long long tickcount) DECLSPEC_HIDDEN;
 extern void macdrv_window_rejected_focus(const struct macdrv_event *event) DECLSPEC_HIDDEN;
@@ -195,8 +199,10 @@ enum {
     MOUSE_MOVED_ABSOLUTE,
     MOUSE_SCROLL,
     QUERY_EVENT,
+    QUERY_EVENT_NO_PREEMPT_WAIT,
     REASSERT_WINDOW_POSITION,
     RELEASE_CAPTURE,
+    SENT_TEXT_INPUT,
     STATUS_ITEM_MOUSE_BUTTON,
     STATUS_ITEM_MOUSE_MOVE,
     WINDOW_BROUGHT_FORWARD,
@@ -281,6 +287,10 @@ typedef struct macdrv_event {
         struct {
             struct macdrv_query *query;
         }                                           query_event;
+        struct {
+            int handled;
+            int *done;
+        }                                           sent_text_input;
         struct {
             macdrv_status_item  item;
             int                 button;
@@ -434,8 +444,8 @@ extern void macdrv_set_view_window_and_frame(macdrv_view v, macdrv_window w, CGR
 extern void macdrv_add_view_opengl_context(macdrv_view v, macdrv_opengl_context c) DECLSPEC_HIDDEN;
 extern void macdrv_remove_view_opengl_context(macdrv_view v, macdrv_opengl_context c) DECLSPEC_HIDDEN;
 extern uint32_t macdrv_window_background_color(void) DECLSPEC_HIDDEN;
-extern int macdrv_send_text_input_event(int pressed, unsigned int flags, int repeat, int keyc,
-                                        void* data) DECLSPEC_HIDDEN;
+extern void macdrv_send_text_input_event(int pressed, unsigned int flags, int repeat, int keyc,
+                                         void* data, int* done) DECLSPEC_HIDDEN;
 
 
 /* keyboard */

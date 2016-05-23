@@ -377,8 +377,9 @@ struct security_descriptor
 struct object_attributes
 {
     obj_handle_t rootdir;
-    data_size_t sd_len;
-    data_size_t name_len;
+    unsigned int attributes;
+    data_size_t  sd_len;
+    data_size_t  name_len;
 
 
 };
@@ -857,7 +858,8 @@ struct get_process_info_reply
     int          exit_code;
     int          priority;
     cpu_type_t   cpu;
-    int          debugger_present;
+    short int    debugger_present;
+    short int    debug_children;
 };
 
 
@@ -1156,11 +1158,9 @@ struct create_event_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     int          manual_reset;
     int          initial_state;
     /* VARARG(objattr,object_attributes); */
-    char __pad_28[4];
 };
 struct create_event_reply
 {
@@ -1217,9 +1217,7 @@ struct create_keyed_event_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     /* VARARG(objattr,object_attributes); */
-    char __pad_20[4];
 };
 struct create_keyed_event_reply
 {
@@ -1250,9 +1248,9 @@ struct create_mutex_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     int          owned;
     /* VARARG(objattr,object_attributes); */
+    char __pad_20[4];
 };
 struct create_mutex_reply
 {
@@ -1298,11 +1296,9 @@ struct create_semaphore_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     unsigned int initial;
     unsigned int max;
     /* VARARG(objattr,object_attributes); */
-    char __pad_28[4];
 };
 struct create_semaphore_reply
 {
@@ -1361,14 +1357,12 @@ struct create_file_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     unsigned int sharing;
     int          create;
     unsigned int options;
     unsigned int attrs;
     /* VARARG(objattr,object_attributes); */
     /* VARARG(filename,string); */
-    char __pad_36[4];
 };
 struct create_file_reply
 {
@@ -2104,8 +2098,8 @@ struct create_mapping_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     unsigned int protect;
+    char __pad_20[4];
     mem_size_t   size;
     obj_handle_t file_handle;
     /* VARARG(objattr,object_attributes); */
@@ -2399,13 +2393,11 @@ struct write_process_memory_reply
 struct create_key_request
 {
     struct request_header __header;
-    obj_handle_t parent;
     unsigned int access;
-    unsigned int attributes;
     unsigned int options;
-    data_size_t  namelen;
-    /* VARARG(name,unicode_str,namelen); */
+    /* VARARG(objattr,object_attributes); */
     /* VARARG(class,unicode_str); */
+    char __pad_20[4];
 };
 struct create_key_reply
 {
@@ -2549,10 +2541,8 @@ struct delete_key_value_reply
 struct load_registry_request
 {
     struct request_header __header;
-    obj_handle_t hkey;
     obj_handle_t file;
-    /* VARARG(name,unicode_str); */
-    char __pad_20[4];
+    /* VARARG(objattr,object_attributes); */
 };
 struct load_registry_reply
 {
@@ -2607,11 +2597,9 @@ struct create_timer_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
-    obj_handle_t rootdir;
     int          manual;
-    /* VARARG(name,unicode_str); */
-    char __pad_28[4];
+    /* VARARG(objattr,object_attributes); */
+    char __pad_20[4];
 };
 struct create_timer_reply
 {
@@ -3266,12 +3254,12 @@ struct create_named_pipe_request
 {
     struct request_header __header;
     unsigned int   access;
-    unsigned int   attributes;
     unsigned int   options;
     unsigned int   sharing;
     unsigned int   maxinstances;
     unsigned int   outsize;
     unsigned int   insize;
+    char __pad_36[4];
     timeout_t      timeout;
     unsigned int   flags;
     /* VARARG(objattr,object_attributes); */
@@ -3807,7 +3795,9 @@ struct create_winstation_request
     unsigned int flags;
     unsigned int access;
     unsigned int attributes;
+    obj_handle_t rootdir;
     /* VARARG(name,unicode_str); */
+    char __pad_28[4];
 };
 struct create_winstation_reply
 {
@@ -3823,8 +3813,8 @@ struct open_winstation_request
     struct request_header __header;
     unsigned int access;
     unsigned int attributes;
+    obj_handle_t rootdir;
     /* VARARG(name,unicode_str); */
-    char __pad_20[4];
 };
 struct open_winstation_reply
 {
@@ -4009,7 +3999,8 @@ struct set_user_object_info_reply
     unsigned int old_obj_flags;
     /* VARARG(name,unicode_str); */
 };
-#define SET_USER_OBJECT_FLAGS 1
+#define SET_USER_OBJECT_SET_FLAGS       1
+#define SET_USER_OBJECT_GET_FULL_NAME   2
 
 
 
@@ -4231,6 +4222,13 @@ struct set_caret_info_reply
 #define SET_CARET_POS        0x01
 #define SET_CARET_HIDE       0x02
 #define SET_CARET_STATE      0x04
+enum caret_state
+{
+    CARET_STATE_OFF,
+    CARET_STATE_ON,
+    CARET_STATE_TOGGLE,
+    CARET_STATE_ON_IF_MOVED
+};
 
 
 
@@ -4653,16 +4651,37 @@ struct get_security_object_reply
 };
 
 
+struct handle_info
+{
+    process_id_t owner;
+    obj_handle_t handle;
+    unsigned int access;
+};
+
+
+struct get_system_handles_request
+{
+    struct request_header __header;
+    char __pad_12[4];
+};
+struct get_system_handles_reply
+{
+    struct reply_header __header;
+    unsigned int    count;
+    /* VARARG(data,handle_infos); */
+    char __pad_12[4];
+};
+
+
+
 struct create_mailslot_request
 {
     struct request_header __header;
     unsigned int   access;
-    unsigned int   attributes;
-    obj_handle_t   rootdir;
     timeout_t      read_timeout;
     unsigned int   max_msgsize;
-    /* VARARG(name,unicode_str); */
-    char __pad_36[4];
+    /* VARARG(objattr,object_attributes); */
+    char __pad_28[4];
 };
 struct create_mailslot_reply
 {
@@ -4696,9 +4715,7 @@ struct create_directory_request
 {
     struct request_header __header;
     unsigned int   access;
-    unsigned int   attributes;
-    obj_handle_t   rootdir;
-    /* VARARG(directory_name,unicode_str); */
+    /* VARARG(objattr,object_attributes); */
 };
 struct create_directory_reply
 {
@@ -4748,12 +4765,8 @@ struct create_symlink_request
 {
     struct request_header __header;
     unsigned int   access;
-    unsigned int   attributes;
-    obj_handle_t   rootdir;
-    data_size_t    name_len;
-    /* VARARG(name,unicode_str,name_len); */
+    /* VARARG(objattr,object_attributes); */
     /* VARARG(target_name,unicode_str); */
-    char __pad_28[4];
 };
 struct create_symlink_reply
 {
@@ -4972,11 +4985,9 @@ struct create_completion_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     unsigned int concurrent;
-    obj_handle_t rootdir;
-    /* VARARG(filename,unicode_str); */
-    char __pad_28[4];
+    /* VARARG(objattr,object_attributes); */
+    char __pad_20[4];
 };
 struct create_completion_reply
 {
@@ -5246,11 +5257,26 @@ struct create_job_request
 {
     struct request_header __header;
     unsigned int access;
-    unsigned int attributes;
     /* VARARG(objattr,object_attributes); */
-    char __pad_20[4];
 };
 struct create_job_reply
+{
+    struct reply_header __header;
+    obj_handle_t handle;
+    char __pad_12[4];
+};
+
+
+
+struct open_job_request
+{
+    struct request_header __header;
+    unsigned int access;
+    unsigned int attributes;
+    obj_handle_t rootdir;
+    /* VARARG(name,unicode_str); */
+};
+struct open_job_reply
 {
     struct reply_header __header;
     obj_handle_t handle;
@@ -5558,6 +5584,7 @@ enum request
     REQ_set_token_default_dacl,
     REQ_set_security_object,
     REQ_get_security_object,
+    REQ_get_system_handles,
     REQ_create_mailslot,
     REQ_set_mailslot_info,
     REQ_create_directory,
@@ -5595,6 +5622,7 @@ enum request
     REQ_get_suspend_context,
     REQ_set_suspend_context,
     REQ_create_job,
+    REQ_open_job,
     REQ_assign_job,
     REQ_process_in_job,
     REQ_set_job_limits,
@@ -5834,6 +5862,7 @@ union generic_request
     struct set_token_default_dacl_request set_token_default_dacl_request;
     struct set_security_object_request set_security_object_request;
     struct get_security_object_request get_security_object_request;
+    struct get_system_handles_request get_system_handles_request;
     struct create_mailslot_request create_mailslot_request;
     struct set_mailslot_info_request set_mailslot_info_request;
     struct create_directory_request create_directory_request;
@@ -5871,6 +5900,7 @@ union generic_request
     struct get_suspend_context_request get_suspend_context_request;
     struct set_suspend_context_request set_suspend_context_request;
     struct create_job_request create_job_request;
+    struct open_job_request open_job_request;
     struct assign_job_request assign_job_request;
     struct process_in_job_request process_in_job_request;
     struct set_job_limits_request set_job_limits_request;
@@ -6108,6 +6138,7 @@ union generic_reply
     struct set_token_default_dacl_reply set_token_default_dacl_reply;
     struct set_security_object_reply set_security_object_reply;
     struct get_security_object_reply get_security_object_reply;
+    struct get_system_handles_reply get_system_handles_reply;
     struct create_mailslot_reply create_mailslot_reply;
     struct set_mailslot_info_reply set_mailslot_info_reply;
     struct create_directory_reply create_directory_reply;
@@ -6145,6 +6176,7 @@ union generic_reply
     struct get_suspend_context_reply get_suspend_context_reply;
     struct set_suspend_context_reply set_suspend_context_reply;
     struct create_job_reply create_job_reply;
+    struct open_job_reply open_job_reply;
     struct assign_job_reply assign_job_reply;
     struct process_in_job_reply process_in_job_reply;
     struct set_job_limits_reply set_job_limits_reply;
@@ -6152,6 +6184,6 @@ union generic_reply
     struct terminate_job_reply terminate_job_reply;
 };
 
-#define SERVER_PROTOCOL_VERSION 489
+#define SERVER_PROTOCOL_VERSION 502
 
 #endif /* __WINE_WINE_SERVER_PROTOCOL_H */

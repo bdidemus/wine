@@ -66,6 +66,7 @@ struct mailslot
 static void mailslot_dump( struct object*, int );
 static struct fd *mailslot_get_fd( struct object * );
 static unsigned int mailslot_map_access( struct object *obj, unsigned int access );
+static int mailslot_link_name( struct object *obj, struct object_name *name, struct object *parent );
 static struct object *mailslot_open_file( struct object *obj, unsigned int access,
                                           unsigned int sharing, unsigned int options );
 static void mailslot_destroy( struct object * );
@@ -85,6 +86,8 @@ static const struct object_ops mailslot_ops =
     default_get_sd,            /* get_sd */
     default_set_sd,            /* set_sd */
     no_lookup_name,            /* lookup_name */
+    mailslot_link_name,        /* link_name */
+    default_unlink_name,       /* unlink_name */
     mailslot_open_file,        /* open_file */
     fd_close_handle,           /* close_handle */
     mailslot_destroy           /* destroy */
@@ -138,6 +141,8 @@ static const struct object_ops mail_writer_ops =
     default_get_sd,             /* get_sd */
     default_set_sd,             /* set_sd */
     no_lookup_name,             /* lookup_name */
+    no_link_name,               /* link_name */
+    NULL,                       /* unlink_name */
     no_open_file,               /* open_file */
     fd_close_handle,            /* close_handle */
     mail_writer_destroy         /* destroy */
@@ -192,6 +197,8 @@ static const struct object_ops mailslot_device_ops =
     default_get_sd,                 /* get_sd */
     default_set_sd,                 /* set_sd */
     mailslot_device_lookup_name,    /* lookup_name */
+    directory_link_name,            /* link_name */
+    default_unlink_name,            /* unlink_name */
     mailslot_device_open_file,      /* open_file */
     fd_close_handle,                /* close_handle */
     mailslot_device_destroy         /* destroy */
@@ -252,6 +259,20 @@ static unsigned int mailslot_map_access( struct object *obj, unsigned int access
     if (access & GENERIC_READ)    access |= FILE_GENERIC_READ;
     if (access & GENERIC_ALL)     access |= FILE_GENERIC_READ;
     return access & ~(GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE | GENERIC_ALL);
+}
+
+static int mailslot_link_name( struct object *obj, struct object_name *name, struct object *parent )
+{
+    struct mailslot_device *dev = (struct mailslot_device *)parent;
+
+    if (parent->ops != &mailslot_device_ops)
+    {
+        set_error( STATUS_OBJECT_NAME_INVALID );
+        return 0;
+    }
+    namespace_add( dev->mailslots, name );
+    name->parent = grab_object( parent );
+    return 1;
 }
 
 static struct object *mailslot_open_file( struct object *obj, unsigned int access,
@@ -325,8 +346,7 @@ static void mailslot_queue_async( struct fd *fd, const async_data_t *data, int t
 
 static void mailslot_device_dump( struct object *obj, int verbose )
 {
-    assert( obj->ops == &mailslot_device_ops );
-    fprintf( stderr, "Mail slot device\n" );
+    fputs( "Mailslot device\n", stderr );
 }
 
 static struct object_type *mailslot_device_get_type( struct object *obj )
@@ -349,6 +369,8 @@ static struct object *mailslot_device_lookup_name( struct object *obj, struct un
     struct object *found;
 
     assert( obj->ops == &mailslot_device_ops );
+
+    if (!name) return NULL;  /* open the device itself */
 
     if ((found = find_object( device->mailslots, name, attr | OBJ_CASE_INSENSITIVE )))
         name->len = 0;
@@ -395,53 +417,21 @@ void create_mailslot_device( struct directory *root, const struct unicode_str *n
 
 static struct mailslot *create_mailslot( struct directory *root,
                                          const struct unicode_str *name, unsigned int attr,
-                                         int max_msgsize, timeout_t read_timeout )
+                                         int max_msgsize, timeout_t read_timeout,
+                                         const struct security_descriptor *sd )
 {
-    struct object *obj;
-    struct unicode_str new_name;
-    struct mailslot_device *dev;
     struct mailslot *mailslot;
     int fds[2];
 
-    if (!name || !name->len) return alloc_object( &mailslot_ops );
-
-    if (!(obj = find_object_dir( root, name, attr, &new_name )))
-    {
-        set_error( STATUS_OBJECT_NAME_INVALID );
-        return NULL;
-    }
-
-    if (!new_name.len)
-    {
-        if (attr & OBJ_OPENIF && obj->ops == &mailslot_ops)
-            /* it already exists - there can only be one mailslot to read from */
-            set_error( STATUS_OBJECT_NAME_EXISTS );
-        else if (attr & OBJ_OPENIF)
-            set_error( STATUS_OBJECT_TYPE_MISMATCH );
-        else
-            set_error( STATUS_OBJECT_NAME_COLLISION );
-        release_object( obj );
-        return NULL;
-    }
-
-    if (obj->ops != &mailslot_device_ops)
-    {
-        set_error( STATUS_OBJECT_NAME_INVALID );
-        release_object( obj );
-        return NULL;
-    }
-
-    dev = (struct mailslot_device *)obj;
-    mailslot = create_object( dev->mailslots, &mailslot_ops, &new_name, NULL );
-    release_object( dev );
-
-    if (!mailslot) return NULL;
+    if (!(mailslot = create_named_object_dir( root, name, attr, &mailslot_ops ))) return NULL;
 
     mailslot->fd = NULL;
     mailslot->write_fd = -1;
     mailslot->max_msgsize = max_msgsize;
     mailslot->read_timeout = read_timeout;
     list_init( &mailslot->writers );
+    if (sd) default_set_sd( &mailslot->obj, sd, OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
+                            DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION );
 
     if (!socketpair( PF_UNIX, SOCK_DGRAM, 0, fds ))
     {
@@ -507,17 +497,26 @@ DECL_HANDLER(create_mailslot)
 {
     struct mailslot *mailslot;
     struct unicode_str name;
-    struct directory *root = NULL;
+    struct directory *root;
+    const struct security_descriptor *sd;
+    const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, &root );
 
-    reply->handle = 0;
-    get_req_unicode_str( &name );
-    if (req->rootdir && !(root = get_directory_obj( current->process, req->rootdir, 0 )))
-        return;
+    if (!objattr) return;
 
-    if ((mailslot = create_mailslot( root, &name, req->attributes, req->max_msgsize,
-                                     req->read_timeout )))
+    if (!name.len)  /* mailslots need a root directory even without a name */
     {
-        reply->handle = alloc_handle( current->process, mailslot, req->access, req->attributes );
+        if (!objattr->rootdir)
+        {
+            set_error( STATUS_OBJECT_PATH_SYNTAX_BAD );
+            return;
+        }
+        else if (!(root = get_directory_obj( current->process, objattr->rootdir, 0 ))) return;
+    }
+
+    if ((mailslot = create_mailslot( root, &name, objattr->attributes, req->max_msgsize,
+                                     req->read_timeout, sd )))
+    {
+        reply->handle = alloc_handle( current->process, mailslot, req->access, objattr->attributes );
         release_object( mailslot );
     }
 

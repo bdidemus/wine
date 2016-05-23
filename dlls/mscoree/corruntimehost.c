@@ -104,8 +104,11 @@ end:
     return res;
 }
 
-static HRESULT RuntimeHost_GetDefaultDomain(RuntimeHost *This, MonoDomain **result)
+static HRESULT RuntimeHost_GetDefaultDomain(RuntimeHost *This, const WCHAR *config_path, MonoDomain **result)
 {
+    WCHAR config_dir[MAX_PATH];
+    WCHAR base_dir[MAX_PATH];
+    char *base_dirA, *config_pathA, *slash;
     HRESULT res=S_OK;
 
     EnterCriticalSection(&This->lock);
@@ -113,6 +116,48 @@ static HRESULT RuntimeHost_GetDefaultDomain(RuntimeHost *This, MonoDomain **resu
     if (This->default_domain) goto end;
 
     res = RuntimeHost_AddDomain(This, &This->default_domain);
+
+    if (!config_path)
+    {
+        DWORD len = sizeof(config_dir)/sizeof(*config_dir);
+
+        static const WCHAR machine_configW[] = {'\\','C','O','N','F','I','G','\\','m','a','c','h','i','n','e','.','c','o','n','f','i','g',0};
+
+        res = ICLRRuntimeInfo_GetRuntimeDirectory(&This->version->ICLRRuntimeInfo_iface,
+                config_dir, &len);
+        if (FAILED(res))
+            goto end;
+
+        lstrcatW(config_dir, machine_configW);
+
+        config_path = config_dir;
+    }
+
+    config_pathA = WtoA(config_path);
+    if (!config_pathA)
+    {
+        res = E_OUTOFMEMORY;
+        goto end;
+    }
+
+    GetModuleFileNameW(NULL, base_dir, sizeof(base_dir) / sizeof(*base_dir));
+    base_dirA = WtoA(base_dir);
+    if (!base_dirA)
+    {
+        HeapFree(GetProcessHeap(), 0, config_pathA);
+        res = E_OUTOFMEMORY;
+        goto end;
+    }
+
+    slash = strrchr(base_dirA, '\\');
+    if (slash)
+        *slash = 0;
+
+    TRACE("setting base_dir: %s, config_path: %s\n", base_dirA, config_pathA);
+    mono_domain_set_config(This->default_domain, base_dirA, config_pathA);
+
+    HeapFree(GetProcessHeap(), 0, config_pathA);
+    HeapFree(GetProcessHeap(), 0, base_dirA);
 
 end:
     *result = This->default_domain;
@@ -241,7 +286,7 @@ void RuntimeHost_ExitProcess(RuntimeHost *This, INT exitcode)
     MonoDomain *domain;
     MonoObject *dummy;
 
-    hr = RuntimeHost_GetDefaultDomain(This, &domain);
+    hr = RuntimeHost_GetDefaultDomain(This, NULL, &domain);
     if (FAILED(hr))
     {
         ERR("Cannot get domain, hr=%x\n", hr);
@@ -371,7 +416,7 @@ static HRESULT WINAPI corruntimehost_Start(
 
     TRACE("%p\n", This);
 
-    return RuntimeHost_GetDefaultDomain(This, &dummy);
+    return RuntimeHost_GetDefaultDomain(This, NULL, &dummy);
 }
 
 static HRESULT WINAPI corruntimehost_Stop(
@@ -401,7 +446,7 @@ static HRESULT WINAPI corruntimehost_GetDefaultDomain(
 
     TRACE("(%p)\n", iface);
 
-    hr = RuntimeHost_GetDefaultDomain(This, &domain);
+    hr = RuntimeHost_GetDefaultDomain(This, NULL, &domain);
 
     if (SUCCEEDED(hr))
     {
@@ -459,7 +504,7 @@ static HRESULT WINAPI corruntimehost_CreateDomainSetup(
 
     TRACE("(%p)\n", iface);
 
-    hr = RuntimeHost_GetDefaultDomain(This, &domain);
+    hr = RuntimeHost_GetDefaultDomain(This, NULL, &domain);
 
     if (SUCCEEDED(hr))
         hr = RuntimeHost_CreateManagedInstance(This, classnameW, domain, &obj);
@@ -625,7 +670,7 @@ static HRESULT WINAPI CLRRuntimeHost_ExecuteInDefaultAppDomain(ICLRRuntimeHost* 
     TRACE("(%p,%s,%s,%s,%s)\n", iface, debugstr_w(pwzAssemblyPath),
         debugstr_w(pwzTypeName), debugstr_w(pwzMethodName), debugstr_w(pwzArgument));
 
-    hr = RuntimeHost_GetDefaultDomain(This, &domain);
+    hr = RuntimeHost_GetDefaultDomain(This, NULL, &domain);
 
     if (SUCCEEDED(hr))
     {
@@ -717,7 +762,7 @@ HRESULT RuntimeHost_CreateManagedInstance(RuntimeHost *This, LPCWSTR name,
     MonoObject *obj;
 
     if (!domain)
-        hr = RuntimeHost_GetDefaultDomain(This, &domain);
+        hr = RuntimeHost_GetDefaultDomain(This, NULL, &domain);
 
     if (SUCCEEDED(hr))
     {
@@ -874,7 +919,75 @@ static const struct vtable_fixup_thunk thunk_template = {
 
 #include "poppack.h"
 
-#else /* !defined(__i386__) */
+#elif __x86_64__ /* !__i386__ */
+
+# define CAN_FIXUP_VTABLE 1
+
+#include "pshpack1.h"
+
+struct vtable_fixup_thunk
+{
+    /* push %rbp;
+       mov %rsp, %rbp
+       sub $0x80, %rsp ; 0x8*4 + 0x10*4 + 0x20
+    */
+    BYTE i1[11];
+    /*
+        mov %rcx, 0x60(%rsp); mov %rdx, 0x68(%rsp); mov %r8, 0x70(%rsp); mov %r9, 0x78(%rsp);
+        movaps %xmm0,0x20(%rsp); ...; movaps %xmm3,0x50(%esp)
+    */
+    BYTE i2[40];
+    /* mov function,%rax */
+    BYTE i3[2];
+    void (CDECL *function)(struct dll_fixup *);
+    /* mov fixup,%rcx */
+    BYTE i4[2];
+    struct dll_fixup *fixup;
+    /* call *%rax */
+    BYTE i5[2];
+    /*
+        mov 0x60(%rsp),%rcx; mov 0x68(%rsp),%rdx; mov 0x70(%rsp),%r8; mov 0x78(%rsp),%r9;
+        movaps 0x20(%rsp),xmm0; ...; movaps 0x50(%esp),xmm3
+    */
+    BYTE i6[40];
+    /* mov %rbp, %rsp
+       pop %rbp
+    */
+    BYTE i7[4];
+    /* mov vtable_entry, %rax */
+    BYTE i8[2];
+    void *vtable_entry;
+    /* mov [%rax],%rax
+       jmp %rax */
+    BYTE i9[5];
+};
+
+static const struct vtable_fixup_thunk thunk_template = {
+    {0x55,0x48,0x89,0xE5,  0x48,0x81,0xEC,0x80,0x00,0x00,0x00},
+    {0x48,0x89,0x4C,0x24,0x60, 0x48,0x89,0x54,0x24,0x68,
+     0x4C,0x89,0x44,0x24,0x70, 0x4C,0x89,0x4C,0x24,0x78,
+     0x0F,0x29,0x44,0x24,0x20, 0x0F,0x29,0x4C,0x24,0x30,
+     0x0F,0x29,0x54,0x24,0x40, 0x0F,0x29,0x5C,0x24,0x50,
+    },
+    {0x48,0xB8},
+    NULL,
+    {0x48,0xB9},
+    NULL,
+    {0xFF,0xD0},
+    {0x48,0x8B,0x4C,0x24,0x60, 0x48,0x8B,0x54,0x24,0x68,
+     0x4C,0x8B,0x44,0x24,0x70, 0x4C,0x8B,0x4C,0x24,0x78,
+     0x0F,0x28,0x44,0x24,0x20, 0x0F,0x28,0x4C,0x24,0x30,
+     0x0F,0x28,0x54,0x24,0x40, 0x0F,0x28,0x5C,0x24,0x50,
+     },
+    {0x48,0x89,0xEC, 0x5D},
+    {0x48,0xB8},
+    NULL,
+    {0x48,0x8B,0x00,0xFF,0xE0}
+};
+
+#include "poppack.h"
+
+#else /* !__i386__ && !__x86_64__ */
 
 # define CAN_FIXUP_VTABLE 0
 
@@ -921,7 +1034,7 @@ static void CDECL ReallyFixupVTable(struct dll_fixup *fixup)
         hr = ICLRRuntimeInfo_GetRuntimeHost(info, &host);
 
     if (SUCCEEDED(hr))
-        hr = RuntimeHost_GetDefaultDomain(host, &domain);
+        hr = RuntimeHost_GetDefaultDomain(host, NULL, &domain);
 
     if (SUCCEEDED(hr))
     {
@@ -937,15 +1050,19 @@ static void CDECL ReallyFixupVTable(struct dll_fixup *fixup)
         /* Mono needs an image that belongs to an assembly. */
         image = mono_assembly_get_image(assembly);
 
+#if __x86_64__
+        if (fixup->fixup->type & COR_VTABLE_64BIT)
+#else
         if (fixup->fixup->type & COR_VTABLE_32BIT)
+#endif
         {
-            DWORD *vtable = fixup->vtable;
-            DWORD *tokens = fixup->tokens;
+            void **vtable = fixup->vtable;
+            ULONG_PTR *tokens = fixup->tokens;
             for (i=0; i<fixup->fixup->count; i++)
             {
-                TRACE("%x\n", tokens[i]);
-                vtable[i] = PtrToUint(mono_marshal_get_vtfixup_ftnptr(
-                    image, tokens[i], fixup->fixup->type));
+                TRACE("%#lx\n", tokens[i]);
+                vtable[i] = mono_marshal_get_vtfixup_ftnptr(
+                    image, tokens[i], fixup->fixup->type);
             }
         }
 
@@ -984,15 +1101,17 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
     fixup->vtable = (BYTE*)hmodule + vtable_fixup->rva;
     fixup->done = FALSE;
 
+    TRACE("vtable_fixup->type=0x%x\n",vtable_fixup->type);
+#if __x86_64__
+    if (vtable_fixup->type & COR_VTABLE_64BIT)
+#else
     if (vtable_fixup->type & COR_VTABLE_32BIT)
+#endif
     {
-        DWORD *vtable = fixup->vtable;
-        DWORD *tokens;
+        void **vtable = fixup->vtable;
+        ULONG_PTR *tokens;
         int i;
         struct vtable_fixup_thunk *thunks = fixup->thunk_code;
-
-        if (sizeof(void*) > 4)
-            ERR("32-bit fixup in 64-bit mode; broken image?\n");
 
         tokens = fixup->tokens = HeapAlloc(GetProcessHeap(), 0, sizeof(*tokens) * vtable_fixup->count);
         memcpy(tokens, vtable, sizeof(*tokens) * vtable_fixup->count);
@@ -1002,7 +1121,7 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
             thunks[i].fixup = fixup;
             thunks[i].function = ReallyFixupVTable;
             thunks[i].vtable_entry = &vtable[i];
-            vtable[i] = PtrToUint(&thunks[i]);
+            vtable[i] = &thunks[i];
         }
     }
     else
@@ -1016,23 +1135,28 @@ static void FixupVTableEntry(HMODULE hmodule, VTableFixup *vtable_fixup)
     list_add_tail(&dll_fixups, &fixup->entry);
 }
 
+static void FixupVTable_Assembly(HMODULE hmodule, ASSEMBLY *assembly)
+{
+    VTableFixup *vtable_fixups;
+    ULONG vtable_fixup_count, i;
+
+    assembly_get_vtable_fixups(assembly, &vtable_fixups, &vtable_fixup_count);
+    if (CAN_FIXUP_VTABLE)
+        for (i=0; i<vtable_fixup_count; i++)
+            FixupVTableEntry(hmodule, &vtable_fixups[i]);
+    else if (vtable_fixup_count)
+        FIXME("cannot fixup vtable; expect a crash\n");
+}
+
 static void FixupVTable(HMODULE hmodule)
 {
     ASSEMBLY *assembly;
     HRESULT hr;
-    VTableFixup *vtable_fixups;
-    ULONG vtable_fixup_count, i;
 
     hr = assembly_from_hmodule(&assembly, hmodule);
     if (SUCCEEDED(hr))
     {
-        hr = assembly_get_vtable_fixups(assembly, &vtable_fixups, &vtable_fixup_count);
-        if (CAN_FIXUP_VTABLE)
-            for (i=0; i<vtable_fixup_count; i++)
-                FixupVTableEntry(hmodule, &vtable_fixups[i]);
-        else if (vtable_fixup_count)
-            FIXME("cannot fixup vtable; expect a crash\n");
-
+        FixupVTable_Assembly(hmodule, assembly);
         assembly_release(assembly);
     }
     else
@@ -1077,7 +1201,15 @@ __int32 WINAPI _CorExeMain(void)
         hr = ICLRRuntimeInfo_GetRuntimeHost(info, &host);
 
         if (SUCCEEDED(hr))
-            hr = RuntimeHost_GetDefaultDomain(host, &domain);
+        {
+            WCHAR config_file[MAX_PATH];
+            static const WCHAR dotconfig[] = {'.','c','o','n','f','i','g',0};
+
+            strcpyW(config_file, filename);
+            strcatW(config_file, dotconfig);
+
+            hr = RuntimeHost_GetDefaultDomain(host, config_file, &domain);
+        }
 
         if (SUCCEEDED(hr))
         {
@@ -1122,18 +1254,31 @@ __int32 WINAPI _CorExeMain(void)
 
 BOOL WINAPI _CorDllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+    ASSEMBLY *assembly=NULL;
+    HRESULT hr;
+
     TRACE("(%p, %d, %p)\n", hinstDLL, fdwReason, lpvReserved);
 
-    switch (fdwReason)
+    hr = assembly_from_hmodule(&assembly, hinstDLL);
+    if (SUCCEEDED(hr))
     {
-    case DLL_PROCESS_ATTACH:
-        DisableThreadLibraryCalls(hinstDLL);
-        FixupVTable(hinstDLL);
-        break;
-    case DLL_PROCESS_DETACH:
-        /* FIXME: clean up the vtables */
-        break;
+        NativeEntryPointFunc NativeEntryPoint=NULL;
+
+        assembly_get_native_entrypoint(assembly, &NativeEntryPoint);
+        if (fdwReason == DLL_PROCESS_ATTACH)
+        {
+            if (!NativeEntryPoint)
+                DisableThreadLibraryCalls(hinstDLL);
+            FixupVTable_Assembly(hinstDLL,assembly);
+        }
+        assembly_release(assembly);
+        /* FIXME: clean up the vtables on DLL_PROCESS_DETACH */
+        if (NativeEntryPoint)
+            return NativeEntryPoint(hinstDLL, fdwReason, lpvReserved);
     }
+    else
+        ERR("failed to read CLR headers, hr=%x\n", hr);
+
     return TRUE;
 }
 
@@ -1157,7 +1302,7 @@ void runtimehost_uninit(void)
     }
 }
 
-HRESULT RuntimeHost_Construct(const CLRRuntimeInfo *runtime_version, RuntimeHost** result)
+HRESULT RuntimeHost_Construct(CLRRuntimeInfo *runtime_version, RuntimeHost** result)
 {
     RuntimeHost *This;
 
@@ -1342,7 +1487,7 @@ HRESULT create_monodata(REFIID riid, LPVOID *ppObj )
         hr = ICLRRuntimeInfo_GetRuntimeHost(info, &host);
 
         if (SUCCEEDED(hr))
-            hr = RuntimeHost_GetDefaultDomain(host, &domain);
+            hr = RuntimeHost_GetDefaultDomain(host, NULL, &domain);
 
         if (SUCCEEDED(hr))
         {

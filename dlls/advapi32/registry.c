@@ -37,6 +37,7 @@
 #include "winerror.h"
 #include "winternl.h"
 #include "winuser.h"
+#include "sddl.h"
 #include "advapi32_misc.h"
 
 #include "wine/unicode.h"
@@ -48,23 +49,29 @@ WINE_DEFAULT_DEBUG_CHANNEL(reg);
 #define HKEY_SPECIAL_ROOT_LAST    HKEY_DYN_DATA
 
 static const WCHAR name_CLASSES_ROOT[] =
-    {'M','a','c','h','i','n','e','\\',
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'M','a','c','h','i','n','e','\\',
      'S','o','f','t','w','a','r','e','\\',
      'C','l','a','s','s','e','s',0};
 static const WCHAR name_LOCAL_MACHINE[] =
-    {'M','a','c','h','i','n','e',0};
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'M','a','c','h','i','n','e',0};
 static const WCHAR name_USERS[] =
-    {'U','s','e','r',0};
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'U','s','e','r',0};
 static const WCHAR name_PERFORMANCE_DATA[] =
-    {'P','e','r','f','D','a','t','a',0};
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'P','e','r','f','D','a','t','a',0};
 static const WCHAR name_CURRENT_CONFIG[] =
-    {'M','a','c','h','i','n','e','\\',
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'M','a','c','h','i','n','e','\\',
      'S','y','s','t','e','m','\\',
      'C','u','r','r','e','n','t','C','o','n','t','r','o','l','S','e','t','\\',
      'H','a','r','d','w','a','r','e',' ','P','r','o','f','i','l','e','s','\\',
      'C','u','r','r','e','n','t',0};
 static const WCHAR name_DYN_DATA[] =
-    {'D','y','n','D','a','t','a',0};
+    {'\\','R','e','g','i','s','t','r','y','\\',
+     'D','y','n','D','a','t','a',0};
 
 static const WCHAR * const root_key_names[] =
 {
@@ -135,9 +142,15 @@ static NTSTATUS create_key( HKEY *retkey, ACCESS_MASK access, OBJECT_ATTRIBUTES 
 
     if (status == STATUS_OBJECT_NAME_NOT_FOUND)
     {
+        static const WCHAR registry_root[] = {'\\','R','e','g','i','s','t','r','y','\\'};
         WCHAR *buffer = attr->ObjectName->Buffer;
         DWORD attrs, pos = 0, i = 0, len = attr->ObjectName->Length / sizeof(WCHAR);
         UNICODE_STRING str;
+
+        /* don't try to create registry root */
+        if (!attr->RootDirectory && len > sizeof(registry_root)/sizeof(WCHAR) &&
+            !memicmpW( buffer, registry_root, sizeof(registry_root)/sizeof(WCHAR)))
+            i += sizeof(registry_root)/sizeof(WCHAR);
 
         while (i < len && buffer[i] != '\\') i++;
         if (i == len && !force_wow32) return status;
@@ -467,6 +480,31 @@ LSTATUS WINAPI RegCreateKeyA( HKEY hkey, LPCSTR lpSubKey, PHKEY phkResult )
 }
 
 
+/******************************************************************************
+ * RegCreateKeyTransactedW   [ADVAPI32.@]
+ */
+LSTATUS WINAPI RegCreateKeyTransactedW( HKEY hkey, LPCWSTR name, DWORD reserved, LPWSTR class,
+                                        DWORD options, REGSAM access, SECURITY_ATTRIBUTES *sa,
+                                        PHKEY retkey, LPDWORD dispos, HANDLE transaction, PVOID reserved2 )
+{
+    FIXME( "(%p,%s,%u,%s,%u,%u,%p,%p,%p,%p,%p): stub\n", hkey, debugstr_w(name), reserved,
+           debugstr_w(class), options, access, sa, retkey, dispos, transaction, reserved2 );
+    return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
+
+/******************************************************************************
+ * RegCreateKeyTransactedA   [ADVAPI32.@]
+ */
+LSTATUS WINAPI RegCreateKeyTransactedA( HKEY hkey, LPCSTR name, DWORD reserved, LPSTR class,
+                                        DWORD options, REGSAM access, SECURITY_ATTRIBUTES *sa,
+                                        PHKEY retkey, LPDWORD dispos, HANDLE transaction, PVOID reserved2 )
+{
+    FIXME( "(%p,%s,%u,%s,%u,%u,%p,%p,%p,%p,%p): stub\n", hkey, debugstr_a(name), reserved,
+           debugstr_a(class), options, access, sa, retkey, dispos, transaction, reserved2 );
+    return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
 
 /******************************************************************************
  * RegOpenKeyExW   [ADVAPI32.@]
@@ -611,6 +649,21 @@ LSTATUS WINAPI RegOpenKeyA( HKEY hkey, LPCSTR name, PHKEY retkey )
     return RegOpenKeyExA( hkey, name, 0, MAXIMUM_ALLOWED, retkey );
 }
 
+static WCHAR *get_thread_token_user_sid(HANDLE token)
+{
+    WCHAR *sidstring = NULL;
+    TOKEN_USER *info;
+    DWORD len = 0;
+
+    GetTokenInformation(token, TokenUser, NULL, 0, &len);
+
+    info = heap_alloc(len);
+    if (GetTokenInformation(token, TokenUser, info, len, &len))
+        ConvertSidToStringSidW(info->User.Sid, &sidstring);
+    heap_free(info);
+
+    return sidstring;
+}
 
 /******************************************************************************
  * RegOpenCurrentUser   [ADVAPI32.@]
@@ -634,7 +687,37 @@ LSTATUS WINAPI RegOpenKeyA( HKEY hkey, LPCSTR name, PHKEY retkey )
  */
 LSTATUS WINAPI RegOpenCurrentUser( REGSAM access, PHKEY retkey )
 {
-    return RegOpenKeyExA( HKEY_CURRENT_USER, "", 0, access, retkey );
+    WCHAR *sidstring = NULL;
+    HANDLE threadtoken;
+    LSTATUS ret;
+
+    /* get current user SID */
+    if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &threadtoken))
+    {
+       sidstring = get_thread_token_user_sid(threadtoken);
+       CloseHandle(threadtoken);
+    }
+
+    if (!sidstring)
+    {
+        ImpersonateSelf(SecurityIdentification);
+        if (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, FALSE, &threadtoken))
+        {
+            sidstring = get_thread_token_user_sid(threadtoken);
+            CloseHandle(threadtoken);
+        }
+        RevertToSelf();
+    }
+
+    if (sidstring)
+    {
+        ret = RegOpenKeyExW( HKEY_USERS, sidstring, 0, access, retkey );
+        LocalFree(sidstring);
+    }
+    else
+        ret = RegOpenKeyExA( HKEY_CURRENT_USER, "", 0, access, retkey );
+
+    return ret;
 }
 
 
@@ -895,10 +978,10 @@ LSTATUS WINAPI RegQueryInfoKeyW( HKEY hkey, LPWSTR class, LPDWORD class_len, LPD
 
     if (class_len) *class_len = info->ClassLength / sizeof(WCHAR);
     if (subkeys) *subkeys = info->SubKeys;
-    if (max_subkey) *max_subkey = info->MaxNameLen;
-    if (max_class) *max_class = info->MaxClassLen;
+    if (max_subkey) *max_subkey = info->MaxNameLen / sizeof(WCHAR);
+    if (max_class) *max_class = info->MaxClassLen / sizeof(WCHAR);
     if (values) *values = info->Values;
-    if (max_value) *max_value = info->MaxValueNameLen;
+    if (max_value) *max_value = info->MaxValueNameLen / sizeof(WCHAR);
     if (max_data) *max_data = info->MaxValueDataLen;
     if (modif) *modif = *(FILETIME *)&info->LastWriteTime;
 
@@ -1090,10 +1173,10 @@ LSTATUS WINAPI RegQueryInfoKeyA( HKEY hkey, LPSTR class, LPDWORD class_len, LPDW
     else status = STATUS_SUCCESS;
 
     if (subkeys) *subkeys = info->SubKeys;
-    if (max_subkey) *max_subkey = info->MaxNameLen;
-    if (max_class) *max_class = info->MaxClassLen;
+    if (max_subkey) *max_subkey = info->MaxNameLen / sizeof(WCHAR);
+    if (max_class) *max_class = info->MaxClassLen / sizeof(WCHAR);
     if (values) *values = info->Values;
-    if (max_value) *max_value = info->MaxValueNameLen;
+    if (max_value) *max_value = info->MaxValueNameLen / sizeof(WCHAR);
     if (max_data) *max_data = info->MaxValueDataLen;
     if (modif) *modif = *(FILETIME *)&info->LastWriteTime;
 

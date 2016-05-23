@@ -22,10 +22,18 @@ Descriptions of section entries used here:
 	P: Other knowledgeable person. FullName <address@domain>
 	F: Files and directories with wildcard patterns.
 	   One pattern per line.  Multiple F: lines acceptable.
+	W: Link to additional information.
 
 Maintainers List
 
 		-----------------------------------
+
+ARM, ARM64
+M:	André Hentschel <nerv@dawncrow.de>
+F:	dlls/dbghelp/cpu_arm*
+F:	dlls/msvcrt/except_arm.c
+F:	dlls/ntdll/signal_arm*
+F:	programs/winedbg/be_arm*
 
 Audio I/O
 M:	Andrew Eikum <aeikum@codeweavers.com>
@@ -40,13 +48,6 @@ F:	dlls/winmm/
 F:	dlls/x3daudio*/
 F:	dlls/xapofx*/
 F:	dlls/xaudio*/
-
-ARM, ARM64
-M:	André Hentschel <nerv@dawncrow.de>
-F:	dlls/dbghelp/cpu_arm*
-F:	dlls/msvcrt/except_arm.c
-F:	dlls/ntdll/signal_arm*
-F:	programs/winedbg/be_arm*
 
 Common Controls Library
 P:	Nikolay Sivov <nsivov@codeweavers.com>
@@ -89,6 +90,17 @@ DirectInput
 P:	Andrew Eikum <aeikum@codeweavers.com>
 F:	dlls/dinput/
 
+DirectShow
+P:	Andrew Eikum <aeikum@codeweavers.com>
+F:	dlls/amstream/
+F:	dlls/mciqtz32/
+F:	dlls/qcap/
+F:	dlls/qedit/
+F:	dlls/quartz/
+F:	dlls/strmbase/
+F:	dlls/winegstreamer/
+F:	dlls/wineqtdecoder/
+
 DirectWrite
 M:	Nikolay Sivov <nsivov@codeweavers.com>
 F:	dlls/dwrite/
@@ -112,8 +124,8 @@ F:	dlls/hidclass.sys/
 
 HTML rendering (Gecko)
 M:	Jacek Caban <jacek@codeweavers.com>
-F:	dlls/mshtml/
 F:	dlls/ieframe/
+F:	dlls/mshtml/
 F:	dlls/shdocvw/
 
 Input methods
@@ -130,8 +142,8 @@ F:	dlls/winemac.drv/
 
 Media format conversion
 M:	Andrew Eikum <aeikum@codeweavers.com>
-F:	dlls/msacm32/
 F:	dlls/*.acm/
+F:	dlls/msacm32/
 
 Microsoft C Runtime
 M:	Piotr Caban <piotr@codeweavers.com>
@@ -199,6 +211,10 @@ Threadpool
 M:	Sebastian Lackner <sebastian@fds-team.de>
 F:	dlls/ntdll/threadpool.c
 
+Timezone database
+M:	Sebastian Lackner <sebastian@fds-team.de>
+F:	loader/wine.inf.in
+
 Uniscribe
 M:	Aric Stewart <aric@codeweavers.com>
 F:	dlls/usp10/
@@ -225,7 +241,7 @@ F:	server/
 
 Winemaker
 M:	André Hentschel <nerv@dawncrow.de>
-F:	tools/winemaker
+F:	tools/winemaker/
 
 WinHTTP
 M:	Hans Leidekker <hans@codeweavers.com>
@@ -257,3 +273,13 @@ P:	Sebastian Lackner <sebastian@fds-team.de>
 P:	Vincent Povirk <vincent@codeweavers.com>
 F:	*
 F:	*/
+
+Stable Branch
+M:	Michael Stefaniuc <mstefani@winehq.org>
+W:	http://wiki.winehq.org/StableRules
+
+Staging Branch
+M:	Sebastian Lackner <sebastian@fds-team.de>
+M:	Michael Müller <michael@fds-team.de>
+P:	Erich E. Hoover <erich.e.hoover@wine-staging.com>
+W:	https://wine-staging.com/

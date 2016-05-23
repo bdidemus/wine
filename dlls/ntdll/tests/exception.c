@@ -1015,22 +1015,25 @@ static DWORD simd_fault_handler( EXCEPTION_RECORD *rec, EXCEPTION_REGISTRATION_R
         context->Eip += 3; /* skip addps */
         return ExceptionContinueExecution;
     }
-
-    /* stage 2 - divide by zero fault */
-    if( rec->ExceptionCode == EXCEPTION_ILLEGAL_INSTRUCTION)
-        skip("system doesn't support SIMD exceptions\n");
-    else {
-        ok( rec->ExceptionCode ==  STATUS_FLOAT_MULTIPLE_TRAPS,
-            "exception code: %#x, should be %#x\n",
-            rec->ExceptionCode,  STATUS_FLOAT_MULTIPLE_TRAPS);
-        ok( rec->NumberParameters == 1 || broken(is_wow64 && rec->NumberParameters == 2),
-            "# of params: %i, should be 1\n",
-            rec->NumberParameters);
-        if( rec->NumberParameters == 1 )
-            ok( rec->ExceptionInformation[0] == 0, "param #1: %lx, should be 0\n", rec->ExceptionInformation[0]);
+    else if ( *stage == 2 || *stage == 3 ) {
+        /* stage 2 - divide by zero fault */
+        /* stage 3 - invalid operation fault */
+        if( rec->ExceptionCode == EXCEPTION_ILLEGAL_INSTRUCTION)
+            skip("system doesn't support SIMD exceptions\n");
+        else {
+            ok( rec->ExceptionCode ==  STATUS_FLOAT_MULTIPLE_TRAPS,
+                "exception code: %#x, should be %#x\n",
+                rec->ExceptionCode,  STATUS_FLOAT_MULTIPLE_TRAPS);
+            ok( rec->NumberParameters == 1 || broken(is_wow64 && rec->NumberParameters == 2),
+                "# of params: %i, should be 1\n",
+                rec->NumberParameters);
+            if( rec->NumberParameters == 1 )
+                ok( rec->ExceptionInformation[0] == 0, "param #1: %lx, should be 0\n", rec->ExceptionInformation[0]);
+        }
+        context->Eip += 3; /* skip divps */
     }
-
-    context->Eip += 3; /* skip divps */
+    else
+        ok(FALSE, "unexpected stage %x\n", *stage);
 
     return ExceptionContinueExecution;
 }
@@ -1038,6 +1041,7 @@ static DWORD simd_fault_handler( EXCEPTION_RECORD *rec, EXCEPTION_REGISTRATION_R
 static const BYTE simd_exception_test[] = {
     0x83, 0xec, 0x4,                     /* sub $0x4, %esp       */
     0x0f, 0xae, 0x1c, 0x24,              /* stmxcsr (%esp)       */
+    0x8b, 0x04, 0x24,                    /* mov    (%esp),%eax   * store mxcsr */
     0x66, 0x81, 0x24, 0x24, 0xff, 0xfd,  /* andw $0xfdff,(%esp)  * enable divide by */
     0x0f, 0xae, 0x14, 0x24,              /* ldmxcsr (%esp)       * zero exceptions  */
     0x6a, 0x01,                          /* push   $0x1          */
@@ -1048,7 +1052,22 @@ static const BYTE simd_exception_test[] = {
     0x0f, 0x57, 0xc0,                    /* xorps  %xmm0,%xmm0   * clear divisor  */
     0x0f, 0x5e, 0xc8,                    /* divps  %xmm0,%xmm1   * generate fault */
     0x83, 0xc4, 0x10,                    /* add    $0x10,%esp    */
-    0x66, 0x81, 0x0c, 0x24, 0x00, 0x02,  /* orw    $0x200,(%esp) * disable exceptions */
+    0x89, 0x04, 0x24,                    /* mov    %eax,(%esp)   * restore to old mxcsr */
+    0x0f, 0xae, 0x14, 0x24,              /* ldmxcsr (%esp)       */
+    0x83, 0xc4, 0x04,                    /* add    $0x4,%esp     */
+    0xc3,                                /* ret */
+};
+
+static const BYTE simd_exception_test2[] = {
+    0x83, 0xec, 0x4,                     /* sub $0x4, %esp       */
+    0x0f, 0xae, 0x1c, 0x24,              /* stmxcsr (%esp)       */
+    0x8b, 0x04, 0x24,                    /* mov    (%esp),%eax   * store mxcsr */
+    0x66, 0x81, 0x24, 0x24, 0x7f, 0xff,  /* andw $0xff7f,(%esp)  * enable invalid       */
+    0x0f, 0xae, 0x14, 0x24,              /* ldmxcsr (%esp)       * operation exceptions */
+    0x0f, 0x57, 0xc9,                    /* xorps  %xmm1,%xmm1   * clear dividend */
+    0x0f, 0x57, 0xc0,                    /* xorps  %xmm0,%xmm0   * clear divisor  */
+    0x0f, 0x5e, 0xc8,                    /* divps  %xmm0,%xmm1   * generate fault */
+    0x89, 0x04, 0x24,                    /* mov    %eax,(%esp)   * restore to old mxcsr */
     0x0f, 0xae, 0x14, 0x24,              /* ldmxcsr (%esp)       */
     0x83, 0xc4, 0x04,                    /* add    $0x4,%esp     */
     0xc3,                                /* ret */
@@ -1077,7 +1096,14 @@ static void test_simd_exceptions(void)
     got_exception = 0;
     run_exception_test(simd_fault_handler, &stage, simd_exception_test,
                        sizeof(simd_exception_test), 0);
-    ok( got_exception == 1, "got exception: %i, should be 1\n", got_exception);
+    ok(got_exception == 1, "got exception: %i, should be 1\n", got_exception);
+
+    /* generate a SIMD exception, test FPE_FLTINV */
+    stage = 3;
+    got_exception = 0;
+    run_exception_test(simd_fault_handler, &stage, simd_exception_test2,
+                       sizeof(simd_exception_test2), 0);
+    ok(got_exception == 1, "got exception: %i, should be 1\n", got_exception);
 }
 
 struct fpu_exception_info
@@ -1697,6 +1723,50 @@ static void test_dynamic_unwind(void)
 #endif  /* __x86_64__ */
 
 #if defined(__i386__) || defined(__x86_64__)
+
+static void test_debug_registers(void)
+{
+    static const struct
+    {
+        ULONG_PTR dr0, dr1, dr2, dr3, dr6, dr7;
+    }
+    tests[] =
+    {
+        { 0x42424240, 0, 0x126bb070, 0x0badbad0, 0, 0xffff0115 },
+        { 0x42424242, 0, 0x100f0fe7, 0x0abebabe, 0, 0x115 },
+    };
+    NTSTATUS status;
+    CONTEXT ctx;
+    int i;
+
+    for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++)
+    {
+        memset(&ctx, 0, sizeof(ctx));
+        ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+        ctx.Dr0 = tests[i].dr0;
+        ctx.Dr1 = tests[i].dr1;
+        ctx.Dr2 = tests[i].dr2;
+        ctx.Dr3 = tests[i].dr3;
+        ctx.Dr6 = tests[i].dr6;
+        ctx.Dr7 = tests[i].dr7;
+
+        status = pNtSetContextThread(GetCurrentThread(), &ctx);
+        ok(status == STATUS_SUCCESS, "NtGetContextThread failed with %08x\n", status);
+
+        memset(&ctx, 0, sizeof(ctx));
+        ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+
+        status = pNtGetContextThread(GetCurrentThread(), &ctx);
+        ok(status == STATUS_SUCCESS, "NtGetContextThread failed with %08x\n", status);
+        ok(ctx.Dr0 == tests[i].dr0, "test %d: expected %lx, got %lx\n", i, tests[i].dr0, (DWORD_PTR)ctx.Dr0);
+        ok(ctx.Dr1 == tests[i].dr1, "test %d: expected %lx, got %lx\n", i, tests[i].dr1, (DWORD_PTR)ctx.Dr1);
+        ok(ctx.Dr2 == tests[i].dr2, "test %d: expected %lx, got %lx\n", i, tests[i].dr2, (DWORD_PTR)ctx.Dr2);
+        ok(ctx.Dr3 == tests[i].dr3, "test %d: expected %lx, got %lx\n", i, tests[i].dr3, (DWORD_PTR)ctx.Dr3);
+        ok((ctx.Dr6 &  0xf00f) == tests[i].dr6, "test %d: expected %lx, got %lx\n", i, tests[i].dr6, (DWORD_PTR)ctx.Dr6);
+        ok((ctx.Dr7 & ~0xdc00) == tests[i].dr7, "test %d: expected %lx, got %lx\n", i, tests[i].dr7, (DWORD_PTR)ctx.Dr7);
+    }
+}
+
 static DWORD outputdebugstring_exceptions;
 
 static LONG CALLBACK outputdebugstring_vectored_handler(EXCEPTION_POINTERS *ExceptionInfo)
@@ -1920,6 +1990,7 @@ START_TEST(exception)
     test_unwind();
     test_exceptions();
     test_rtlraiseexception();
+    test_debug_registers();
     test_outputdebugstring(1, FALSE);
     test_ripevent(1);
     test_vectored_continue_handler();
@@ -1939,6 +2010,7 @@ START_TEST(exception)
     pRtlLookupFunctionEntry            = (void *)GetProcAddress( hntdll,
                                                                  "RtlLookupFunctionEntry" );
 
+    test_debug_registers();
     test_outputdebugstring(1, FALSE);
     test_ripevent(1);
     test_vectored_continue_handler();

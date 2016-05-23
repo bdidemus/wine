@@ -1074,20 +1074,27 @@ static void dump_varargs_object_attributes( const char *prefix, data_size_t size
     const struct object_attributes *objattr = cur_data;
 
     fprintf( stderr,"%s{", prefix );
-    if (size >= sizeof(struct object_attributes))
+    if (size)
     {
         const WCHAR *str;
-        fprintf( stderr, "rootdir=%04x", objattr->rootdir );
-        if (objattr->sd_len > size - sizeof(*objattr) ||
-            objattr->name_len > size - sizeof(*objattr) - objattr->sd_len)
+
+        if (size < sizeof(*objattr) ||
+            (size - sizeof(*objattr) < objattr->sd_len) ||
+            (size - sizeof(*objattr) - objattr->sd_len < objattr->name_len))
+        {
+            fprintf( stderr, "***invalid***}" );
+            remove_data( size );
             return;
+        }
+
+        fprintf( stderr, "rootdir=%04x,attributes=%08x", objattr->rootdir, objattr->attributes );
         dump_inline_security_descriptor( ",sd=", (const struct security_descriptor *)(objattr + 1), objattr->sd_len );
         str = (const WCHAR *)objattr + (sizeof(*objattr) + objattr->sd_len) / sizeof(WCHAR);
         fprintf( stderr, ",name=L\"" );
         dump_strW( str, objattr->name_len / sizeof(WCHAR), stderr, "\"\"" );
         fputc( '\"', stderr );
         remove_data( ((sizeof(*objattr) + objattr->sd_len) / sizeof(WCHAR)) * sizeof(WCHAR) +
-                     objattr->name_len );
+                     (objattr->name_len / sizeof(WCHAR)) * sizeof(WCHAR) );
     }
     fputc( '}', stderr );
 }
@@ -1137,6 +1144,23 @@ static void dump_varargs_rawinput_devices(const char *prefix, data_size_t size )
                  device->usage_page, device->usage, device->flags, device->target );
         size -= sizeof(*device);
         remove_data( sizeof(*device) );
+        if (size) fputc( ',', stderr );
+    }
+    fputc( '}', stderr );
+}
+
+static void dump_varargs_handle_infos( const char *prefix, data_size_t size )
+{
+    const struct handle_info *handle;
+
+    fprintf( stderr, "%s{", prefix );
+    while (size >= sizeof(*handle))
+    {
+        handle = cur_data;
+        fprintf( stderr, "{owner=%04x,handle=%04x,access=%08x}",
+                 handle->owner, handle->handle, handle->access );
+        size -= sizeof(*handle);
+        remove_data( sizeof(*handle) );
         if (size) fputc( ',', stderr );
     }
     fputc( '}', stderr );
@@ -1279,6 +1303,7 @@ static void dump_get_process_info_reply( const struct get_process_info_reply *re
     fprintf( stderr, ", priority=%d", req->priority );
     dump_cpu_type( ", cpu=", &req->cpu );
     fprintf( stderr, ", debugger_present=%d", req->debugger_present );
+    fprintf( stderr, ", debug_children=%d", req->debug_children );
 }
 
 static void dump_set_process_info_request( const struct set_process_info_request *req )
@@ -1478,7 +1503,6 @@ static void dump_select_reply( const struct select_reply *req )
 static void dump_create_event_request( const struct create_event_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", manual_reset=%d", req->manual_reset );
     fprintf( stderr, ", initial_state=%d", req->initial_state );
     dump_varargs_object_attributes( ", objattr=", cur_size );
@@ -1522,7 +1546,6 @@ static void dump_open_event_reply( const struct open_event_reply *req )
 static void dump_create_keyed_event_request( const struct create_keyed_event_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
@@ -1547,7 +1570,6 @@ static void dump_open_keyed_event_reply( const struct open_keyed_event_reply *re
 static void dump_create_mutex_request( const struct create_mutex_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", owned=%d", req->owned );
     dump_varargs_object_attributes( ", objattr=", cur_size );
 }
@@ -1583,7 +1605,6 @@ static void dump_open_mutex_reply( const struct open_mutex_reply *req )
 static void dump_create_semaphore_request( const struct create_semaphore_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", initial=%08x", req->initial );
     fprintf( stderr, ", max=%08x", req->max );
     dump_varargs_object_attributes( ", objattr=", cur_size );
@@ -1632,7 +1653,6 @@ static void dump_open_semaphore_reply( const struct open_semaphore_reply *req )
 static void dump_create_file_request( const struct create_file_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", sharing=%08x", req->sharing );
     fprintf( stderr, ", create=%d", req->create );
     fprintf( stderr, ", options=%08x", req->options );
@@ -2097,7 +2117,6 @@ static void dump_read_change_reply( const struct read_change_reply *req )
 static void dump_create_mapping_request( const struct create_mapping_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", protect=%08x", req->protect );
     dump_uint64( ", size=", &req->size );
     fprintf( stderr, ", file_handle=%04x", req->file_handle );
@@ -2289,12 +2308,9 @@ static void dump_write_process_memory_request( const struct write_process_memory
 
 static void dump_create_key_request( const struct create_key_request *req )
 {
-    fprintf( stderr, " parent=%04x", req->parent );
-    fprintf( stderr, ", access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
+    fprintf( stderr, " access=%08x", req->access );
     fprintf( stderr, ", options=%08x", req->options );
-    fprintf( stderr, ", namelen=%u", req->namelen );
-    dump_varargs_unicode_str( ", name=", min(cur_size,req->namelen) );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
     dump_varargs_unicode_str( ", class=", cur_size );
 }
 
@@ -2395,9 +2411,8 @@ static void dump_delete_key_value_request( const struct delete_key_value_request
 
 static void dump_load_registry_request( const struct load_registry_request *req )
 {
-    fprintf( stderr, " hkey=%04x", req->hkey );
-    fprintf( stderr, ", file=%04x", req->file );
-    dump_varargs_unicode_str( ", name=", cur_size );
+    fprintf( stderr, " file=%04x", req->file );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_unload_registry_request( const struct unload_registry_request *req )
@@ -2422,10 +2437,8 @@ static void dump_set_registry_notification_request( const struct set_registry_no
 static void dump_create_timer_request( const struct create_timer_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
-    fprintf( stderr, ", rootdir=%04x", req->rootdir );
     fprintf( stderr, ", manual=%d", req->manual );
-    dump_varargs_unicode_str( ", name=", cur_size );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_create_timer_reply( const struct create_timer_reply *req )
@@ -2860,7 +2873,6 @@ static void dump_get_irp_result_reply( const struct get_irp_result_reply *req )
 static void dump_create_named_pipe_request( const struct create_named_pipe_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", options=%08x", req->options );
     fprintf( stderr, ", sharing=%08x", req->sharing );
     fprintf( stderr, ", maxinstances=%08x", req->maxinstances );
@@ -3233,6 +3245,7 @@ static void dump_create_winstation_request( const struct create_winstation_reque
     fprintf( stderr, " flags=%08x", req->flags );
     fprintf( stderr, ", access=%08x", req->access );
     fprintf( stderr, ", attributes=%08x", req->attributes );
+    fprintf( stderr, ", rootdir=%04x", req->rootdir );
     dump_varargs_unicode_str( ", name=", cur_size );
 }
 
@@ -3245,6 +3258,7 @@ static void dump_open_winstation_request( const struct open_winstation_request *
 {
     fprintf( stderr, " access=%08x", req->access );
     fprintf( stderr, ", attributes=%08x", req->attributes );
+    fprintf( stderr, ", rootdir=%04x", req->rootdir );
     dump_varargs_unicode_str( ", name=", cur_size );
 }
 
@@ -3837,14 +3851,22 @@ static void dump_get_security_object_reply( const struct get_security_object_rep
     dump_varargs_security_descriptor( ", sd=", cur_size );
 }
 
+static void dump_get_system_handles_request( const struct get_system_handles_request *req )
+{
+}
+
+static void dump_get_system_handles_reply( const struct get_system_handles_reply *req )
+{
+    fprintf( stderr, " count=%08x", req->count );
+    dump_varargs_handle_infos( ", data=", cur_size );
+}
+
 static void dump_create_mailslot_request( const struct create_mailslot_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
-    fprintf( stderr, ", rootdir=%04x", req->rootdir );
     dump_timeout( ", read_timeout=", &req->read_timeout );
     fprintf( stderr, ", max_msgsize=%08x", req->max_msgsize );
-    dump_varargs_unicode_str( ", name=", cur_size );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_create_mailslot_reply( const struct create_mailslot_reply *req )
@@ -3868,9 +3890,7 @@ static void dump_set_mailslot_info_reply( const struct set_mailslot_info_reply *
 static void dump_create_directory_request( const struct create_directory_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
-    fprintf( stderr, ", rootdir=%04x", req->rootdir );
-    dump_varargs_unicode_str( ", directory_name=", cur_size );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_create_directory_reply( const struct create_directory_reply *req )
@@ -3907,10 +3927,7 @@ static void dump_get_directory_entry_reply( const struct get_directory_entry_rep
 static void dump_create_symlink_request( const struct create_symlink_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
-    fprintf( stderr, ", rootdir=%04x", req->rootdir );
-    fprintf( stderr, ", name_len=%u", req->name_len );
-    dump_varargs_unicode_str( ", name=", min(cur_size,req->name_len) );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
     dump_varargs_unicode_str( ", target_name=", cur_size );
 }
 
@@ -4068,10 +4085,8 @@ static void dump_get_token_statistics_reply( const struct get_token_statistics_r
 static void dump_create_completion_request( const struct create_completion_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     fprintf( stderr, ", concurrent=%08x", req->concurrent );
-    fprintf( stderr, ", rootdir=%04x", req->rootdir );
-    dump_varargs_unicode_str( ", filename=", cur_size );
+    dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_create_completion_reply( const struct create_completion_reply *req )
@@ -4232,11 +4247,23 @@ static void dump_set_suspend_context_request( const struct set_suspend_context_r
 static void dump_create_job_request( const struct create_job_request *req )
 {
     fprintf( stderr, " access=%08x", req->access );
-    fprintf( stderr, ", attributes=%08x", req->attributes );
     dump_varargs_object_attributes( ", objattr=", cur_size );
 }
 
 static void dump_create_job_reply( const struct create_job_reply *req )
+{
+    fprintf( stderr, " handle=%04x", req->handle );
+}
+
+static void dump_open_job_request( const struct open_job_request *req )
+{
+    fprintf( stderr, " access=%08x", req->access );
+    fprintf( stderr, ", attributes=%08x", req->attributes );
+    fprintf( stderr, ", rootdir=%04x", req->rootdir );
+    dump_varargs_unicode_str( ", name=", cur_size );
+}
+
+static void dump_open_job_reply( const struct open_job_reply *req )
 {
     fprintf( stderr, " handle=%04x", req->handle );
 }
@@ -4500,6 +4527,7 @@ static const dump_func req_dumpers[REQ_NB_REQUESTS] = {
     (dump_func)dump_set_token_default_dacl_request,
     (dump_func)dump_set_security_object_request,
     (dump_func)dump_get_security_object_request,
+    (dump_func)dump_get_system_handles_request,
     (dump_func)dump_create_mailslot_request,
     (dump_func)dump_set_mailslot_info_request,
     (dump_func)dump_create_directory_request,
@@ -4537,6 +4565,7 @@ static const dump_func req_dumpers[REQ_NB_REQUESTS] = {
     (dump_func)dump_get_suspend_context_request,
     (dump_func)dump_set_suspend_context_request,
     (dump_func)dump_create_job_request,
+    (dump_func)dump_open_job_request,
     (dump_func)dump_assign_job_request,
     (dump_func)dump_process_in_job_request,
     (dump_func)dump_set_job_limits_request,
@@ -4772,6 +4801,7 @@ static const dump_func reply_dumpers[REQ_NB_REQUESTS] = {
     NULL,
     NULL,
     (dump_func)dump_get_security_object_reply,
+    (dump_func)dump_get_system_handles_reply,
     (dump_func)dump_create_mailslot_reply,
     (dump_func)dump_set_mailslot_info_reply,
     (dump_func)dump_create_directory_reply,
@@ -4809,6 +4839,7 @@ static const dump_func reply_dumpers[REQ_NB_REQUESTS] = {
     (dump_func)dump_get_suspend_context_reply,
     NULL,
     (dump_func)dump_create_job_reply,
+    (dump_func)dump_open_job_reply,
     NULL,
     NULL,
     NULL,
@@ -5044,6 +5075,7 @@ static const char * const req_names[REQ_NB_REQUESTS] = {
     "set_token_default_dacl",
     "set_security_object",
     "get_security_object",
+    "get_system_handles",
     "create_mailslot",
     "set_mailslot_info",
     "create_directory",
@@ -5081,6 +5113,7 @@ static const char * const req_names[REQ_NB_REQUESTS] = {
     "get_suspend_context",
     "set_suspend_context",
     "create_job",
+    "open_job",
     "assign_job",
     "process_in_job",
     "set_job_limits",
@@ -5128,6 +5161,7 @@ static const struct
     { "ERROR_INVALID_CURSOR_HANDLE", 0xc0010000 | ERROR_INVALID_CURSOR_HANDLE },
     { "ERROR_INVALID_INDEX",         0xc0010000 | ERROR_INVALID_INDEX },
     { "ERROR_INVALID_WINDOW_HANDLE", 0xc0010000 | ERROR_INVALID_WINDOW_HANDLE },
+    { "ERROR_NO_MORE_USER_HANDLES",  0xc0010000 | ERROR_NO_MORE_USER_HANDLES },
     { "ERROR_WINDOW_OF_OTHER_THREAD", 0xc0010000 | ERROR_WINDOW_OF_OTHER_THREAD },
     { "FILE_DELETED",                STATUS_FILE_DELETED },
     { "FILE_IS_A_DIRECTORY",         STATUS_FILE_IS_A_DIRECTORY },

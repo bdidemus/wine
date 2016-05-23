@@ -317,7 +317,7 @@ static const printenv_t * const all_printenv[] = {&env_x86, &env_x64, &env_win40
  *
  * NOTES
  *  An empty string is handled the same way as NULL.
- *  SetLastEror(ERROR_INVALID_ENVIRONMENT) is called on Failure
+ *  SetLastError(ERROR_INVALID_ENVIRONMENT) is called on Failure
  *  
  */
 
@@ -781,13 +781,15 @@ static void *cupshandle;
     DO_FUNC(cupsPrintFile)
 #define CUPS_OPT_FUNCS \
     DO_FUNC(cupsGetNamedDest); \
-    DO_FUNC(cupsGetPPD3)
+    DO_FUNC(cupsGetPPD3); \
+    DO_FUNC(cupsLastErrorString)
 
 #define DO_FUNC(f) static typeof(f) *p##f
 CUPS_FUNCS;
 #undef DO_FUNC
 static cups_dest_t * (*pcupsGetNamedDest)(http_t *, const char *, const char *);
 static http_status_t (*pcupsGetPPD3)(http_t *, const char *, time_t *, char *, size_t);
+static const char *  (*pcupsLastErrorString)(void);
 
 static http_status_t cupsGetPPD3_wrapper( http_t *http, const char *name,
                                           time_t *modtime, char *buffer,
@@ -7527,6 +7529,26 @@ DWORD WINAPI EnumPrinterDataW( HANDLE hPrinter, DWORD dwIndex, LPWSTR pValueName
 }
 
 /*****************************************************************************
+ *          EnumPrinterKeyA [WINSPOOL.@]
+ *
+ */
+DWORD WINAPI EnumPrinterKeyA(HANDLE printer, const CHAR *key, CHAR *subkey, DWORD size, DWORD *needed)
+{
+    FIXME("%p %s %p %x %p\n", printer, debugstr_a(key), subkey, size, needed);
+    return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
+/*****************************************************************************
+ *          EnumPrinterKeyW [WINSPOOL.@]
+ *
+ */
+DWORD WINAPI EnumPrinterKeyW(HANDLE printer, const WCHAR *key, WCHAR *subkey, DWORD size, DWORD *needed)
+{
+    FIXME("%p %s %p %x %p\n", printer, debugstr_w(key), subkey, size, needed);
+    return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
+/*****************************************************************************
  *          EnumPrintProcessorDatatypesA [WINSPOOL.@]
  *
  */
@@ -8217,6 +8239,8 @@ static BOOL schedule_cups(LPCWSTR printer_name, LPCWSTR filename, LPCWSTR docume
             TRACE( "\t%d: %s = %s\n", i, options[i].name, options[i].value );
 
         ret = pcupsPrintFile( queue, unixname, unix_doc_title, num_options, options );
+        if (ret == 0 && pcupsLastErrorString)
+            WARN("cupsPrintFile failed with error %s\n", debugstr_a(pcupsLastErrorString()));
 
         pcupsFreeOptions( num_options, options );
 

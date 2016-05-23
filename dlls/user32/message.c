@@ -422,9 +422,10 @@ static const unsigned int message_unicode_flags[] =
 };
 
 /* check whether a given message type includes pointers */
-static inline BOOL is_pointer_message( UINT message )
+static inline BOOL is_pointer_message( UINT message, WPARAM wparam )
 {
     if (message >= 8*sizeof(message_pointer_flags)) return FALSE;
+    if (message == WM_DEVICECHANGE && !(wparam & 0x8000)) return FALSE;
     return (message_pointer_flags[message / 32] & SET(message)) != 0;
 }
 
@@ -2488,7 +2489,7 @@ static BOOL process_mouse_message( MSG *msg, UINT hw_id, ULONG_PTR extra_info, H
     INT hittest;
     EVENTMSG event;
     GUITHREADINFO info;
-    MOUSEHOOKSTRUCT hook;
+    MOUSEHOOKSTRUCTEX hook;
     BOOL eatMsg;
 
     /* find the window to dispatch this mouse message to */
@@ -2584,17 +2585,19 @@ static BOOL process_mouse_message( MSG *msg, UINT hw_id, ULONG_PTR extra_info, H
 
     /* message is accepted now (but may still get dropped) */
 
-    hook.pt           = msg->pt;
-    hook.hwnd         = msg->hwnd;
-    hook.wHitTestCode = hittest;
-    hook.dwExtraInfo  = extra_info;
+    hook.s.pt           = msg->pt;
+    hook.s.hwnd         = msg->hwnd;
+    hook.s.wHitTestCode = hittest;
+    hook.s.dwExtraInfo  = extra_info;
+    hook.mouseData      = msg->wParam;
     if (HOOK_CallHooks( WH_MOUSE, remove ? HC_ACTION : HC_NOREMOVE,
                         message, (LPARAM)&hook, TRUE ))
     {
-        hook.pt           = msg->pt;
-        hook.hwnd         = msg->hwnd;
-        hook.wHitTestCode = hittest;
-        hook.dwExtraInfo  = extra_info;
+        hook.s.pt           = msg->pt;
+        hook.s.hwnd         = msg->hwnd;
+        hook.s.wHitTestCode = hittest;
+        hook.s.dwExtraInfo  = extra_info;
+        hook.mouseData      = msg->wParam;
         HOOK_CallHooks( WH_CBT, HCBT_CLICKSKIPPED, message, (LPARAM)&hook, TRUE );
         accept_hardware_message( hw_id, TRUE );
         return FALSE;
@@ -3490,7 +3493,7 @@ BOOL WINAPI SendNotifyMessageA( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
 {
     struct send_message_info info;
 
-    if (is_pointer_message(msg))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;
@@ -3515,7 +3518,7 @@ BOOL WINAPI SendNotifyMessageW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
 {
     struct send_message_info info;
 
-    if (is_pointer_message(msg))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;
@@ -3540,7 +3543,7 @@ BOOL WINAPI SendMessageCallbackA( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
 {
     struct send_message_info info;
 
-    if (is_pointer_message(msg))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;
@@ -3568,7 +3571,7 @@ BOOL WINAPI SendMessageCallbackW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpa
 {
     struct send_message_info info;
 
-    if (is_pointer_message(msg))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;
@@ -3638,7 +3641,7 @@ BOOL WINAPI PostMessageW( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
 {
     struct send_message_info info;
 
-    if (is_pointer_message( msg ))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;
@@ -3687,7 +3690,7 @@ BOOL WINAPI PostThreadMessageW( DWORD thread, UINT msg, WPARAM wparam, LPARAM lp
 {
     struct send_message_info info;
 
-    if (is_pointer_message( msg ))
+    if (is_pointer_message( msg, wparam ))
     {
         SetLastError( ERROR_MESSAGE_SYNC_ONLY );
         return FALSE;

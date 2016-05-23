@@ -46,6 +46,10 @@ extern void fatal_error( const char *err, ... );
 
 extern const char *get_config_dir(void);
 extern void *set_reply_data_size( data_size_t size );
+extern const struct object_attributes *get_req_object_attributes( const struct security_descriptor **sd,
+                                                                  struct unicode_str *name,
+                                                                  struct directory **root );
+extern const void *get_req_data_after_objattr( const struct object_attributes *attr, data_size_t *len );
 extern int receive_fd( struct process *process );
 extern int send_client_fd( struct process *process, int fd, obj_handle_t handle );
 extern void read_request( struct thread *thread );
@@ -74,10 +78,12 @@ static inline data_size_t get_req_data_size(void)
 }
 
 /* get the request vararg as unicode string */
-static inline void get_req_unicode_str( struct unicode_str *str )
+static inline struct unicode_str get_req_unicode_str(void)
 {
-    str->str = get_req_data();
-    str->len = (get_req_data_size() / sizeof(WCHAR)) * sizeof(WCHAR);
+    struct unicode_str ret;
+    ret.str = get_req_data();
+    ret.len = (get_req_data_size() / sizeof(WCHAR)) * sizeof(WCHAR);
+    return ret;
 }
 
 /* get the reply maximum vararg size */
@@ -333,6 +339,7 @@ DECL_HANDLER(get_token_default_dacl);
 DECL_HANDLER(set_token_default_dacl);
 DECL_HANDLER(set_security_object);
 DECL_HANDLER(get_security_object);
+DECL_HANDLER(get_system_handles);
 DECL_HANDLER(create_mailslot);
 DECL_HANDLER(set_mailslot_info);
 DECL_HANDLER(create_directory);
@@ -370,6 +377,7 @@ DECL_HANDLER(update_rawinput_devices);
 DECL_HANDLER(get_suspend_context);
 DECL_HANDLER(set_suspend_context);
 DECL_HANDLER(create_job);
+DECL_HANDLER(open_job);
 DECL_HANDLER(assign_job);
 DECL_HANDLER(process_in_job);
 DECL_HANDLER(set_job_limits);
@@ -608,6 +616,7 @@ static const req_handler req_handlers[REQ_NB_REQUESTS] =
     (req_handler)req_set_token_default_dacl,
     (req_handler)req_set_security_object,
     (req_handler)req_get_security_object,
+    (req_handler)req_get_system_handles,
     (req_handler)req_create_mailslot,
     (req_handler)req_set_mailslot_info,
     (req_handler)req_create_directory,
@@ -645,6 +654,7 @@ static const req_handler req_handlers[REQ_NB_REQUESTS] =
     (req_handler)req_get_suspend_context,
     (req_handler)req_set_suspend_context,
     (req_handler)req_create_job,
+    (req_handler)req_open_job,
     (req_handler)req_assign_job,
     (req_handler)req_process_in_job,
     (req_handler)req_set_job_limits,
@@ -760,6 +770,7 @@ C_ASSERT( FIELD_OFFSET(struct get_process_info_reply, exit_code) == 48 );
 C_ASSERT( FIELD_OFFSET(struct get_process_info_reply, priority) == 52 );
 C_ASSERT( FIELD_OFFSET(struct get_process_info_reply, cpu) == 56 );
 C_ASSERT( FIELD_OFFSET(struct get_process_info_reply, debugger_present) == 60 );
+C_ASSERT( FIELD_OFFSET(struct get_process_info_reply, debug_children) == 62 );
 C_ASSERT( sizeof(struct get_process_info_reply) == 64 );
 C_ASSERT( FIELD_OFFSET(struct set_process_info_request, handle) == 12 );
 C_ASSERT( FIELD_OFFSET(struct set_process_info_request, mask) == 16 );
@@ -865,10 +876,9 @@ C_ASSERT( FIELD_OFFSET(struct select_reply, call) == 16 );
 C_ASSERT( FIELD_OFFSET(struct select_reply, apc_handle) == 56 );
 C_ASSERT( sizeof(struct select_reply) == 64 );
 C_ASSERT( FIELD_OFFSET(struct create_event_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_event_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_event_request, manual_reset) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_event_request, initial_state) == 24 );
-C_ASSERT( sizeof(struct create_event_request) == 32 );
+C_ASSERT( FIELD_OFFSET(struct create_event_request, manual_reset) == 16 );
+C_ASSERT( FIELD_OFFSET(struct create_event_request, initial_state) == 20 );
+C_ASSERT( sizeof(struct create_event_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_event_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_event_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct event_op_request, handle) == 12 );
@@ -886,8 +896,7 @@ C_ASSERT( sizeof(struct open_event_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_event_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_event_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_keyed_event_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_keyed_event_request, attributes) == 16 );
-C_ASSERT( sizeof(struct create_keyed_event_request) == 24 );
+C_ASSERT( sizeof(struct create_keyed_event_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_keyed_event_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_keyed_event_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_keyed_event_request, access) == 12 );
@@ -897,8 +906,7 @@ C_ASSERT( sizeof(struct open_keyed_event_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_keyed_event_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_keyed_event_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_mutex_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_mutex_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_mutex_request, owned) == 20 );
+C_ASSERT( FIELD_OFFSET(struct create_mutex_request, owned) == 16 );
 C_ASSERT( sizeof(struct create_mutex_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_mutex_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_mutex_reply) == 16 );
@@ -913,10 +921,9 @@ C_ASSERT( sizeof(struct open_mutex_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_mutex_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_mutex_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, initial) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, max) == 24 );
-C_ASSERT( sizeof(struct create_semaphore_request) == 32 );
+C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, initial) == 16 );
+C_ASSERT( FIELD_OFFSET(struct create_semaphore_request, max) == 20 );
+C_ASSERT( sizeof(struct create_semaphore_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_semaphore_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_semaphore_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct release_semaphore_request, handle) == 12 );
@@ -936,12 +943,11 @@ C_ASSERT( sizeof(struct open_semaphore_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_semaphore_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_semaphore_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_file_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_file_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_file_request, sharing) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_file_request, create) == 24 );
-C_ASSERT( FIELD_OFFSET(struct create_file_request, options) == 28 );
-C_ASSERT( FIELD_OFFSET(struct create_file_request, attrs) == 32 );
-C_ASSERT( sizeof(struct create_file_request) == 40 );
+C_ASSERT( FIELD_OFFSET(struct create_file_request, sharing) == 16 );
+C_ASSERT( FIELD_OFFSET(struct create_file_request, create) == 20 );
+C_ASSERT( FIELD_OFFSET(struct create_file_request, options) == 24 );
+C_ASSERT( FIELD_OFFSET(struct create_file_request, attrs) == 28 );
+C_ASSERT( sizeof(struct create_file_request) == 32 );
 C_ASSERT( FIELD_OFFSET(struct create_file_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_file_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_file_object_request, access) == 12 );
@@ -1191,8 +1197,7 @@ C_ASSERT( FIELD_OFFSET(struct read_change_request, handle) == 12 );
 C_ASSERT( sizeof(struct read_change_request) == 16 );
 C_ASSERT( sizeof(struct read_change_reply) == 8 );
 C_ASSERT( FIELD_OFFSET(struct create_mapping_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_mapping_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_mapping_request, protect) == 20 );
+C_ASSERT( FIELD_OFFSET(struct create_mapping_request, protect) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_mapping_request, size) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_mapping_request, file_handle) == 32 );
 C_ASSERT( sizeof(struct create_mapping_request) == 40 );
@@ -1287,12 +1292,9 @@ C_ASSERT( sizeof(struct read_process_memory_reply) == 8 );
 C_ASSERT( FIELD_OFFSET(struct write_process_memory_request, handle) == 12 );
 C_ASSERT( FIELD_OFFSET(struct write_process_memory_request, addr) == 16 );
 C_ASSERT( sizeof(struct write_process_memory_request) == 24 );
-C_ASSERT( FIELD_OFFSET(struct create_key_request, parent) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_key_request, access) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_key_request, attributes) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_key_request, options) == 24 );
-C_ASSERT( FIELD_OFFSET(struct create_key_request, namelen) == 28 );
-C_ASSERT( sizeof(struct create_key_request) == 32 );
+C_ASSERT( FIELD_OFFSET(struct create_key_request, access) == 12 );
+C_ASSERT( FIELD_OFFSET(struct create_key_request, options) == 16 );
+C_ASSERT( sizeof(struct create_key_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_key_reply, hkey) == 8 );
 C_ASSERT( FIELD_OFFSET(struct create_key_reply, created) == 12 );
 C_ASSERT( sizeof(struct create_key_reply) == 16 );
@@ -1339,9 +1341,8 @@ C_ASSERT( FIELD_OFFSET(struct enum_key_value_reply, namelen) == 16 );
 C_ASSERT( sizeof(struct enum_key_value_reply) == 24 );
 C_ASSERT( FIELD_OFFSET(struct delete_key_value_request, hkey) == 12 );
 C_ASSERT( sizeof(struct delete_key_value_request) == 16 );
-C_ASSERT( FIELD_OFFSET(struct load_registry_request, hkey) == 12 );
-C_ASSERT( FIELD_OFFSET(struct load_registry_request, file) == 16 );
-C_ASSERT( sizeof(struct load_registry_request) == 24 );
+C_ASSERT( FIELD_OFFSET(struct load_registry_request, file) == 12 );
+C_ASSERT( sizeof(struct load_registry_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct unload_registry_request, hkey) == 12 );
 C_ASSERT( sizeof(struct unload_registry_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct save_registry_request, hkey) == 12 );
@@ -1353,10 +1354,8 @@ C_ASSERT( FIELD_OFFSET(struct set_registry_notification_request, subtree) == 20 
 C_ASSERT( FIELD_OFFSET(struct set_registry_notification_request, filter) == 24 );
 C_ASSERT( sizeof(struct set_registry_notification_request) == 32 );
 C_ASSERT( FIELD_OFFSET(struct create_timer_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_timer_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_timer_request, rootdir) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_timer_request, manual) == 24 );
-C_ASSERT( sizeof(struct create_timer_request) == 32 );
+C_ASSERT( FIELD_OFFSET(struct create_timer_request, manual) == 16 );
+C_ASSERT( sizeof(struct create_timer_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_timer_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_timer_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_timer_request, access) == 12 );
@@ -1578,12 +1577,11 @@ C_ASSERT( sizeof(struct get_irp_result_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct get_irp_result_reply, size) == 8 );
 C_ASSERT( sizeof(struct get_irp_result_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, options) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, sharing) == 24 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, maxinstances) == 28 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, outsize) == 32 );
-C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, insize) == 36 );
+C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, options) == 16 );
+C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, sharing) == 20 );
+C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, maxinstances) == 24 );
+C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, outsize) == 28 );
+C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, insize) == 32 );
 C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, timeout) == 40 );
 C_ASSERT( FIELD_OFFSET(struct create_named_pipe_request, flags) == 48 );
 C_ASSERT( sizeof(struct create_named_pipe_request) == 56 );
@@ -1773,11 +1771,13 @@ C_ASSERT( sizeof(struct get_window_properties_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_winstation_request, flags) == 12 );
 C_ASSERT( FIELD_OFFSET(struct create_winstation_request, access) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_winstation_request, attributes) == 20 );
-C_ASSERT( sizeof(struct create_winstation_request) == 24 );
+C_ASSERT( FIELD_OFFSET(struct create_winstation_request, rootdir) == 24 );
+C_ASSERT( sizeof(struct create_winstation_request) == 32 );
 C_ASSERT( FIELD_OFFSET(struct create_winstation_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_winstation_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_winstation_request, access) == 12 );
 C_ASSERT( FIELD_OFFSET(struct open_winstation_request, attributes) == 16 );
+C_ASSERT( FIELD_OFFSET(struct open_winstation_request, rootdir) == 20 );
 C_ASSERT( sizeof(struct open_winstation_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct open_winstation_reply, handle) == 8 );
 C_ASSERT( sizeof(struct open_winstation_reply) == 16 );
@@ -2082,12 +2082,13 @@ C_ASSERT( FIELD_OFFSET(struct get_security_object_request, security_info) == 16 
 C_ASSERT( sizeof(struct get_security_object_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct get_security_object_reply, sd_len) == 8 );
 C_ASSERT( sizeof(struct get_security_object_reply) == 16 );
+C_ASSERT( sizeof(struct get_system_handles_request) == 16 );
+C_ASSERT( FIELD_OFFSET(struct get_system_handles_reply, count) == 8 );
+C_ASSERT( sizeof(struct get_system_handles_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, rootdir) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, read_timeout) == 24 );
-C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, max_msgsize) == 32 );
-C_ASSERT( sizeof(struct create_mailslot_request) == 40 );
+C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, read_timeout) == 16 );
+C_ASSERT( FIELD_OFFSET(struct create_mailslot_request, max_msgsize) == 24 );
+C_ASSERT( sizeof(struct create_mailslot_request) == 32 );
 C_ASSERT( FIELD_OFFSET(struct create_mailslot_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_mailslot_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct set_mailslot_info_request, handle) == 12 );
@@ -2098,9 +2099,7 @@ C_ASSERT( FIELD_OFFSET(struct set_mailslot_info_reply, read_timeout) == 8 );
 C_ASSERT( FIELD_OFFSET(struct set_mailslot_info_reply, max_msgsize) == 16 );
 C_ASSERT( sizeof(struct set_mailslot_info_reply) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_directory_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_directory_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_directory_request, rootdir) == 20 );
-C_ASSERT( sizeof(struct create_directory_request) == 24 );
+C_ASSERT( sizeof(struct create_directory_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_directory_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_directory_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_directory_request, access) == 12 );
@@ -2115,10 +2114,7 @@ C_ASSERT( sizeof(struct get_directory_entry_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct get_directory_entry_reply, name_len) == 8 );
 C_ASSERT( sizeof(struct get_directory_entry_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_symlink_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_symlink_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_symlink_request, rootdir) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_symlink_request, name_len) == 24 );
-C_ASSERT( sizeof(struct create_symlink_request) == 32 );
+C_ASSERT( sizeof(struct create_symlink_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_symlink_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_symlink_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_symlink_request, access) == 12 );
@@ -2190,10 +2186,8 @@ C_ASSERT( FIELD_OFFSET(struct get_token_statistics_reply, group_count) == 32 );
 C_ASSERT( FIELD_OFFSET(struct get_token_statistics_reply, privilege_count) == 36 );
 C_ASSERT( sizeof(struct get_token_statistics_reply) == 40 );
 C_ASSERT( FIELD_OFFSET(struct create_completion_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_completion_request, attributes) == 16 );
-C_ASSERT( FIELD_OFFSET(struct create_completion_request, concurrent) == 20 );
-C_ASSERT( FIELD_OFFSET(struct create_completion_request, rootdir) == 24 );
-C_ASSERT( sizeof(struct create_completion_request) == 32 );
+C_ASSERT( FIELD_OFFSET(struct create_completion_request, concurrent) == 16 );
+C_ASSERT( sizeof(struct create_completion_request) == 24 );
 C_ASSERT( FIELD_OFFSET(struct create_completion_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_completion_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct open_completion_request, access) == 12 );
@@ -2273,10 +2267,15 @@ C_ASSERT( sizeof(struct get_suspend_context_request) == 16 );
 C_ASSERT( sizeof(struct get_suspend_context_reply) == 8 );
 C_ASSERT( sizeof(struct set_suspend_context_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_job_request, access) == 12 );
-C_ASSERT( FIELD_OFFSET(struct create_job_request, attributes) == 16 );
-C_ASSERT( sizeof(struct create_job_request) == 24 );
+C_ASSERT( sizeof(struct create_job_request) == 16 );
 C_ASSERT( FIELD_OFFSET(struct create_job_reply, handle) == 8 );
 C_ASSERT( sizeof(struct create_job_reply) == 16 );
+C_ASSERT( FIELD_OFFSET(struct open_job_request, access) == 12 );
+C_ASSERT( FIELD_OFFSET(struct open_job_request, attributes) == 16 );
+C_ASSERT( FIELD_OFFSET(struct open_job_request, rootdir) == 20 );
+C_ASSERT( sizeof(struct open_job_request) == 24 );
+C_ASSERT( FIELD_OFFSET(struct open_job_reply, handle) == 8 );
+C_ASSERT( sizeof(struct open_job_reply) == 16 );
 C_ASSERT( FIELD_OFFSET(struct assign_job_request, job) == 12 );
 C_ASSERT( FIELD_OFFSET(struct assign_job_request, process) == 16 );
 C_ASSERT( sizeof(struct assign_job_request) == 24 );

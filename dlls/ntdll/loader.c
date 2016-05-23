@@ -1865,7 +1865,7 @@ static NTSTATUS load_builtin_dll( LPCWSTR load_path, LPCWSTR path, HANDLE file,
     char error[256], dllname[MAX_PATH];
     const WCHAR *name, *p;
     DWORD len, i;
-    void *handle = NULL;
+    void *handle;
     struct builtin_load_info info, *prev_info;
 
     /* Fix the name in case we have a full path and extension */
@@ -2149,7 +2149,7 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
             attr.ObjectName = &nt_name;
             attr.SecurityDescriptor = NULL;
             attr.SecurityQualityOfService = NULL;
-            if (NtOpenFile( handle, GENERIC_READ, &attr, &io, FILE_SHARE_READ|FILE_SHARE_DELETE, FILE_SYNCHRONOUS_IO_NONALERT|FILE_NON_DIRECTORY_FILE )) *handle = 0;
+            if (NtOpenFile( handle, GENERIC_READ|SYNCHRONIZE, &attr, &io, FILE_SHARE_READ|FILE_SHARE_DELETE, FILE_SYNCHRONOUS_IO_NONALERT|FILE_NON_DIRECTORY_FILE )) *handle = 0;
             goto found;
         }
 
@@ -2184,7 +2184,7 @@ static NTSTATUS find_dll_file( const WCHAR *load_path, const WCHAR *libname,
         attr.ObjectName = &nt_name;
         attr.SecurityDescriptor = NULL;
         attr.SecurityQualityOfService = NULL;
-        if (NtOpenFile( handle, GENERIC_READ, &attr, &io, FILE_SHARE_READ|FILE_SHARE_DELETE, FILE_SYNCHRONOUS_IO_NONALERT|FILE_NON_DIRECTORY_FILE )) *handle = 0;
+        if (NtOpenFile( handle, GENERIC_READ|SYNCHRONIZE, &attr, &io, FILE_SHARE_READ|FILE_SHARE_DELETE, FILE_SYNCHRONOUS_IO_NONALERT|FILE_NON_DIRECTORY_FILE )) *handle = 0;
     }
 found:
     RtlFreeUnicodeString( &nt_name );
@@ -3200,7 +3200,8 @@ PVOID WINAPI RtlPcToFileHeader( PVOID pc, PVOID *address )
  *           NtLoadDriver   (NTDLL.@)
  *           ZwLoadDriver   (NTDLL.@)
  */
-NTSTATUS WINAPI NtLoadDriver( const UNICODE_STRING *DriverServiceName )
+DEFINE_SYSCALL_ENTRYPOINT( NtLoadDriver, 1 );
+NTSTATUS WINAPI SYSCALL(NtLoadDriver)( const UNICODE_STRING *DriverServiceName )
 {
     FIXME("(%p), stub!\n",DriverServiceName);
     return STATUS_NOT_IMPLEMENTED;
@@ -3211,7 +3212,8 @@ NTSTATUS WINAPI NtLoadDriver( const UNICODE_STRING *DriverServiceName )
  *           NtUnloadDriver   (NTDLL.@)
  *           ZwUnloadDriver   (NTDLL.@)
  */
-NTSTATUS WINAPI NtUnloadDriver( const UNICODE_STRING *DriverServiceName )
+DEFINE_SYSCALL_ENTRYPOINT( NtUnloadDriver, 1 );
+NTSTATUS WINAPI SYSCALL(NtUnloadDriver)( const UNICODE_STRING *DriverServiceName )
 {
     FIXME("(%p), stub!\n",DriverServiceName);
     return STATUS_NOT_IMPLEMENTED;

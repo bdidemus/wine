@@ -158,6 +158,8 @@ static const struct object_ops token_ops =
     default_get_sd,            /* get_sd */
     default_set_sd,            /* set_sd */
     no_lookup_name,            /* lookup_name */
+    no_link_name,              /* link_name */
+    NULL,                      /* unlink_name */
     no_open_file,              /* open_file */
     no_close_handle,           /* close_handle */
     token_destroy              /* destroy */
@@ -330,30 +332,6 @@ int sd_is_valid( const struct security_descriptor *sd, data_size_t size )
     if (dacl && !acl_is_valid( dacl, sd->dacl_len ))
         return FALSE;
     offset += sd->dacl_len;
-
-    return TRUE;
-}
-
-/* determines whether an object_attributes struct is valid in a buffer
- * and calls set_error appropriately */
-int objattr_is_valid( const struct object_attributes *objattr, data_size_t size )
-{
-    if ((size < sizeof(*objattr)) || (size - sizeof(*objattr) < objattr->sd_len) ||
-        (size - sizeof(*objattr) - objattr->sd_len < objattr->name_len))
-    {
-        set_error( STATUS_ACCESS_VIOLATION );
-        return FALSE;
-    }
-
-    if (objattr->sd_len)
-    {
-        const struct security_descriptor *sd = (const struct security_descriptor *)(objattr + 1);
-        if (!sd_is_valid( sd, objattr->sd_len ))
-        {
-            set_error( STATUS_INVALID_SECURITY_DESCR );
-            return FALSE;
-        }
-    }
 
     return TRUE;
 }
@@ -559,6 +537,7 @@ struct token *token_duplicate( struct token *src_token, unsigned primary,
     if (!token) return token;
 
     /* copy groups */
+    token->primary_group = NULL;
     LIST_FOR_EACH_ENTRY( group, &src_token->groups, struct group, entry )
     {
         size_t size = FIELD_OFFSET( struct group, sid.SubAuthority[group->sid.SubAuthorityCount] );
@@ -570,8 +549,9 @@ struct token *token_duplicate( struct token *src_token, unsigned primary,
         }
         memcpy( newgroup, group, size );
         list_add_tail( &token->groups, &newgroup->entry );
+        if (src_token->primary_group == &group->sid)
+            token->primary_group = &newgroup->sid;
     }
-    token->primary_group = src_token->primary_group;
     assert( token->primary_group );
 
     /* copy privileges */

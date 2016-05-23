@@ -139,6 +139,44 @@ static IDWriteFontFace *create_fontface(IDWriteFactory *factory)
     return fontface;
 }
 
+static IDWriteFont *get_font(IDWriteFactory *factory, const WCHAR *name, DWRITE_FONT_STYLE style)
+{
+    IDWriteFontCollection *collection;
+    IDWriteFontFamily *family;
+    IDWriteFont *font = NULL;
+    UINT32 index;
+    BOOL exists;
+    HRESULT hr;
+
+    hr = IDWriteFactory_GetSystemFontCollection(factory, &collection, FALSE);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    index = ~0;
+    exists = FALSE;
+    hr = IDWriteFontCollection_FindFamilyName(collection, name, &index, &exists);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    if (!exists) goto not_found;
+
+    hr = IDWriteFontCollection_GetFontFamily(collection, index, &family);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    hr = IDWriteFontFamily_GetFirstMatchingFont(family, DWRITE_FONT_WEIGHT_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL, style, &font);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    IDWriteFontFamily_Release(family);
+not_found:
+    IDWriteFontCollection_Release(collection);
+    return font;
+}
+
+static IDWriteFont *get_tahoma_instance(IDWriteFactory *factory, DWRITE_FONT_STYLE style)
+{
+    IDWriteFont *font = get_font(factory, tahomaW, style);
+    ok(font != NULL, "failed to get Tahoma\n");
+    return font;
+}
+
 static WCHAR *create_testfontfile(const WCHAR *filename)
 {
     static WCHAR pathW[MAX_PATH];
@@ -628,8 +666,10 @@ if (0)
     /* null out parameter crashes this call */
     hr = IDWriteGdiInterop_CreateFontFromLOGFONT(interop, NULL, NULL);
 
+    font = (void*)0xdeadbeef;
     hr = IDWriteGdiInterop_CreateFontFromLOGFONT(interop, NULL, &font);
     EXPECT_HR(hr, E_INVALIDARG);
+    ok(font == NULL, "got %p\n", font);
 
     memset(&logfont, 0, sizeof(logfont));
     logfont.lfHeight = 12;
@@ -667,8 +707,7 @@ if (0)
 
     style = IDWriteFont_GetStyle(font);
     ok(style == DWRITE_FONT_STYLE_OBLIQUE, "got %d\n", style);
-todo_wine
-    ok(otm.otmfsSelection == 1, "got 0x%08x\n", otm.otmfsSelection);
+    ok(otm.otmfsSelection & 1, "got 0x%08x\n", otm.otmfsSelection);
 
     ret = IDWriteFont_IsSymbolFont(font);
     ok(!ret, "got %d\n", ret);
@@ -1318,15 +1357,22 @@ if (0) /* crashes on native */
 todo_wine
     ok(hr == DWRITE_E_UNSUPPORTEDOPERATION || broken(hr == E_INVALIDARG) /* older versions */, "got 0x%08x\n", hr);
 
+    fontface = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateFontFace(factory, DWRITE_FONT_FACE_TYPE_TYPE1, 1, &file, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontface);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(fontface == NULL, "got %p\n", fontface);
 
+    fontface = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateFontFace(factory, DWRITE_FONT_FACE_TYPE_VECTOR, 1, &file, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontface);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(fontface == NULL, "got %p\n", fontface);
 
+    fontface = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateFontFace(factory, DWRITE_FONT_FACE_TYPE_BITMAP, 1, &file, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontface);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(fontface == NULL, "got %p\n", fontface);
 
+    fontface = NULL;
     hr = IDWriteFactory_CreateFontFace(factory, DWRITE_FONT_FACE_TYPE_UNKNOWN, 1, &file, 0, DWRITE_FONT_SIMULATIONS_NONE, &fontface);
 todo_wine
     ok(hr == S_OK || broken(hr == E_INVALIDARG) /* < win10 */, "got 0x%08x\n", hr);
@@ -1344,14 +1390,16 @@ todo_wine
 
 static void test_GetMetrics(void)
 {
+    DWRITE_FONT_METRICS metrics, metrics2;
     IDWriteGdiInterop *interop;
-    DWRITE_FONT_METRICS metrics;
     IDWriteFontFace *fontface;
     IDWriteFactory *factory;
     OUTLINETEXTMETRICW otm;
+    IDWriteFontFile *file;
     IDWriteFont1 *font1;
     IDWriteFont *font;
     LOGFONTW logfont;
+    UINT32 count;
     HRESULT hr;
     HDC hdc;
     HFONT hfont;
@@ -1481,9 +1529,47 @@ if (0) /* crashes on native */
         win_skip("DWRITE_FONT_METRICS1 is not supported.\n");
 
     IDWriteFontFace_Release(fontface);
-
     IDWriteFont_Release(font);
     IDWriteGdiInterop_Release(interop);
+
+    /* bold simulation affects returned font metrics */
+    font = get_tahoma_instance(factory, DWRITE_FONT_STYLE_NORMAL);
+
+    /* create regulat Tahoma with bold simulation */
+    hr = IDWriteFont_CreateFontFace(font, &fontface);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    count = 1;
+    hr = IDWriteFontFace_GetFiles(fontface, &count, &file);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    IDWriteFontFace_GetMetrics(fontface, &metrics);
+    ok(IDWriteFontFace_GetSimulations(fontface) == 0, "wrong simulations flags\n");
+    IDWriteFontFace_Release(fontface);
+
+    hr = IDWriteFactory_CreateFontFace(factory, DWRITE_FONT_FACE_TYPE_TRUETYPE, 1, &file,
+        0, DWRITE_FONT_SIMULATIONS_BOLD, &fontface);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    IDWriteFontFace_GetMetrics(fontface, &metrics2);
+    ok(IDWriteFontFace_GetSimulations(fontface) == DWRITE_FONT_SIMULATIONS_BOLD, "wrong simulations flags\n");
+
+    ok(metrics.ascent == metrics2.ascent, "got %u, %u\n", metrics2.ascent, metrics.ascent);
+    ok(metrics.descent == metrics2.descent, "got %u, %u\n", metrics2.descent, metrics.descent);
+    ok(metrics.lineGap == metrics2.lineGap, "got %d, %d\n", metrics2.lineGap, metrics.lineGap);
+    ok(metrics.capHeight == metrics2.capHeight, "got %u, %u\n", metrics2.capHeight, metrics.capHeight);
+    ok(metrics.xHeight == metrics2.xHeight, "got %u, %u\n", metrics2.xHeight, metrics.xHeight);
+    ok(metrics.underlinePosition == metrics2.underlinePosition, "got %d, %d\n", metrics2.underlinePosition,
+        metrics.underlinePosition);
+    ok(metrics.underlineThickness == metrics2.underlineThickness, "got %u, %u\n", metrics2.underlineThickness,
+        metrics.underlineThickness);
+    ok(metrics.strikethroughPosition == metrics2.strikethroughPosition, "got %d, %d\n", metrics2.strikethroughPosition,
+        metrics.strikethroughPosition);
+    ok(metrics.strikethroughThickness == metrics2.strikethroughThickness, "got %u, %u\n", metrics2.strikethroughThickness,
+        metrics.strikethroughThickness);
+
+    IDWriteFontFile_Release(file);
+    IDWriteFont_Release(font);
+
     IDWriteFactory_Release(factory);
 }
 
@@ -1789,8 +1875,10 @@ static void test_CustomFontCollection(void)
     hr = IDWriteFactory_RegisterFontCollectionLoader(factory, &resource_collection.IDWriteFontFileCollectionLoader_iface);
     ok(hr == S_OK, "got 0x%08x\n", hr);
 
+    font_collection = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateCustomFontCollection(factory, &collection3, "Billy", 6, &font_collection);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(font_collection == NULL, "got %p\n", font_collection);
 
     hr = IDWriteFactory_CreateCustomFontCollection(factory, &collection, "Billy", 6, &font_collection);
     ok(hr == S_OK, "got 0x%08x\n", hr);
@@ -1800,8 +1888,10 @@ static void test_CustomFontCollection(void)
     ok(hr == S_OK, "got 0x%08x\n", hr);
     IDWriteFontCollection_Release(font_collection);
 
+    font_collection = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateCustomFontCollection(factory, (IDWriteFontCollectionLoader*)0xdeadbeef, "Billy", 6, &font_collection);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(font_collection == NULL, "got %p\n", font_collection);
 
     font = FindResourceA(GetModuleHandleA(NULL), (LPCSTR)MAKEINTRESOURCE(1), (LPCSTR)RT_RCDATA);
     ok(font != NULL, "Failed to find font resource\n");
@@ -1980,11 +2070,15 @@ if (0) { /* crashes on win10 */
     ok(hr == S_OK, "got 0x%08x\n", hr);
     IDWriteFontFile_Release(file);
 
+    file = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateCustomFontFileReference(factory, "test", 4, &floader3, &file);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(file == NULL, "got %p\n", file);
 
+    file = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateCustomFontFileReference(factory, "test", 4, NULL, &file);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(file == NULL, "got %p\n", file);
 
     file = NULL;
     hr = IDWriteFactory_CreateCustomFontFileReference(factory, "test", 4, &floader, &file);
@@ -2023,8 +2117,10 @@ if (0) { /* crashes on win10 */
     ok(count == 1, "got %i\n", count);
 
     /* invalid index */
+    face = (void*)0xdeadbeef;
     hr = IDWriteFactory_CreateFontFace(factory, face_type, 1, &file, 1, DWRITE_FONT_SIMULATIONS_NONE, &face);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(face == NULL, "got %p\n", face);
 
     hr = IDWriteFactory_CreateFontFace(factory, face_type, 1, &file, 0, DWRITE_FONT_SIMULATIONS_NONE, &face);
     ok(hr == S_OK, "got 0x%08x\n", hr);
@@ -2319,43 +2415,7 @@ static void test_GetFontFromFontFace(void)
     DELETE_FONTFILE(path);
 }
 
-static IDWriteFont *get_font(IDWriteFactory *factory, const WCHAR *name, DWRITE_FONT_STYLE style)
-{
-    IDWriteFontCollection *collection;
-    IDWriteFontFamily *family;
-    IDWriteFont *font = NULL;
-    UINT32 index;
-    BOOL exists;
-    HRESULT hr;
 
-    hr = IDWriteFactory_GetSystemFontCollection(factory, &collection, FALSE);
-    ok(hr == S_OK, "got 0x%08x\n", hr);
-
-    index = ~0;
-    exists = FALSE;
-    hr = IDWriteFontCollection_FindFamilyName(collection, name, &index, &exists);
-    ok(hr == S_OK, "got 0x%08x\n", hr);
-    if (!exists) goto not_found;
-
-    hr = IDWriteFontCollection_GetFontFamily(collection, index, &family);
-    ok(hr == S_OK, "got 0x%08x\n", hr);
-
-    hr = IDWriteFontFamily_GetFirstMatchingFont(family, DWRITE_FONT_WEIGHT_NORMAL,
-        DWRITE_FONT_STRETCH_NORMAL, style, &font);
-    ok(hr == S_OK, "got 0x%08x\n", hr);
-
-    IDWriteFontFamily_Release(family);
-not_found:
-    IDWriteFontCollection_Release(collection);
-    return font;
-}
-
-static IDWriteFont *get_tahoma_instance(IDWriteFactory *factory, DWRITE_FONT_STYLE style)
-{
-    IDWriteFont *font = get_font(factory, tahomaW, style);
-    ok(font != NULL, "failed to get Tahoma\n");
-    return font;
-}
 
 static void test_GetFirstMatchingFont(void)
 {
@@ -2498,8 +2558,10 @@ static void test_CreateFontFaceFromHdc(void)
     hr = IDWriteFactory_GetGdiInterop(factory, &interop);
     ok(hr == S_OK, "got 0x%08x\n", hr);
 
+    fontface = (void*)0xdeadbeef;
     hr = IDWriteGdiInterop_CreateFontFaceFromHdc(interop, NULL, &fontface);
     ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(fontface == NULL, "got %p\n", fontface);
 
     memset(&logfont, 0, sizeof(logfont));
     logfont.lfHeight = 12;
@@ -4521,7 +4583,6 @@ if (0) /* crashes on native */
             }
         }
 
-        gasp = get_gasp_flags(fontface, emsize, 1.0f);
         /* IDWriteFontFace1 offers another variant of this method */
         if (fontface1) {
             for (i = 0; i < sizeof(recmode_tests1)/sizeof(recmode_tests1[0]); i++) {
@@ -5075,6 +5136,7 @@ static void test_TranslateColorGlyphRun(void)
 {
     IDWriteColorGlyphRunEnumerator *layers;
     const DWRITE_COLOR_GLYPH_RUN *colorrun;
+    IDWriteFontFace2 *fontface2;
     IDWriteFontFace *fontface;
     IDWriteFactory2 *factory2;
     IDWriteFactory *factory;
@@ -5144,7 +5206,6 @@ static void test_TranslateColorGlyphRun(void)
     while (1) {
         hasrun = FALSE;
         hr = IDWriteColorGlyphRunEnumerator_MoveNext(layers, &hasrun);
-    todo_wine
         ok(hr == S_OK, "got 0x%08x\n", hr);
 
         if (!hasrun)
@@ -5153,9 +5214,26 @@ static void test_TranslateColorGlyphRun(void)
 
     /* iterated all way through */
     hr = IDWriteColorGlyphRunEnumerator_GetCurrentRun(layers, &colorrun);
-todo_wine
     ok(hr == E_NOT_VALID_STATE, "got 0x%08x\n", hr);
 
+    IDWriteColorGlyphRunEnumerator_Release(layers);
+
+    hr = IDWriteFontFace_QueryInterface(fontface, &IID_IDWriteFontFace2, (void**)&fontface2);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    /* invalid palette index */
+    layers = (void*)0xdeadbeef;
+    hr = IDWriteFactory2_TranslateColorGlyphRun(factory2, 0.0f, 0.0f, &run, NULL,
+        DWRITE_MEASURING_MODE_NATURAL, NULL, IDWriteFontFace2_GetColorPaletteCount(fontface2),
+        &layers);
+    ok(hr == DWRITE_E_NOCOLOR, "got 0x%08x\n", hr);
+    ok(layers == NULL, "got %p\n", layers);
+
+    layers = NULL;
+    hr = IDWriteFactory2_TranslateColorGlyphRun(factory2, 0.0f, 0.0f, &run, NULL,
+        DWRITE_MEASURING_MODE_NATURAL, NULL, IDWriteFontFace2_GetColorPaletteCount(fontface2) - 1,
+        &layers);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
     IDWriteColorGlyphRunEnumerator_Release(layers);
 
     /* color font, glyph without color info */
@@ -5166,10 +5244,9 @@ todo_wine
     layers = (void*)0xdeadbeef;
     hr = IDWriteFactory2_TranslateColorGlyphRun(factory2, 0.0, 0.0, &run, NULL,
         DWRITE_MEASURING_MODE_NATURAL, NULL, 0, &layers);
-todo_wine {
     ok(hr == DWRITE_E_NOCOLOR, "got 0x%08x\n", hr);
     ok(layers == NULL, "got %p\n", layers);
-}
+
     /* one glyph with, one without */
     codepoints[0] = 'A';
     codepoints[1] = 0x26c4;
@@ -5186,6 +5263,7 @@ todo_wine {
     ok(layers != NULL, "got %p\n", layers);
     IDWriteColorGlyphRunEnumerator_Release(layers);
 
+    IDWriteFontFace2_Release(fontface2);
     IDWriteFontFace_Release(fontface);
     IDWriteFactory2_Release(factory2);
 }

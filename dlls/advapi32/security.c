@@ -19,6 +19,8 @@
  *
  */
 
+#include "config.h"
+
 #include <stdarg.h>
 #include <string.h>
 
@@ -869,7 +871,7 @@ BOOL WINAPI CreateRestrictedToken(
     PHANDLE newToken)
 {
     TOKEN_TYPE type;
-    SECURITY_IMPERSONATION_LEVEL level = TokenImpersonationLevel;
+    SECURITY_IMPERSONATION_LEVEL level = SecurityAnonymous;
     DWORD size;
 
     FIXME("(%p, 0x%x, %u, %p, %u, %p, %u, %p, %p): stub\n",
@@ -1165,7 +1167,8 @@ GetEffectiveRightsFromAclW( PACL pacl, PTRUSTEEW pTrustee, PACCESS_MASK pAccessR
 PSID_IDENTIFIER_AUTHORITY WINAPI
 GetSidIdentifierAuthority( PSID pSid )
 {
-	return RtlIdentifierAuthoritySid(pSid);
+    SetLastError(ERROR_SUCCESS);
+    return RtlIdentifierAuthoritySid(pSid);
 }
 
 /******************************************************************************
@@ -5312,7 +5315,7 @@ BOOL WINAPI DestroyPrivateObjectSecurity( PSECURITY_DESCRIPTOR* ObjectDescriptor
     return TRUE;
 }
 
-BOOL WINAPI CreateProcessAsUserA(
+BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessAsUserA(
         HANDLE hToken,
         LPCSTR lpApplicationName,
         LPSTR lpCommandLine,
@@ -5367,7 +5370,7 @@ BOOL WINAPI CreateProcessAsUserA(
     return ret;
 }
 
-BOOL WINAPI CreateProcessAsUserW(
+BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessAsUserW(
         HANDLE hToken,
         LPCWSTR lpApplicationName,
         LPWSTR lpCommandLine,

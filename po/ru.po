@@ -5,14 +5,14 @@ msgstr ""
 "Project-Id-Version: Wine\n"
 "Report-Msgid-Bugs-To: http://bugs.winehq.org\n"
 "POT-Creation-Date: N/A\n"
-"PO-Revision-Date: 2015-08-19 08:15+0300\n"
+"PO-Revision-Date: 2016-01-26 15:30+0300\n"
 "Last-Translator: Nikolay Sivov <nsivov@codeweavers.com>\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 1.6.10\n"
+"X-Generator: Poedit 1.8.6\n"
 
 #: appwiz.rc:58
 msgid "Install/Uninstall"
@@ -57,8 +57,8 @@ msgstr "&Удалить"
 msgid "Support Information"
 msgstr "Сведения о поддержке"
 
-#: appwiz.rc:78 avifil32.rc:54 comctl32.rc:55 comdlg32.rc:231 comdlg32.rc:261
-#: comdlg32.rc:304 comdlg32.rc:358 comdlg32.rc:397 comdlg32.rc:451 credui.rc:52
+#: appwiz.rc:78 avifil32.rc:54 comctl32.rc:55 comdlg32.rc:232 comdlg32.rc:262
+#: comdlg32.rc:305 comdlg32.rc:359 comdlg32.rc:398 comdlg32.rc:452 credui.rc:52
 #: cryptui.rc:263 cryptui.rc:275 cryptui.rc:365 dinput.rc:46 ieframe.rc:96
 #: localui.rc:44 localui.rc:57 mpr.rc:49 msacm32.rc:53 mshtml.rc:47
 #: mshtml.rc:57 msvfw32.rc:36 oledlg.rc:62 oledlg.rc:94 serialui.rc:41
@@ -139,10 +139,10 @@ msgid "&Install"
 msgstr "&Установить"
 
 #: appwiz.rc:110 appwiz.rc:125 avifil32.rc:55 browseui.rc:40 comctl32.rc:56
-#: comctl32.rc:71 comdlg32.rc:170 comdlg32.rc:192 comdlg32.rc:210
-#: comdlg32.rc:232 comdlg32.rc:262 comdlg32.rc:305 comdlg32.rc:327
-#: comdlg32.rc:347 comdlg32.rc:359 comdlg32.rc:398 comdlg32.rc:452
-#: comdlg32.rc:477 comdlg32.rc:500 credui.rc:53 cryptui.rc:264 cryptui.rc:276
+#: comctl32.rc:71 comdlg32.rc:171 comdlg32.rc:193 comdlg32.rc:211
+#: comdlg32.rc:233 comdlg32.rc:263 comdlg32.rc:306 comdlg32.rc:328
+#: comdlg32.rc:348 comdlg32.rc:360 comdlg32.rc:399 comdlg32.rc:453
+#: comdlg32.rc:478 comdlg32.rc:501 credui.rc:53 cryptui.rc:264 cryptui.rc:276
 #: cryptui.rc:366 dinput.rc:47 ieframe.rc:97 inetcpl.rc:81 localui.rc:45
 #: localui.rc:58 mpr.rc:50 msacm32.rc:54 mshtml.rc:48 mshtml.rc:58
 #: msvfw32.rc:37 oledlg.rc:63 oledlg.rc:95 serialui.rc:42 setupapi.rc:42
@@ -310,11 +310,11 @@ msgstr "Отмена..."
 msgid "Properties for %s"
 msgstr "Свойства %s"
 
-#: comctl32.rc:57 comdlg32.rc:263
+#: comctl32.rc:57 comdlg32.rc:264
 msgid "&Apply"
 msgstr "При&менить"
 
-#: comctl32.rc:58 comctl32.rc:72 comdlg32.rc:306 user32.rc:88
+#: comctl32.rc:58 comctl32.rc:72 comdlg32.rc:307 user32.rc:88
 msgid "Help"
 msgstr "&Справка"
 
@@ -347,9 +347,9 @@ msgstr "&Закрыть"
 msgid "R&eset"
 msgstr "С&бросить"
 
-#: comctl32.rc:86 comdlg32.rc:171 comdlg32.rc:193 comdlg32.rc:264
-#: comdlg32.rc:328 comdlg32.rc:348 comdlg32.rc:360 comdlg32.rc:478
-#: comdlg32.rc:501 ieframe.rc:58 msacm32.rc:52 oledlg.rc:96 shell32.rc:128
+#: comctl32.rc:86 comdlg32.rc:172 comdlg32.rc:194 comdlg32.rc:265
+#: comdlg32.rc:329 comdlg32.rc:349 comdlg32.rc:361 comdlg32.rc:479
+#: comdlg32.rc:502 ieframe.rc:58 msacm32.rc:52 oledlg.rc:96 shell32.rc:128
 #: clock.rc:44 notepad.rc:60 notepad.rc:119 oleview.rc:72 progman.rc:55
 #: progman.rc:108 progman.rc:126 progman.rc:144 progman.rc:160 progman.rc:184
 #: progman.rc:202 progman.rc:219 regedit.rc:79 taskmgr.rc:87 winefile.rc:82
@@ -403,400 +403,400 @@ msgstr "Сегодня:"
 msgid "Go to today"
 msgstr "Текущая дата"
 
-#: comdlg32.rc:156 comdlg32.rc:169 comdlg32.rc:458 comdlg32.rc:484
+#: comdlg32.rc:157 comdlg32.rc:170 comdlg32.rc:459 comdlg32.rc:485
 #: shell32.rc:167 oleview.rc:102
 msgid "Open"
 msgstr "Открыть"
 
-#: comdlg32.rc:159 comdlg32.rc:181
+#: comdlg32.rc:160 comdlg32.rc:182
 msgid "File &Name:"
 msgstr "&Имя файла:"
 
-#: comdlg32.rc:162 comdlg32.rc:184
+#: comdlg32.rc:163 comdlg32.rc:185
 msgid "&Directories:"
 msgstr "&Каталоги:"
 
-#: comdlg32.rc:165 comdlg32.rc:187
+#: comdlg32.rc:166 comdlg32.rc:188
 msgid "List Files of &Type:"
 msgstr "Показывать файлы &типа:"
 
-#: comdlg32.rc:167 comdlg32.rc:189
+#: comdlg32.rc:168 comdlg32.rc:190
 msgid "Dri&ves:"
 msgstr "&Диски:"
 
-#: comdlg32.rc:172 comdlg32.rc:194 winefile.rc:176
+#: comdlg32.rc:173 comdlg32.rc:195 winefile.rc:176
 msgid "&Read Only"
 msgstr "&Только для чтения"
 
-#: comdlg32.rc:178
+#: comdlg32.rc:179
 msgid "Save As..."
 msgstr "Сохранить как..."
 
-#: comdlg32.rc:191 comdlg32.rc:145
+#: comdlg32.rc:192 comdlg32.rc:145
 msgid "Save As"
 msgstr "Сохранить как"
 
-#: comdlg32.rc:200 comdlg32.rc:209 comdlg32.rc:355 comdlg32.rc:54 hhctrl.rc:49
+#: comdlg32.rc:201 comdlg32.rc:210 comdlg32.rc:356 comdlg32.rc:54 hhctrl.rc:49
 #: wordpad.rc:165
 msgid "Print"
 msgstr "Печать"
 
-#: comdlg32.rc:203
+#: comdlg32.rc:204
 msgid "Printer:"
 msgstr "Принтер:"
 
-#: comdlg32.rc:205 comdlg32.rc:382
+#: comdlg32.rc:206 comdlg32.rc:383
 msgid "Print range"
 msgstr "Печатать"
 
-#: comdlg32.rc:206 comdlg32.rc:383 regedit.rc:219
+#: comdlg32.rc:207 comdlg32.rc:384 regedit.rc:219
 msgid "&All"
-msgstr "&Весь реестр"
+msgstr "&Все"
 
-#: comdlg32.rc:207
+#: comdlg32.rc:208
 msgid "S&election"
 msgstr "В&ыделенный фрагмент"
 
-#: comdlg32.rc:208
+#: comdlg32.rc:209
 msgid "&Pages"
 msgstr "&Страницы"
 
-#: comdlg32.rc:211 comdlg32.rc:233
+#: comdlg32.rc:212 comdlg32.rc:234
 msgid "&Setup"
 msgstr "Сво&йства"
 
-#: comdlg32.rc:212
+#: comdlg32.rc:213
 msgid "&From:"
 msgstr "&с:"
 
-#: comdlg32.rc:213
+#: comdlg32.rc:214
 msgid "&To:"
 msgstr "&по:"
 
-#: comdlg32.rc:214 wineps.rc:42
+#: comdlg32.rc:215 wineps.rc:42
 msgid "Print &Quality:"
 msgstr "&Качество печати:"
 
-#: comdlg32.rc:216
+#: comdlg32.rc:217
 msgid "Print to Fi&le"
 msgstr "П&ечать в файл"
 
-#: comdlg32.rc:217
+#: comdlg32.rc:218
 msgid "Condensed"
 msgstr "Сжато"
 
-#: comdlg32.rc:223 comdlg32.rc:394
+#: comdlg32.rc:224 comdlg32.rc:395
 msgid "Print Setup"
 msgstr "Настройка принтера"
 
-#: comdlg32.rc:226 comdlg32.rc:362 comdlg32.rc:401
+#: comdlg32.rc:227 comdlg32.rc:363 comdlg32.rc:402
 msgid "Printer"
 msgstr "Принтер"
 
-#: comdlg32.rc:227
+#: comdlg32.rc:228
 msgid "&Default Printer"
 msgstr "Принтер по &умолчанию"
 
-#: comdlg32.rc:228
+#: comdlg32.rc:229
 msgid "[none]"
 msgstr "[нет]"
 
-#: comdlg32.rc:229
+#: comdlg32.rc:230
 msgid "Specific &Printer"
 msgstr "&Другой принтер"
 
-#: comdlg32.rc:234 comdlg32.rc:420 comdlg32.rc:439 wineps.rc:34
+#: comdlg32.rc:235 comdlg32.rc:421 comdlg32.rc:440 wineps.rc:34
 msgid "Orientation"
 msgstr "Ориентация"
 
-#: comdlg32.rc:235
+#: comdlg32.rc:236
 msgid "Po&rtrait"
 msgstr "&Книжная"
 
-#: comdlg32.rc:236 comdlg32.rc:441 wineps.rc:37
+#: comdlg32.rc:237 comdlg32.rc:442 wineps.rc:37
 msgid "&Landscape"
 msgstr "&Альбомная"
 
-#: comdlg32.rc:239 comdlg32.rc:414 comdlg32.rc:434 wineps.rc:28
+#: comdlg32.rc:240 comdlg32.rc:415 comdlg32.rc:435 wineps.rc:28
 msgid "Paper"
 msgstr "Бумага"
 
-#: comdlg32.rc:240
+#: comdlg32.rc:241
 msgid "Si&ze"
 msgstr "Ра&змер"
 
-#: comdlg32.rc:241
+#: comdlg32.rc:242
 msgid "&Source"
 msgstr "&Источник"
 
-#: comdlg32.rc:249 wineconsole.rc:85
+#: comdlg32.rc:250 wineconsole.rc:85
 msgid "Font"
 msgstr "Шрифт"
 
-#: comdlg32.rc:252
+#: comdlg32.rc:253
 msgid "&Font:"
 msgstr "&Шрифт:"
 
-#: comdlg32.rc:255
+#: comdlg32.rc:256
 msgid "Font St&yle:"
 msgstr "&Начертание:"
 
-#: comdlg32.rc:258 comdlg32.rc:435 winecfg.rc:294
+#: comdlg32.rc:259 comdlg32.rc:436 winecfg.rc:294
 msgid "&Size:"
-msgstr "Размер:"
+msgstr "&Размер:"
 
-#: comdlg32.rc:265
+#: comdlg32.rc:266
 msgid "Effects"
 msgstr "Атрибуты"
 
-#: comdlg32.rc:266
+#: comdlg32.rc:267
 msgid "Stri&keout"
 msgstr "&Зачёркнутый"
 
-#: comdlg32.rc:267
+#: comdlg32.rc:268
 msgid "&Underline"
 msgstr "Под&чёркнутый"
 
-#: comdlg32.rc:268 winecfg.rc:292
+#: comdlg32.rc:269 winecfg.rc:292
 msgid "&Color:"
 msgstr "Цвет:"
 
-#: comdlg32.rc:271
+#: comdlg32.rc:272
 msgid "Sample"
 msgstr "Образец"
 
-#: comdlg32.rc:273
+#: comdlg32.rc:274
 msgid "Scr&ipt:"
 msgstr "На&бор символов:"
 
-#: comdlg32.rc:281
+#: comdlg32.rc:282
 msgid "Color"
 msgstr "Выбор цвета"
 
-#: comdlg32.rc:284
+#: comdlg32.rc:285
 msgid "&Basic Colors:"
 msgstr "&Базовая палитра:"
 
-#: comdlg32.rc:285
+#: comdlg32.rc:286
 msgid "&Custom Colors:"
 msgstr "До&полнительные цвета:"
 
-#: comdlg32.rc:286 comdlg32.rc:309
+#: comdlg32.rc:287 comdlg32.rc:310
 msgid "Color |  Sol&id"
 msgstr "Цвет|За&ливка"
 
-#: comdlg32.rc:287
+#: comdlg32.rc:288
 msgid "&Red:"
 msgstr "Крас&н:"
 
-#: comdlg32.rc:289
+#: comdlg32.rc:290
 msgid "&Green:"
 msgstr "&Зелёный:"
 
-#: comdlg32.rc:291
+#: comdlg32.rc:292
 msgid "&Blue:"
 msgstr "С&иний:"
 
-#: comdlg32.rc:293
+#: comdlg32.rc:294
 msgid "&Hue:"
 msgstr "О&ттенок:"
 
-#: comdlg32.rc:295
+#: comdlg32.rc:296
 msgctxt "Saturation"
 msgid "&Sat:"
 msgstr "&Насыщенность:"
 
-#: comdlg32.rc:297
+#: comdlg32.rc:298
 msgctxt "Luminance"
 msgid "&Lum:"
 msgstr "&Яркость:"
 
-#: comdlg32.rc:307
+#: comdlg32.rc:308
 msgid "&Add to Custom Colors"
 msgstr "&Добавить в набор"
 
-#: comdlg32.rc:308
+#: comdlg32.rc:309
 msgid "&Define Custom Colors >>"
 msgstr "&Определить цвет >>"
 
-#: comdlg32.rc:315 regedit.rc:226 regedit.rc:236
+#: comdlg32.rc:316 regedit.rc:226 regedit.rc:236
 msgid "Find"
 msgstr "Поиск"
 
-#: comdlg32.rc:318 comdlg32.rc:337
+#: comdlg32.rc:319 comdlg32.rc:338
 msgid "Fi&nd What:"
 msgstr "&Образец:"
 
-#: comdlg32.rc:320 comdlg32.rc:341
+#: comdlg32.rc:321 comdlg32.rc:342
 msgid "Match &Whole Word Only"
 msgstr "&Только слово целиком"
 
-#: comdlg32.rc:321 comdlg32.rc:342
+#: comdlg32.rc:322 comdlg32.rc:343
 msgid "Match &Case"
 msgstr "C &учетом регистра"
 
-#: comdlg32.rc:322 joy.rc:71
+#: comdlg32.rc:323 joy.rc:71
 msgid "Direction"
 msgstr "Направление"
 
-#: comdlg32.rc:323 view.rc:42
+#: comdlg32.rc:324 view.rc:42
 msgid "&Up"
 msgstr "В&верх"
 
-#: comdlg32.rc:324 view.rc:43
+#: comdlg32.rc:325 view.rc:43
 msgid "&Down"
 msgstr "В&низ"
 
-#: comdlg32.rc:326 comdlg32.rc:344
+#: comdlg32.rc:327 comdlg32.rc:345
 msgid "&Find Next"
 msgstr "&Найти далее"
 
-#: comdlg32.rc:334
+#: comdlg32.rc:335
 msgid "Replace"
 msgstr "Замена"
 
-#: comdlg32.rc:339
+#: comdlg32.rc:340
 msgid "Re&place With:"
 msgstr "З&аменить на:"
 
-#: comdlg32.rc:345
+#: comdlg32.rc:346
 msgid "&Replace"
 msgstr "&Заменить"
 
-#: comdlg32.rc:346
+#: comdlg32.rc:347
 msgid "Replace &All"
 msgstr "Заменить &всё"
 
-#: comdlg32.rc:363
+#: comdlg32.rc:364
 msgid "Print to fi&le"
 msgstr "Печать в фай&л"
 
-#: comdlg32.rc:364 comdlg32.rc:402 ieframe.rc:42 shdoclc.rc:61 shell32.rc:108
+#: comdlg32.rc:365 comdlg32.rc:403 ieframe.rc:42 shdoclc.rc:61 shell32.rc:108
 #: clock.rc:31 wineconsole.rc:30
 msgid "&Properties"
 msgstr "&Свойства"
 
-#: comdlg32.rc:365 comdlg32.rc:403 msacm32.rc:34 winefile.rc:141
+#: comdlg32.rc:366 comdlg32.rc:404 msacm32.rc:34 winefile.rc:141
 msgid "&Name:"
 msgstr "&Имя:"
 
-#: comdlg32.rc:367 comdlg32.rc:405
+#: comdlg32.rc:368 comdlg32.rc:406
 msgid "Status:"
 msgstr "Статус:"
 
-#: comdlg32.rc:369 comdlg32.rc:407
+#: comdlg32.rc:370 comdlg32.rc:408
 msgid "Type:"
 msgstr "Тип:"
 
-#: comdlg32.rc:371 comdlg32.rc:409
+#: comdlg32.rc:372 comdlg32.rc:410
 msgid "Where:"
 msgstr "Место:"
 
-#: comdlg32.rc:373 comdlg32.rc:411
+#: comdlg32.rc:374 comdlg32.rc:412
 msgid "Comment:"
 msgstr "Примечание:"
 
-#: comdlg32.rc:376
+#: comdlg32.rc:377
 msgid "Copies"
 msgstr "Копии"
 
-#: comdlg32.rc:377
+#: comdlg32.rc:378
 msgid "Number of &copies:"
 msgstr "Число &копий:"
 
-#: comdlg32.rc:379
+#: comdlg32.rc:380
 msgid "C&ollate"
 msgstr "&Разбить"
 
-#: comdlg32.rc:384
+#: comdlg32.rc:385
 msgid "Pa&ges"
 msgstr "&Страницы"
 
-#: comdlg32.rc:385
+#: comdlg32.rc:386
 msgid "&Selection"
 msgstr "&Выделение"
 
-#: comdlg32.rc:388
+#: comdlg32.rc:389
 msgid "&from:"
 msgstr "&от:"
 
-#: comdlg32.rc:389
+#: comdlg32.rc:390
 msgid "&to:"
 msgstr "&до:"
 
-#: comdlg32.rc:415 winecfg.rc:300
+#: comdlg32.rc:416 winecfg.rc:300
 msgid "Si&ze:"
 msgstr "Размер:"
 
-#: comdlg32.rc:417
+#: comdlg32.rc:418
 msgid "&Source:"
 msgstr "&Источник:"
 
-#: comdlg32.rc:422
+#: comdlg32.rc:423
 msgid "P&ortrait"
 msgstr "&Книжная"
 
-#: comdlg32.rc:423
+#: comdlg32.rc:424
 msgid "L&andscape"
 msgstr "&Альбомная"
 
-#: comdlg32.rc:428
+#: comdlg32.rc:429
 msgid "Setup Page"
 msgstr "Параметры страницы"
 
-#: comdlg32.rc:437
+#: comdlg32.rc:438
 msgid "&Tray:"
 msgstr "Пода&ча:"
 
-#: comdlg32.rc:440 wineps.rc:35
+#: comdlg32.rc:441 wineps.rc:35
 msgid "&Portrait"
 msgstr "&Книжная"
 
-#: comdlg32.rc:443
+#: comdlg32.rc:444
 msgid "L&eft:"
 msgstr "&Слева:"
 
-#: comdlg32.rc:445 notepad.rc:112
+#: comdlg32.rc:446 notepad.rc:112
 msgid "&Right:"
 msgstr "&Правое:"
 
-#: comdlg32.rc:447
+#: comdlg32.rc:448
 msgid "T&op:"
 msgstr "Спр&ава:"
 
-#: comdlg32.rc:449 notepad.rc:114
+#: comdlg32.rc:450 notepad.rc:114
 msgid "&Bottom:"
 msgstr "&Нижнее:"
 
-#: comdlg32.rc:453
+#: comdlg32.rc:454
 msgid "P&rinter..."
 msgstr "&Принтер..."
 
-#: comdlg32.rc:461
+#: comdlg32.rc:462
 msgid "Look &in:"
 msgstr "Искать &в:"
 
-#: comdlg32.rc:467
+#: comdlg32.rc:468
 msgid "File &name:"
 msgstr "Имя &файла:"
 
-#: comdlg32.rc:471
+#: comdlg32.rc:472
 msgid "Files of &type:"
 msgstr "&Тип файлов:"
 
-#: comdlg32.rc:474
+#: comdlg32.rc:475
 msgid "Open as &read-only"
 msgstr "Только для &чтения"
 
-#: comdlg32.rc:476 comdlg32.rc:494 shdoclc.rc:127 shell32.rc:99
+#: comdlg32.rc:477 comdlg32.rc:495 shdoclc.rc:127 shell32.rc:99
 msgid "&Open"
 msgstr "&Открыть"
 
-#: comdlg32.rc:487
+#: comdlg32.rc:488
 msgid "File name:"
 msgstr "Имя файла:"
 
-#: comdlg32.rc:490
+#: comdlg32.rc:491
 msgid "Files of type:"
 msgstr "Файлы типа:"
 
@@ -1039,6 +1039,10 @@ msgstr "Открыть файл"
 #: comdlg32.rc:147
 msgid "Select Folder"
 msgstr "Выберите папку"
+
+#: comdlg32.rc:148
+msgid "Font size has to be a number."
+msgstr "Размер шрифта должен быть числом."
 
 #: comdlg32.rc:83 oleview.rc:98
 msgid "Ready"
@@ -3189,7 +3193,7 @@ msgstr "Показать &вкладки"
 msgid "Show"
 msgstr "Показать"
 
-#: hhctrl.rc:43
+#: hhctrl.rc:43 winemac.rc:34
 msgid "Hide"
 msgstr "Спрятать"
 
@@ -3807,11 +3811,11 @@ msgstr "Кончилась бумага.\n"
 
 #: winerror.mc:171
 msgid "Write fault.\n"
-msgstr "Не удаётся выполнить запись.\n"
+msgstr "Ошибка записи.\n"
 
 #: winerror.mc:176
 msgid "Read fault.\n"
-msgstr "Не удаётся выполнить чтение.\n"
+msgstr "Ошибка чтения.\n"
 
 #: winerror.mc:181
 msgid "General failure.\n"
@@ -3895,7 +3899,7 @@ msgstr "Закончилось место для хранения файлов, 
 
 #: winerror.mc:281
 msgid "Print canceled.\n"
-msgstr "Вывод на печать отменён.\n"
+msgstr "Печать отменена.\n"
 
 #: winerror.mc:286
 msgid "Network name deleted.\n"
@@ -3919,7 +3923,7 @@ msgstr "Слишком много сетевых имён.\n"
 
 #: winerror.mc:311
 msgid "Too many network sessions.\n"
-msgstr "Слишком много сетевых подключений NetBIOS.\n"
+msgstr "Слишком много сетевых подключений.\n"
 
 #: winerror.mc:316
 msgid "Sharing paused.\n"
@@ -3927,7 +3931,7 @@ msgstr "Сервер остановлен или перезагружается.
 
 #: winerror.mc:321
 msgid "Request not accepted.\n"
-msgstr "Достигнут предел подключений к удалённому компьютеру.\n"
+msgstr "Запрос не принят.\n"
 
 #: winerror.mc:326
 msgid "Redirector paused.\n"
@@ -4051,7 +4055,7 @@ msgstr "Недостаточный объём буфера.\n"
 
 #: winerror.mc:481
 msgid "Invalid name.\n"
-msgstr "Неверное имя файла, каталога или метки тома.\n"
+msgstr "Неверное имя.\n"
 
 #: winerror.mc:486
 msgid "Invalid level.\n"
@@ -4395,7 +4399,7 @@ msgstr "Неверно задано имя каталога.\n"
 
 #: winerror.mc:916
 msgid "Extended attributes didn't fit.\n"
-msgstr "Расширенные атрибуты не помещаются.\n"
+msgstr "Расширенные атрибуты не поместились.\n"
 
 #: winerror.mc:921
 msgid "Extended attribute file corrupt.\n"
@@ -4531,7 +4535,7 @@ msgstr "Невозможно записать ключ реестра.\n"
 
 #: winerror.mc:1086
 msgid "Registry has been recovered.\n"
-msgstr "Реестр восстановлен.\n"
+msgstr "Реестр был восстановлен.\n"
 
 #: winerror.mc:1091
 msgid "Registry is corrupt.\n"
@@ -4543,7 +4547,7 @@ msgstr "Не удалось выполнить чтение или запись 
 
 #: winerror.mc:1101
 msgid "Not registry file.\n"
-msgstr "Нет файла реестра.\n"
+msgstr "Файл не является файлом реестра.\n"
 
 #: winerror.mc:1106
 msgid "Key deleted.\n"
@@ -4583,7 +4587,7 @@ msgstr "Не удалось создать поток службы.\n"
 
 #: winerror.mc:1151
 msgid "Service database locked.\n"
-msgstr "База данных службы заблокирована.\n"
+msgstr "База данных служб заблокирована.\n"
 
 #: winerror.mc:1156
 msgid "Service already running.\n"
@@ -4663,7 +4667,7 @@ msgstr "Система работает в режиме «Последняя у�
 
 #: winerror.mc:1251
 msgid "Service dependency deleted.\n"
-msgstr "Необходимая служба удалена.\n"
+msgstr "Зависимость службы была удалена.\n"
 
 #: winerror.mc:1256
 msgid "Boot already accepted as last-good config.\n"
@@ -4683,7 +4687,7 @@ msgstr "Другая учётная запись.\n"
 
 #: winerror.mc:1276
 msgid "Driver failure cannot be detected.\n"
-msgstr "Сбой драйвера не выявляется.\n"
+msgstr "Сбой драйвера не может быть обнаружен.\n"
 
 #: winerror.mc:1281
 msgid "Process abort cannot be detected.\n"
@@ -4879,7 +4883,7 @@ msgstr "Недостаточно пользовательских дескрип
 
 #: winerror.mc:1521
 msgid "Message can only be used in synchronous calls.\n"
-msgstr "Сообщение может использоваться только в асинхронных вызовах.\n"
+msgstr "Сообщение может использоваться только в синхронных вызовах.\n"
 
 #: winerror.mc:1526
 msgid "The source element is empty.\n"
@@ -4991,7 +4995,7 @@ msgstr "Не удалось открыть профиль сетевого со�
 
 #: winerror.mc:1661
 msgid "Corrupt network connection profile.\n"
-msgstr "Профиль сетевого соединения испорчен.\n"
+msgstr "Профиль сетевого соединения повреждён.\n"
 
 #: winerror.mc:1666
 msgid "Not a container.\n"
@@ -5175,7 +5179,7 @@ msgstr "Необходимо выполнять операцию даже при
 
 #: winerror.mc:1896
 msgid "The user profile is invalid.\n"
-msgstr "Ошибка в профиле пользователя.\n"
+msgstr "Неверный профиль пользователя.\n"
 
 #: winerror.mc:1901
 msgid "Not supported on Small Business Server.\n"
@@ -5411,7 +5415,7 @@ msgstr "Превышено ограничение на число доменов
 
 #: winerror.mc:2191
 msgid "Internal database corruption.\n"
-msgstr "Разрушение внутренней базы данных.\n"
+msgstr "Внутреннее повреждение базы данных.\n"
 
 #: winerror.mc:2196
 msgid "Internal error.\n"
@@ -7458,16 +7462,12 @@ msgid "&Convert..."
 msgstr "&Конвертировать..."
 
 #: oledlg.rc:36
-#, fuzzy
-#| msgid "&Object"
 msgid "%1 %2 &Object"
-msgstr "&Объект"
+msgstr "%1 &объект %2"
 
 #: oledlg.rc:34
-#, fuzzy
-#| msgid "&Object"
 msgid "%1 &Object"
-msgstr "&Объект"
+msgstr "&Объект %1"
 
 #: oledlg.rc:33 oleview.rc:40
 msgid "&Object"
@@ -7576,7 +7576,7 @@ msgstr "Настройки %s"
 
 #: serialui.rc:31
 msgid "Baud Rate"
-msgstr "Наибольшая скорость"
+msgstr "Скорость"
 
 #: serialui.rc:33
 msgid "Parity"
@@ -7611,8 +7611,8 @@ msgid ""
 "Insert the manufacturer's installation disk, and then\n"
 "make sure the correct drive is selected below"
 msgstr ""
-"Вставьте установочный диск, и затем\n"
-"проверьте что выбран нужный привод"
+"Вставьте установочный диск, а затем\n"
+"убедитесь что выбран нужный привод"
 
 #: setupapi.rc:57
 msgid "Copy manufacturer's files from:"
@@ -8576,6 +8576,50 @@ msgstr "Выбор окна"
 msgid "&More Windows..."
 msgstr "&Ещё окна..."
 
+#: winemac.rc:32 wineboot.rc:42
+msgid "Wine"
+msgstr "Wine"
+
+#: winemac.rc:33
+msgid "Hide %@"
+msgstr "Скрыть %@"
+
+#: winemac.rc:35
+msgid "Hide Others"
+msgstr "Скрыть остальные"
+
+#: winemac.rc:36
+msgid "Show All"
+msgstr "Показать все"
+
+#: winemac.rc:37
+msgid "Quit %@"
+msgstr "Закрыть %@"
+
+#: winemac.rc:38
+msgid "Quit"
+msgstr "Выход"
+
+#: winemac.rc:40
+msgid "Window"
+msgstr "Окно"
+
+#: winemac.rc:41
+msgid "Minimize"
+msgstr "Свернуть"
+
+#: winemac.rc:42
+msgid "Zoom"
+msgstr "Изменить масштаб"
+
+#: winemac.rc:43
+msgid "Enter Full Screen"
+msgstr "Переход в полноэкранный режим"
+
+#: winemac.rc:44
+msgid "Bring All to Front"
+msgstr "Все окна на передний план"
+
 #: wineps.rc:31
 msgid "Paper Si&ze:"
 msgstr "&Размер бумаги:"
@@ -9085,7 +9129,7 @@ msgid ""
 "until the device is free, and then try again."
 msgstr ""
 "Невозможно использовать текущее устройство для воспроизведения, так как оно "
-"занято. Подождите, пока устройство освободится, и попробуйте заново."
+"занято. Подождите пока устройство освободится, и попробуйте заново."
 
 #: winmm.rc:114
 msgid ""
@@ -9093,7 +9137,7 @@ msgid ""
 "Wait until a wave device is free, and then try again."
 msgstr ""
 "Невозможно использовать текущее устройство для записи, так как оно занято. "
-"Подождите, пока устройство освободится, и попробуйте заново."
+"Подождите пока устройство освободится, и попробуйте заново."
 
 #: winmm.rc:115
 msgid ""
@@ -9101,7 +9145,7 @@ msgid ""
 "until the device is free, and then try again."
 msgstr ""
 "Невозможно использовать текущее устройство для воспроизведения, так как оно "
-"занято. Подождите, пока устройство освободится, и попробуйте заново."
+"занято. Подождите пока устройство освободится, и попробуйте заново."
 
 #: winmm.rc:116
 msgid "Any compatible waveform playback device may be used."
@@ -9488,7 +9532,7 @@ msgid ""
 "Not Yet Implemented\n"
 "\n"
 msgstr ""
-"Ещё не выполнено\n"
+"Ещё не реализовано\n"
 "\n"
 
 #: attrib.rc:31 cmd.rc:364
@@ -10185,12 +10229,12 @@ msgstr ""
 msgid "Are you sure?"
 msgstr "Вы уверены?"
 
-#: cmd.rc:354 xcopy.rc:43
+#: cmd.rc:354 reg.rc:45 xcopy.rc:43
 msgctxt "Yes key"
 msgid "Y"
 msgstr "Y"
 
-#: cmd.rc:355 xcopy.rc:44
+#: cmd.rc:355 reg.rc:46 xcopy.rc:44
 msgctxt "No key"
 msgid "N"
 msgstr "N"
@@ -10328,7 +10372,7 @@ msgstr "Том на диске %1!c! имеет метку %2\n"
 msgid "Volume in drive %1!c! has no label.\n"
 msgstr "Том на диске %1!c! не имеет метки.\n"
 
-#: cmd.rc:390
+#: cmd.rc:390 reg.rc:44
 msgid " (Yes|No)"
 msgstr " (Y - да|N - нет)"
 
@@ -11529,25 +11573,70 @@ msgid "The operation completed successfully\n"
 msgstr "Операция успешно завершена\n"
 
 #: reg.rc:35
-msgid "Error: Invalid key name\n"
+#, fuzzy
+#| msgid "Error: Invalid key name\n"
+msgid "reg: Invalid key name\n"
 msgstr "Ошибка: неправильное имя раздела\n"
 
 #: reg.rc:36
-msgid "Error: Invalid command line parameters\n"
+#, fuzzy
+#| msgid "Error: Invalid command line parameters\n"
+msgid "reg: Invalid command line parameters\n"
 msgstr "Ошибка: неправильные параметры командной строки\n"
 
 #: reg.rc:37
-msgid "Error: Unable to access remote machine\n"
+#, fuzzy
+#| msgid "Error: Unable to access remote machine\n"
+msgid "reg: Unable to access remote machine\n"
 msgstr "Ошибка: не удалось получить доступ к удалённому компьютеру\n"
 
 #: reg.rc:38
+#, fuzzy
+#| msgid ""
+#| "Error: The system was unable to find the specified registry key or value\n"
 msgid ""
-"Error: The system was unable to find the specified registry key or value\n"
+"reg: The system was unable to find the specified registry key or value\n"
 msgstr "Ошибка: не удалось найти указанный раздел реестра или значение\n"
 
 #: reg.rc:39
-msgid "Error: Unsupported type\n"
+#, fuzzy
+#| msgid "Error: Unsupported type\n"
+msgid "reg: Unsupported registry data type [%1]\n"
 msgstr "Ошибка: тип не поддерживается\n"
+
+#: reg.rc:40
+#, fuzzy
+#| msgid ""
+#| "uninstaller: The option '--remove' must be followed by an application "
+#| "GUID\n"
+msgid "reg: The option [/d] must be followed by a valid integer\n"
+msgstr ""
+"uninstaller: за опцией «--remove» должен следовать GUID идентификатор "
+"приложения\n"
+
+#: reg.rc:41
+#, fuzzy
+#| msgid ""
+#| "uninstaller: The option '--remove' must be followed by an application "
+#| "GUID\n"
+msgid "reg: The option [/d] must be followed by a valid hexadecimal value\n"
+msgstr ""
+"uninstaller: за опцией «--remove» должен следовать GUID идентификатор "
+"приложения\n"
+
+#: reg.rc:42
+msgid "reg: Unhandled registry data type [/t 0x%1!x!, /d %2]\n"
+msgstr ""
+
+#: reg.rc:43
+#, fuzzy
+#| msgid "The specified file already exists. Do you want to replace it?"
+msgid "The registry value '%1' already exists. Do you want to overwrite it?"
+msgstr "Указанный файл уже существует. Вы хотите заменить его?"
+
+#: reg.rc:47
+msgid "The registry operation was cancelled\n"
+msgstr ""
 
 #: regedit.rc:34
 msgid "&Registry"
@@ -12883,6 +12972,10 @@ msgid ""
 "Uninstall applications from the current Wine prefix.\n"
 "\n"
 msgstr ""
+"Программа удаления приложений Wine\n"
+"\n"
+"Удаляет приложения из текущего префикса Wine.\n"
+"\n"
 
 #: uninstaller.rc:43
 msgid ""
@@ -12897,6 +12990,17 @@ msgid ""
 "  [no option]       Launch the graphical version of this program.\n"
 "\n"
 msgstr ""
+"Вызов:\n"
+"  uninstaller [параметры]\n"
+"\n"
+"Параметры:\n"
+"  --help\t    показать эту справку.\n"
+"  --list\t    показать список всех приложений, установленных в этом "
+"префиксе.\n"
+"  --remove {GUID}   удалить указанное приложение.\n"
+"\t\t    GUID установленного приложения можно получить с помощью '--list'.\n"
+"  [без параметров]       запустить графическую версию этой программы.\n"
+"\n"
 
 #: view.rc:36
 msgid "&Pan"
@@ -12937,10 +13041,6 @@ msgstr ""
 "\n"
 "Если закрыть программу прямо сейчас, то можно потерять все несохранённые "
 "данные."
-
-#: wineboot.rc:42
-msgid "Wine"
-msgstr "Wine"
 
 #: wineboot.rc:46
 msgid "The Wine configuration in %s is being updated, please wait..."
@@ -12986,7 +13086,7 @@ msgstr ""
 "приложения, так и глобально."
 
 #: winecfg.rc:159
-msgid "&Add application..."
+msgid "Add appli&cation..."
 msgstr "&Добавить приложение..."
 
 #: winecfg.rc:160
@@ -13046,9 +13146,9 @@ msgstr ""
 msgid "&New override for library:"
 msgstr "Новое замещение для библиотеки:"
 
-#: winecfg.rc:196 wordpad.rc:247
-msgid "&Add"
-msgstr "&Установить"
+#: winecfg.rc:196
+msgid "A&dd"
+msgstr "&Добавить"
 
 #: winecfg.rc:197
 msgid "Existing &overrides:"
@@ -13072,15 +13172,15 @@ msgstr "&Встроенная (Wine)"
 
 #: winecfg.rc:210
 msgid "&Native (Windows)"
-msgstr "С&торонняя (Windows)"
+msgstr "&Сторонняя (Windows)"
 
 #: winecfg.rc:211
-msgid "Bui&ltin then Native"
-msgstr "В&строенная, затем сторонняя"
+msgid "Buil&tin then Native"
+msgstr "Вс&троенная, затем сторонняя"
 
 #: winecfg.rc:212
 msgid "Nati&ve then Builtin"
-msgstr "Ст&оронняя, затем встроенная"
+msgstr "Сто&ронняя, затем встроенная"
 
 #: winecfg.rc:220
 msgid "Select Drive Letter"
@@ -13099,11 +13199,11 @@ msgstr ""
 "редактироваться."
 
 #: winecfg.rc:236
-msgid "&Add..."
+msgid "A&dd..."
 msgstr "&Добавить..."
 
 #: winecfg.rc:238
-msgid "Auto&detect"
+msgid "Aut&odetect"
 msgstr "&Автоопределение"
 
 #: winecfg.rc:241
@@ -13111,8 +13211,8 @@ msgid "&Path:"
 msgstr "&Путь:"
 
 #: winecfg.rc:248 winecfg.rc:38
-msgid "Show &Advanced"
-msgstr "&Дополнительно"
+msgid "Show Advan&ced"
+msgstr "До&полнительно"
 
 #: winecfg.rc:249
 msgid "De&vice:"
@@ -13131,8 +13231,8 @@ msgid "S&erial:"
 msgstr "Сер. &номер:"
 
 #: winecfg.rc:258
-msgid "Show &dot files"
-msgstr "Показывать файлы, начинающиеся с точки"
+msgid "&Show dot files"
+msgstr "Показывать файлы, начинающиеся с &точки"
 
 #: winecfg.rc:265
 msgid "Driver diagnostics"
@@ -13211,8 +13311,8 @@ msgid "Select the Unix target directory, please."
 msgstr "Выберите целевой каталог в системе."
 
 #: winecfg.rc:37
-msgid "Hide &Advanced"
-msgstr "Скрыть дополнительные"
+msgid "Hide Advan&ced"
+msgstr "&Скрыть доп. настройки"
 
 #: winecfg.rc:39
 msgid "(No Theme)"
@@ -13673,7 +13773,11 @@ msgid "Configuration error"
 msgstr "Ошибка настройки"
 
 #: wineconsole.rc:42
-msgid "Screen buffer size must be greater or equal to the window's one"
+#, fuzzy
+#| msgid "Screen buffer size must be greater or equal to the window's one"
+msgid ""
+"The size of the screen buffer must be greater than or equal to the size of "
+"the window."
 msgstr "Размер буфера экрана должен быть не менее буфера окна"
 
 #: wineconsole.rc:37
@@ -14377,6 +14481,10 @@ msgstr "Табуляция"
 #: wordpad.rc:245
 msgid "Tab stops"
 msgstr "Позиции табуляции"
+
+#: wordpad.rc:247
+msgid "&Add"
+msgstr "&Установить"
 
 #: wordpad.rc:251
 msgid "Remove al&l"

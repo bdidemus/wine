@@ -271,12 +271,12 @@ static const char actctx_manifest[] =
 "              progid=\"ProgId.ProgId\""
 "              miscStatusIcon=\"recomposeonresize\""
 "    />"
-"    <comClass clsid=\"{0be35203-8f91-11ce-9de3-00aa004bb851}\""
+"    <comClass description=\"CustomFont Description\" clsid=\"{0be35203-8f91-11ce-9de3-00aa004bb851}\""
 "              progid=\"CustomFont\""
 "              miscStatusIcon=\"recomposeonresize\""
 "              miscStatusContent=\"insideout\""
 "    />"
-"    <comClass clsid=\"{0be35203-8f91-11ce-9de3-00aa004bb852}\""
+"    <comClass description=\"StdFont Description\" clsid=\"{0be35203-8f91-11ce-9de3-00aa004bb852}\""
 "              progid=\"StdFont\""
 "    />"
 "    <comClass clsid=\"{62222222-1234-1234-1234-56789abcdef0}\" >"
@@ -2181,6 +2181,73 @@ static void test_CoInitializeEx(void)
     OleUninitialize();
 }
 
+static void test_OleInitialize_InitCounting(void)
+{
+    HRESULT hr;
+    IUnknown *pUnk;
+    REFCLSID rclsid = &CLSID_InternetZoneManager;
+
+    /* 1. OleInitialize fails but OleUnintialize is still called: apartment stays inited */
+    hr = pCoInitializeEx(NULL, COINIT_MULTITHREADED);
+    ok(hr == S_OK, "CoInitializeEx(COINIT_MULTITHREADED) failed with error 0x%08x\n", hr);
+
+    hr = OleInitialize(NULL);
+    ok(hr == RPC_E_CHANGED_MODE, "OleInitialize should have returned 0x%08x instead of 0x%08x\n", RPC_E_CHANGED_MODE, hr);
+    OleUninitialize();
+
+    pUnk = (IUnknown *)0xdeadbeef;
+    hr = CoCreateInstance(rclsid, NULL, 0x17, &IID_IUnknown, (void **)&pUnk);
+    ok(hr == S_OK, "CoCreateInstance should have returned 0x%08x instead of 0x%08x\n", S_OK, hr);
+    if (pUnk) IUnknown_Release(pUnk);
+
+    CoUninitialize();
+
+    /* 2. Extra multiple OleUninitialize: apartment stays inited until CoUnitialize */
+    hr = CoInitialize(NULL);
+    ok(hr == S_OK, "CoInitialize() failed with error 0x%08x\n", hr);
+
+    hr = OleInitialize(NULL);
+    ok(hr == S_OK, "OleInitialize should have returned 0x%08x instead of 0x%08x\n", S_OK, hr);
+    OleUninitialize();
+    OleUninitialize();
+    OleUninitialize();
+
+    pUnk = (IUnknown *)0xdeadbeef;
+    hr = CoCreateInstance(rclsid, NULL, 0x17, &IID_IUnknown, (void **)&pUnk);
+    ok(hr == S_OK, "CoCreateInstance should have returned 0x%08x instead of 0x%08x\n", S_OK, hr);
+    if (pUnk) IUnknown_Release(pUnk);
+
+    CoUninitialize();
+
+    pUnk = (IUnknown *)0xdeadbeef;
+    hr = CoCreateInstance(rclsid, NULL, 0x17, &IID_IUnknown, (void **)&pUnk);
+    ok(hr == CO_E_NOTINITIALIZED, "CoCreateInstance should have returned 0x%08x instead of 0x%08x\n", CO_E_NOTINITIALIZED, hr);
+    if (pUnk) IUnknown_Release(pUnk);
+
+    /* 3. CoUninitialize does not formally deinit Ole */
+    hr = CoInitialize(NULL);
+    ok(hr == S_OK, "CoInitialize() failed with error 0x%08x\n", hr);
+
+    hr = OleInitialize(NULL);
+    ok(hr == S_OK, "OleInitialize should have returned 0x%08x instead of 0x%08x\n", S_OK, hr);
+
+    CoUninitialize();
+    CoUninitialize();
+
+    pUnk = (IUnknown *)0xdeadbeef;
+    hr = CoCreateInstance(rclsid, NULL, 0x17, &IID_IUnknown, (void **)&pUnk);
+    ok(hr == CO_E_NOTINITIALIZED, "CoCreateInstance should have returned 0x%08x instead of 0x%08x\n", CO_E_NOTINITIALIZED, hr);
+      /* COM is not initialized anymore */
+    if (pUnk) IUnknown_Release(pUnk);
+
+    hr = OleInitialize(NULL);
+    ok(hr == S_FALSE, "OleInitialize should have returned 0x%08x instead of 0x%08x\n", S_FALSE, hr);
+      /* ... but native OleInit returns S_FALSE as if Ole is considered initialized */
+
+    OleUninitialize();
+
+}
+
 static void test_OleRegGetMiscStatus(void)
 {
     ULONG_PTR cookie;
@@ -2223,6 +2290,159 @@ static void test_OleRegGetMiscStatus(void)
         pDeactivateActCtx(0, cookie);
         pReleaseActCtx(handle);
     }
+}
+
+static void test_OleRegGetUserType(void)
+{
+    static const WCHAR stdfont_usertypeW[] = {'S','t','a','n','d','a','r','d',' ','F','o','n','t',0};
+    static const WCHAR stdfont2_usertypeW[] = {'C','L','S','I','D','_','S','t','d','F','o','n','t',0};
+    static const WCHAR clsidkeyW[] = {'C','L','S','I','D',0};
+    static const WCHAR defvalueW[] = {'D','e','f','a','u','l','t',' ','N','a','m','e',0};
+    static const WCHAR auxvalue0W[] = {'A','u','x',' ','N','a','m','e',' ','0',0};
+    static const WCHAR auxvalue2W[] = {'A','u','x',' ','N','a','m','e',' ','2',0};
+    static const WCHAR auxvalue3W[] = {'A','u','x',' ','N','a','m','e',' ','3',0};
+    static const WCHAR auxvalue4W[] = {'A','u','x',' ','N','a','m','e',' ','4',0};
+
+    static const char auxvalues[][16] = {
+        "Aux Name 0",
+        "Aux Name 1",
+        "Aux Name 2",
+        "Aux Name 3",
+        "Aux Name 4"
+    };
+
+    HKEY clsidhkey, hkey, auxhkey, classkey;
+    DWORD form, ret, disposition;
+    WCHAR clsidW[39];
+    ULONG_PTR cookie;
+    HANDLE handle;
+    HRESULT hr;
+    WCHAR *str;
+    int i;
+
+    for (form = 0; form <= USERCLASSTYPE_APPNAME+1; form++) {
+        hr = OleRegGetUserType(&CLSID_Testclass, form, NULL);
+        ok(hr == E_INVALIDARG, "form %u: got 0x%08x\n", form, hr);
+
+        str = (void*)0xdeadbeef;
+        hr = OleRegGetUserType(&CLSID_Testclass, form, &str);
+        ok(hr == REGDB_E_CLASSNOTREG, "form %u: got 0x%08x\n", form, hr);
+        ok(str == NULL, "form %u: got %p\n", form, str);
+
+        /* same string returned for StdFont for all form types */
+        str = NULL;
+        hr = OleRegGetUserType(&CLSID_StdFont, form, &str);
+        ok(hr == S_OK, "form %u: got 0x%08x\n", form, hr);
+        ok(!lstrcmpW(str, stdfont_usertypeW) || !lstrcmpW(str, stdfont2_usertypeW) /* winxp */,
+            "form %u, got %s\n", form, wine_dbgstr_w(str));
+        CoTaskMemFree(str);
+    }
+
+    if ((handle = activate_context(actctx_manifest, &cookie)))
+    {
+        for (form = 0; form <= USERCLASSTYPE_APPNAME+1; form++) {
+            str = (void*)0xdeadbeef;
+            hr = OleRegGetUserType(&CLSID_Testclass, form, &str);
+            ok(hr == REGDB_E_CLASSNOTREG, "form %u: got 0x%08x\n", form, hr);
+            ok(str == NULL, "form %u: got %s\n", form, wine_dbgstr_w(str));
+
+            /* same string returned for StdFont for all form types */
+            str = NULL;
+            hr = OleRegGetUserType(&CLSID_StdFont, form, &str);
+            ok(hr == S_OK, "form %u: got 0x%08x\n", form, hr);
+            ok(!lstrcmpW(str, stdfont_usertypeW) || !lstrcmpW(str, stdfont2_usertypeW) /* winxp */,
+                "form %u, got %s\n", form, wine_dbgstr_w(str));
+            CoTaskMemFree(str);
+        }
+
+        pDeactivateActCtx(0, cookie);
+        pReleaseActCtx(handle);
+    }
+
+    /* test using registered CLSID */
+    StringFromGUID2(&CLSID_non_existent, clsidW, sizeof(clsidW)/sizeof(clsidW[0]));
+
+    ret = RegCreateKeyExW(HKEY_CLASSES_ROOT, clsidkeyW, 0, NULL, 0, KEY_ALL_ACCESS, NULL, &clsidhkey, &disposition);
+    if (ret == ERROR_ACCESS_DENIED)
+    {
+        skip("Failed to create test key, skipping some of OleRegGetUserType() tests.\n");
+        return;
+    }
+
+    ok(!ret, "failed to create a key %d, error %d\n", ret, GetLastError());
+
+    ret = RegCreateKeyExW(clsidhkey, clsidW, 0, NULL, 0, KEY_ALL_ACCESS, NULL, &classkey, NULL);
+    ok(!ret, "failed to create a key %d, error %d\n", ret, GetLastError());
+
+    ret = RegSetValueExW(classkey, NULL, 0, REG_SZ, (const BYTE*)defvalueW, sizeof(defvalueW));
+    ok(!ret, "got %d, error %d\n", ret, GetLastError());
+
+    ret = RegCreateKeyExA(classkey, "AuxUserType", 0, NULL, 0, KEY_ALL_ACCESS, NULL, &auxhkey, NULL);
+    ok(!ret, "got %d, error %d\n", ret, GetLastError());
+
+    /* populate AuxUserType */
+    for (i = 0; i <= 4; i++) {
+        char name[16];
+
+        sprintf(name, "AuxUserType\\%d", i);
+        ret = RegCreateKeyExA(classkey, name, 0, NULL, 0, KEY_ALL_ACCESS, NULL, &hkey, NULL);
+        ok(!ret, "got %d, error %d\n", ret, GetLastError());
+
+        ret = RegSetValueExA(hkey, NULL, 0, REG_SZ, (const BYTE*)auxvalues[i], strlen(auxvalues[i]));
+        ok(!ret, "got %d, error %d\n", ret, GetLastError());
+        RegCloseKey(hkey);
+    }
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, 0, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, auxvalue0W), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, USERCLASSTYPE_FULL, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, defvalueW), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, USERCLASSTYPE_SHORT, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, auxvalue2W), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, USERCLASSTYPE_APPNAME, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, auxvalue3W), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, USERCLASSTYPE_APPNAME+1, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, auxvalue4W), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    str = NULL;
+    hr = OleRegGetUserType(&CLSID_non_existent, USERCLASSTYPE_APPNAME+2, &str);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(!lstrcmpW(str, defvalueW), "got %s\n", wine_dbgstr_w(str));
+    CoTaskMemFree(str);
+
+    /* registry cleanup */
+    for (i = 0; i <= 4; i++)
+    {
+        char name[2];
+        sprintf(name, "%d", i);
+        RegDeleteKeyA(auxhkey, name);
+    }
+    RegCloseKey(auxhkey);
+    RegDeleteKeyA(classkey, "AuxUserType");
+    RegCloseKey(classkey);
+    RegDeleteKeyW(clsidhkey, clsidW);
+    RegCloseKey(clsidhkey);
+    if (disposition == REG_CREATED_NEW_KEY)
+        RegDeleteKeyA(HKEY_CLASSES_ROOT, "CLSID");
 }
 
 static void test_CoCreateGuid(void)
@@ -2619,6 +2839,46 @@ static void test_CoWaitForMultipleHandles(void)
     CoUninitialize();
 }
 
+static void test_CoGetMalloc(void)
+{
+    IMalloc *imalloc;
+    HRESULT hr;
+
+if (0) /* crashes on native */
+    hr = CoGetMalloc(0, NULL);
+
+    imalloc = (void*)0xdeadbeef;
+    hr = CoGetMalloc(0, &imalloc);
+    ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(imalloc == NULL, "got %p\n", imalloc);
+
+    imalloc = (void*)0xdeadbeef;
+    hr = CoGetMalloc(MEMCTX_SHARED, &imalloc);
+    ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(imalloc == NULL, "got %p\n", imalloc);
+
+    imalloc = (void*)0xdeadbeef;
+    hr = CoGetMalloc(MEMCTX_MACSYSTEM, &imalloc);
+    ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(imalloc == NULL, "got %p\n", imalloc);
+
+    imalloc = (void*)0xdeadbeef;
+    hr = CoGetMalloc(MEMCTX_UNKNOWN, &imalloc);
+    ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(imalloc == NULL, "got %p\n", imalloc);
+
+    imalloc = (void*)0xdeadbeef;
+    hr = CoGetMalloc(MEMCTX_SAME, &imalloc);
+    ok(hr == E_INVALIDARG, "got 0x%08x\n", hr);
+    ok(imalloc == NULL, "got %p\n", imalloc);
+
+    imalloc = NULL;
+    hr = CoGetMalloc(MEMCTX_TASK, &imalloc);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(imalloc != NULL, "got %p\n", imalloc);
+    IMalloc_Release(imalloc);
+}
+
 static void init_funcs(void)
 {
     HMODULE hOle32 = GetModuleHandleA("ole32");
@@ -2678,7 +2938,10 @@ START_TEST(compobj)
     test_CoGetContextToken();
     test_TreatAsClass();
     test_CoInitializeEx();
+    test_OleInitialize_InitCounting();
     test_OleRegGetMiscStatus();
     test_CoCreateGuid();
     test_CoWaitForMultipleHandles();
+    test_CoGetMalloc();
+    test_OleRegGetUserType();
 }

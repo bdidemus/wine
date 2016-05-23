@@ -40,6 +40,10 @@
 #include "ntdll_misc.h"
 #include "wine/server.h"
 
+#ifdef HAVE_MACH_MACH_H
+#include <mach/mach.h>
+#endif
+
 WINE_DEFAULT_DEBUG_CHANNEL(ntdll);
 
 static ULONG execute_flags = MEM_EXECUTE_OPTION_DISABLE;
@@ -53,7 +57,8 @@ static ULONG execute_flags = MEM_EXECUTE_OPTION_DISABLE;
  *
  *  Native applications must kill themselves when done
  */
-NTSTATUS WINAPI NtTerminateProcess( HANDLE handle, LONG exit_code )
+DEFINE_SYSCALL_ENTRYPOINT( NtTerminateProcess, 2 );
+NTSTATUS WINAPI SYSCALL(NtTerminateProcess)( HANDLE handle, LONG exit_code )
 {
     NTSTATUS ret;
     BOOL self;
@@ -110,12 +115,39 @@ ULONG_PTR get_system_affinity_mask(void)
     return ((ULONG_PTR)1 << num_cpus) - 1;
 }
 
+#if defined(HAVE_MACH_MACH_H)
+
+static void fill_VM_COUNTERS(VM_COUNTERS* pvmi)
+{
+#if defined(MACH_TASK_BASIC_INFO)
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+    if(task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &infoCount) == KERN_SUCCESS)
+    {
+        pvmi->VirtualSize = info.resident_size + info.virtual_size;
+        pvmi->PagefileUsage = info.virtual_size;
+        pvmi->WorkingSetSize = info.resident_size;
+        pvmi->PeakWorkingSetSize = info.resident_size_max;
+    }
+#endif
+}
+
+#else
+
+static void fill_VM_COUNTERS(VM_COUNTERS* pvmi)
+{
+    /* FIXME : real data */
+}
+
+#endif
+
 /******************************************************************************
 *  NtQueryInformationProcess		[NTDLL.@]
 *  ZwQueryInformationProcess		[NTDLL.@]
 *
 */
-NTSTATUS WINAPI NtQueryInformationProcess(
+DEFINE_SYSCALL_ENTRYPOINT( NtQueryInformationProcess, 5 );
+NTSTATUS WINAPI SYSCALL(NtQueryInformationProcess)(
 	IN HANDLE ProcessHandle,
 	IN PROCESSINFOCLASS ProcessInformationClass,
 	OUT PVOID ProcessInformation,
@@ -240,8 +272,8 @@ NTSTATUS WINAPI NtQueryInformationProcess(
                     ret = STATUS_INVALID_HANDLE;
                 else
                 {
-                    /* FIXME : real data */
                     memset(&pvmi, 0 , sizeof(VM_COUNTERS));
+                    fill_VM_COUNTERS(&pvmi);
 
                     len = ProcessInformationLength;
                     if (len != FIELD_OFFSET(VM_COUNTERS,PrivatePageCount)) len = sizeof(VM_COUNTERS);
@@ -339,7 +371,7 @@ NTSTATUS WINAPI NtQueryInformationProcess(
                     req->handle = wine_server_obj_handle( ProcessHandle );
                     if ((ret = wine_server_call( req )) == STATUS_SUCCESS)
                     {
-                        *(DWORD *)ProcessInformation = !reply->debugger_present;
+                        *(DWORD *)ProcessInformation = reply->debug_children;
                     }
                 }
                 SERVER_END_REQ;
@@ -485,7 +517,8 @@ NTSTATUS WINAPI NtQueryInformationProcess(
  * NtSetInformationProcess [NTDLL.@]
  * ZwSetInformationProcess [NTDLL.@]
  */
-NTSTATUS WINAPI NtSetInformationProcess(
+DEFINE_SYSCALL_ENTRYPOINT( NtSetInformationProcess, 4 );
+NTSTATUS WINAPI SYSCALL(NtSetInformationProcess)(
 	IN HANDLE ProcessHandle,
 	IN PROCESSINFOCLASS ProcessInformationClass,
 	IN PVOID ProcessInformation,
@@ -575,7 +608,8 @@ NTSTATUS WINAPI NtSetInformationProcess(
  * NtFlushInstructionCache [NTDLL.@]
  * ZwFlushInstructionCache [NTDLL.@]
  */
-NTSTATUS WINAPI NtFlushInstructionCache(
+DEFINE_SYSCALL_ENTRYPOINT( NtFlushInstructionCache, 3 );
+NTSTATUS WINAPI SYSCALL(NtFlushInstructionCache)(
         IN HANDLE ProcessHandle,
         IN LPCVOID BaseAddress,
         IN SIZE_T Size)
@@ -596,7 +630,8 @@ NTSTATUS WINAPI NtFlushInstructionCache(
  *		NtOpenProcess [NTDLL.@]
  *		ZwOpenProcess [NTDLL.@]
  */
-NTSTATUS  WINAPI NtOpenProcess(PHANDLE handle, ACCESS_MASK access,
+DEFINE_SYSCALL_ENTRYPOINT( NtOpenProcess, 4 );
+NTSTATUS  WINAPI SYSCALL(NtOpenProcess)(PHANDLE handle, ACCESS_MASK access,
                                const OBJECT_ATTRIBUTES* attr, const CLIENT_ID* cid)
 {
     NTSTATUS    status;
