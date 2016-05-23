@@ -11880,6 +11880,48 @@ msgstr "지정된 파일은 이미 존재합니다.덮어 쓰시겠습니까?"
 msgid "The registry operation was cancelled\n"
 msgstr ""
 
+#: reg.rc:48 regedit.rc:204
+msgid "(Default)"
+msgstr "(기본)"
+
+#: reg.rc:49
+#, fuzzy
+#| msgid "Are you sure you want to delete these values?"
+msgid "Are you sure you want to delete the registry value '%1'?"
+msgstr "이 값들을 정말로 지우겠습니까?"
+
+#: reg.rc:50
+#, fuzzy
+#| msgid "Are you sure you want to delete value '%s'?"
+msgid "Are you sure you want to delete all registry values in '%1'?"
+msgstr "당신은 이 값 '%s'을 정말로 지우겠습니까?"
+
+#: reg.rc:51
+#, fuzzy
+#| msgid "Are you sure you want to delete '%1'?"
+msgid "Are you sure you want to delete the registry key '%1'?"
+msgstr "당신은  '%1'을 지우기를 바랍니까?"
+
+#: reg.rc:52
+msgid "reg: The option [/d] must be followed by a valid string\n"
+msgstr ""
+
+#: reg.rc:53
+msgid ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:54
+msgid ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:55
+msgid "Search complete. Number of matches found: %1!d!\n"
+msgstr ""
+
 #: regedit.rc:34
 msgid "&Registry"
 msgstr "레지스트리(&R)"
@@ -12080,10 +12122,6 @@ msgstr "레지스트리 파일 (*.reg)"
 #: regedit.rc:197
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
 msgstr "Win9x/NT4 레지스트리 파일 (REGEDIT4)"
-
-#: regedit.rc:204
-msgid "(Default)"
-msgstr "(기본)"
 
 #: regedit.rc:205
 msgid "(value not set)"

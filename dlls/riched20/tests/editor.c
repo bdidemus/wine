@@ -601,6 +601,7 @@ static void test_EM_POSFROMCHAR(void)
   POINTL pt;
   LOCALESIGNATURE sig;
   BOOL rtl;
+  PARAFORMAT2 fmt;
   static const char text[] = "aa\n"
       "this is a long line of text that should be longer than the "
       "control's width\n"
@@ -726,6 +727,18 @@ static void test_EM_POSFROMCHAR(void)
   /* Try a negative position. */
   SendMessageA(hwndRichEdit, EM_POSFROMCHAR, (WPARAM)&pt, -1);
   ok(pt.x == 1, "pt.x = %d\n", pt.x);
+
+  /* test negative indentation */
+  SendMessageA(hwndRichEdit, WM_SETTEXT, 0,
+          (LPARAM)"{\\rtf1\\pard\\fi-200\\li-200\\f1 TestSomeText\\par}");
+  SendMessageA(hwndRichEdit, EM_POSFROMCHAR, (WPARAM)&pt, 0);
+  ok(pt.x == 1, "pt.x = %d\n", pt.x);
+
+  fmt.cbSize = sizeof(fmt);
+  SendMessageA(hwndRichEdit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt);
+  ok(fmt.dxStartIndent == -400, "got %d\n", fmt.dxStartIndent);
+  ok(fmt.dxOffset == 200, "got %d\n", fmt.dxOffset);
+  ok(fmt.wAlignment == PFA_LEFT, "got %d\n", fmt.wAlignment);
 
   DestroyWindow(hwndRichEdit);
 }
@@ -3281,11 +3294,12 @@ static void test_EM_SETUNDOLIMIT(void)
   
   SendMessageA(hwndRichEdit, WM_SETTEXT, 0, (LPARAM)"x");
   cr.cpMin = 0;
-  cr.cpMax = 1;
+  cr.cpMax = -1;
+  SendMessageA(hwndRichEdit, EM_EXSETSEL, 0, (LPARAM)&cr);
+
   SendMessageA(hwndRichEdit, WM_COPY, 0, 0);
     /*Load "x" into the clipboard. Paste is an easy, undo'able operation.
       also, multiple pastes don't combine like WM_CHAR would */
-  SendMessageA(hwndRichEdit, EM_EXSETSEL, 0, (LPARAM)&cr);
 
   /* first case - check the default */
   SendMessageA(hwndRichEdit,EM_EMPTYUNDOBUFFER, 0,0);
@@ -3808,7 +3822,7 @@ static void test_EM_SETTEXTEX(void)
   getText.flags = GT_DEFAULT;
   getText.lpDefaultChar = NULL;
   getText.lpUsedDefChar = NULL;
-  memset(buf, 0, MAX_BUF_LEN);
+  memset(buf, 0, sizeof(buf));
   SendMessageA(hwndRichEdit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)buf);
   ok(lstrcmpW(buf, TestItem2) == 0,
       "EM_GETTEXTEX results not what was set by EM_SETTEXTEX\n");
@@ -3823,7 +3837,7 @@ static void test_EM_SETTEXTEX(void)
   getText.flags = GT_USECRLF;   /* <-- asking for CR -> CRLF conversion */
   getText.lpDefaultChar = NULL;
   getText.lpUsedDefChar = NULL;
-  memset(buf, 0, MAX_BUF_LEN);
+  memset(buf, 0, sizeof(buf));
   SendMessageA(hwndRichEdit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)buf);
   ok(lstrcmpW(buf, TestItem1) == 0,
       "EM_GETTEXTEX results not what was set by EM_SETTEXTEX\n");
@@ -4578,13 +4592,9 @@ static void check_EM_EXSETSEL(HWND hwnd, const struct exsetsel_s *setsel, int id
 
     SendMessageA(hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
 
-    if (setsel->todo) {
-        todo_wine {
-            ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_EXSETSEL(%d): expected (%d,%d) actual:(%d,%d)\n", id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
-        }
-    } else {
-        ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_EXSETSEL(%d): expected (%d,%d) actual:(%d,%d)\n", id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
-    }
+    todo_wine_if (setsel->todo)
+        ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_EXSETSEL(%d): expected (%d,%d) actual:(%d,%d)\n",
+            id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
 }
 
 static void test_EM_EXSETSEL(void)
@@ -4636,13 +4646,9 @@ static void check_EM_SETSEL(HWND hwnd, const struct exsetsel_s *setsel, int id) 
 
     SendMessageA(hwnd, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
 
-    if (setsel->todo) {
-        todo_wine {
-            ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_SETSEL(%d): expected (%d,%d) actual:(%d,%d)\n", id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
-        }
-    } else {
-        ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_SETSEL(%d): expected (%d,%d) actual:(%d,%d)\n", id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
-    }
+    todo_wine_if (setsel->todo)
+        ok(start == setsel->expected_getsel_start && end == setsel->expected_getsel_end, "EM_SETSEL(%d): expected (%d,%d) actual:(%d,%d)\n",
+            id, setsel->expected_getsel_start, setsel->expected_getsel_end, start, end);
 }
 
 static void test_EM_SETSEL(void)
@@ -5040,7 +5046,7 @@ static void test_EM_REPLACESEL(int redraw)
     todo_wine ok(!strcmp(buffer, "WTestSomeTextne"), "WM_GETTEXT returned incorrect string\n");
 
     if (!redraw)
-        /* This is needed to avoid interferring with keybd_event calls
+        /* This is needed to avoid interfering with keybd_event calls
          * on other tests that simulate keyboard events. */
         SendMessageA(hwndRichEdit, WM_SETREDRAW, TRUE, 0);
 
@@ -5411,9 +5417,10 @@ static void test_EM_STREAMIN(void)
   EDITSTREAM es;
   char buffer[1024] = {0}, tmp[16];
   CHARRANGE range;
+  PARAFORMAT2 fmt;
 
-  const char * streamText0 = "{\\rtf1 TestSomeText}";
-  const char * streamText0a = "{\\rtf1 TestSomeText\\par}";
+  const char * streamText0 = "{\\rtf1\\fi100\\li200\\rtlpar\\qr TestSomeText}";
+  const char * streamText0a = "{\\rtf1\\fi100\\li200\\rtlpar\\qr TestSomeText\\par}";
   const char * streamText0b = "{\\rtf1 TestSomeText\\par\\par}";
   const char * ptr;
 
@@ -5470,6 +5477,17 @@ static void test_EM_STREAMIN(void)
   ok (result  == 0,
       "EM_STREAMIN: Test 0 set wrong text: Result: %s\n",buffer);
   ok(es.dwError == 0, "EM_STREAMIN: Test 0 set error %d, expected %d\n", es.dwError, 0);
+  /* Show that para fmts are ignored */
+  range.cpMin = 2;
+  range.cpMax = 2;
+  result = SendMessageA(hwndRichEdit, EM_EXSETSEL, 0, (LPARAM)&range);
+  memset(&fmt, 0xcc, sizeof(fmt));
+  fmt.cbSize = sizeof(fmt);
+  result = SendMessageA(hwndRichEdit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt);
+  ok(fmt.dxStartIndent == 0, "got %d\n", fmt.dxStartIndent);
+  ok(fmt.dxOffset == 0, "got %d\n", fmt.dxOffset);
+  ok(fmt.wAlignment == PFA_LEFT, "got %d\n", fmt.wAlignment);
+  ok((fmt.wEffects & PFE_RTLPARA) == 0, "got %x\n", fmt.wEffects);
 
   /* Native richedit 2.0 ignores last \par */
   ptr = streamText0a;
@@ -5486,6 +5504,17 @@ static void test_EM_STREAMIN(void)
   ok (result  == 0,
       "EM_STREAMIN: Test 0-a set wrong text: Result: %s\n",buffer);
   ok(es.dwError == 0, "EM_STREAMIN: Test 0-a set error %d, expected %d\n", es.dwError, 0);
+  /* This time para fmts are processed */
+  range.cpMin = 2;
+  range.cpMax = 2;
+  result = SendMessageA(hwndRichEdit, EM_EXSETSEL, 0, (LPARAM)&range);
+  memset(&fmt, 0xcc, sizeof(fmt));
+  fmt.cbSize = sizeof(fmt);
+  result = SendMessageA(hwndRichEdit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt);
+  ok(fmt.dxStartIndent == 300, "got %d\n", fmt.dxStartIndent);
+  ok(fmt.dxOffset == -100, "got %d\n", fmt.dxOffset);
+  ok(fmt.wAlignment == PFA_RIGHT, "got %d\n", fmt.wAlignment);
+  ok((fmt.wEffects & PFE_RTLPARA) == PFE_RTLPARA, "got %x\n", fmt.wEffects);
 
   /* Native richedit 2.0 ignores last \par, next-to-last \par appears */
   es.dwCookie = (DWORD_PTR)&streamText0b;
@@ -7826,15 +7855,10 @@ static void test_EM_FINDWORDBREAK_W(void)
         wbuf[1] = 0;
         SendMessageW(hwndRichEdit, WM_SETTEXT, 0, (LPARAM)wbuf);
         result = SendMessageW(hwndRichEdit, EM_FINDWORDBREAK, WB_ISDELIMITER,0);
-        if (wbuf[0] == 0x20 || wbuf[0] == 0xf020)
-            todo_wine
-                ok(result == delimiter_tests[i].isdelimiter,
-                   "wanted ISDELIMITER_W(0x%x) %d, got %d\n",
-                   delimiter_tests[i].c, delimiter_tests[i].isdelimiter,result);
-        else
+        todo_wine_if (wbuf[0] == 0x20 || wbuf[0] == 0xf020)
             ok(result == delimiter_tests[i].isdelimiter,
-               "wanted ISDELIMITER_W(0x%x) %d, got %d\n",
-               delimiter_tests[i].c, delimiter_tests[i].isdelimiter, result);
+                "wanted ISDELIMITER_W(0x%x) %d, got %d\n",
+                delimiter_tests[i].c, delimiter_tests[i].isdelimiter, result);
     }
     DestroyWindow(hwndRichEdit);
 }
@@ -7864,12 +7888,7 @@ static void test_EM_FINDWORDBREAK_A(void)
         buf[1] = 0;
         SendMessageA(hwndRichEdit, WM_SETTEXT, 0, (LPARAM)buf);
         result = SendMessageA(hwndRichEdit, EM_FINDWORDBREAK, WB_ISDELIMITER, 0);
-        if (buf[0] == 0x20)
-            todo_wine
-                ok(result == delimiter_tests[i].isdelimiter,
-                   "wanted ISDELIMITER_A(0x%x) %d, got %d\n",
-                   delimiter_tests[i].c, delimiter_tests[i].isdelimiter,result);
-        else
+        todo_wine_if (buf[0] == 0x20)
             ok(result == delimiter_tests[i].isdelimiter,
                "wanted ISDELIMITER_A(0x%x) %d, got %d\n",
                delimiter_tests[i].c, delimiter_tests[i].isdelimiter, result);
@@ -8237,7 +8256,7 @@ static void test_alignment_style(void)
     pf.cbSize = sizeof(PARAFORMAT2);
     pf.dwMask = -1;
     SendMessageW(richedit, EM_GETPARAFORMAT, SCF_SELECTION, (LPARAM)&pf);
-    ok(pf.wAlignment == ES_CENTER, "got %d expected ES_CENTER\n", pf.wAlignment);
+    ok(pf.wAlignment == PFA_LEFT, "got %d expected PFA_LEFT\n", pf.wAlignment);
     DestroyWindow(richedit);
 }
 
@@ -8268,6 +8287,64 @@ static void test_WM_GETTEXTLENGTH(void)
         result = SendMessageA(hwndRichEdit, WM_GETTEXTLENGTH, 0, 0);
         todo_wine ok(result == 8, "WM_GETTEXTLENGTH returned %d, expected 8\n", result);
     }
+
+    DestroyWindow(hwndRichEdit);
+}
+
+static void test_rtf_specials(void)
+{
+    const char *specials = "{\\rtf1\\emspace\\enspace\\bullet\\lquote"
+        "\\rquote\\ldblquote\\rdblquote\\ltrmark\\rtlmark\\zwj\\zwnj}";
+    const WCHAR expect_specials[] = {' ',' ',0x2022,0x2018,0x2019,0x201c,
+                                     0x201d,0x200e,0x200f,0x200d,0x200c};
+    const char *pard = "{\\rtf1 ABC\\rtlpar\\par DEF\\par HIJ\\pard\\par}";
+    HWND edit = new_richeditW( NULL );
+    EDITSTREAM es;
+    WCHAR buf[80];
+    LRESULT result;
+    PARAFORMAT2 fmt;
+
+    es.dwCookie = (DWORD_PTR)&specials;
+    es.dwError = 0;
+    es.pfnCallback = test_EM_STREAMIN_esCallback;
+    result = SendMessageA( edit, EM_STREAMIN, SF_RTF, (LPARAM)&es );
+    ok( result == 11, "got %ld\n", result );
+
+    result = SendMessageW( edit, WM_GETTEXT, sizeof(buf)/sizeof(buf[0]), (LPARAM)buf );
+    ok( result == sizeof(expect_specials)/sizeof(expect_specials[0]), "got %ld\n", result );
+    ok( !memcmp( buf, expect_specials, sizeof(expect_specials) ), "got %s\n", wine_dbgstr_w(buf) );
+
+    /* Show that \rtlpar propagates to the second paragraph and is
+       reset by \pard in the third. */
+    es.dwCookie = (DWORD_PTR)&pard;
+    result = SendMessageA( edit, EM_STREAMIN, SF_RTF, (LPARAM)&es );
+    ok( result == 11, "got %ld\n", result );
+
+    fmt.cbSize = sizeof(fmt);
+    SendMessageW( edit, EM_SETSEL, 1, 1 );
+    SendMessageW( edit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt );
+    ok( fmt.dwMask & PFM_RTLPARA, "rtl para mask not set\n" );
+    ok( fmt.wEffects & PFE_RTLPARA, "rtl para not set\n" );
+    SendMessageW( edit, EM_SETSEL, 5, 5 );
+    SendMessageW( edit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt );
+    ok( fmt.dwMask & PFM_RTLPARA, "rtl para mask not set\n" );
+    ok( fmt.wEffects & PFE_RTLPARA, "rtl para not set\n" );
+    SendMessageW( edit, EM_SETSEL, 9, 9 );
+    SendMessageW( edit, EM_GETPARAFORMAT, 0, (LPARAM)&fmt );
+    ok( fmt.dwMask & PFM_RTLPARA, "rtl para mask not set\n" );
+    ok( !(fmt.wEffects & PFE_RTLPARA), "rtl para set\n" );
+
+    DestroyWindow( edit );
+}
+
+static void test_background(void)
+{
+    HWND hwndRichEdit = new_richedit(NULL);
+
+    /* set the background color to black */
+    ValidateRect(hwndRichEdit, NULL);
+    SendMessageA(hwndRichEdit, EM_SETBKGNDCOLOR, FALSE, RGB(0, 0, 0));
+    ok(GetUpdateRect(hwndRichEdit, NULL, FALSE), "Update rectangle is empty!\n");
 
     DestroyWindow(hwndRichEdit);
 }
@@ -8341,6 +8418,8 @@ START_TEST( editor )
   test_EM_SETREADONLY();
   test_EM_SETFONTSIZE();
   test_alignment_style();
+  test_rtf_specials();
+  test_background();
 
   /* Set the environment variable WINETEST_RICHED20 to keep windows
    * responsive and open for 30 seconds. This is useful for debugging.

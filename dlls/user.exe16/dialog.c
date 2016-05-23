@@ -744,7 +744,7 @@ INT16 WINAPI DialogBoxParam16( HINSTANCE16 hInst, LPCSTR template,
     {
         HWND owner = WIN_Handle32(owner16);
         hwnd = DIALOG_CreateIndirect16( hInst, data, owner, dlgProc, param, TRUE );
-        if (hwnd) ret = wow_handlers32.dialog_box_loop( hwnd, owner );
+        if (hwnd) ret = wow_handlers32.dialog_box_loop( hwnd, owner  );
         GlobalUnlock16( hmem );
     }
     FreeResource16( hmem );

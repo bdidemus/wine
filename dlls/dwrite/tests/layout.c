@@ -25,15 +25,23 @@
 #include <limits.h>
 
 #include "windows.h"
-#include "dwrite_2.h"
+#include "dwrite_3.h"
 
 #include "wine/test.h"
 
 static const WCHAR tahomaW[] = {'T','a','h','o','m','a',0};
 static const WCHAR enusW[] = {'e','n','-','u','s',0};
 
-static DWRITE_SCRIPT_ANALYSIS g_sa;
-static DWRITE_SCRIPT_ANALYSIS g_control_sa;
+struct testanalysissink
+{
+    IDWriteTextAnalysisSink IDWriteTextAnalysisSink_iface;
+    DWRITE_SCRIPT_ANALYSIS sa; /* last analysis, with SetScriptAnalysis() */
+};
+
+static inline struct testanalysissink *impl_from_IDWriteTextAnalysisSink(IDWriteTextAnalysisSink *iface)
+{
+    return CONTAINING_RECORD(iface, struct testanalysissink, IDWriteTextAnalysisSink_iface);
+}
 
 /* test IDWriteTextAnalysisSink */
 static HRESULT WINAPI analysissink_QueryInterface(IDWriteTextAnalysisSink *iface, REFIID riid, void **obj)
@@ -61,7 +69,8 @@ static ULONG WINAPI analysissink_Release(IDWriteTextAnalysisSink *iface)
 static HRESULT WINAPI analysissink_SetScriptAnalysis(IDWriteTextAnalysisSink *iface,
     UINT32 position, UINT32 length, DWRITE_SCRIPT_ANALYSIS const* sa)
 {
-    g_sa = *sa;
+    struct testanalysissink *sink = impl_from_IDWriteTextAnalysisSink(iface);
+    sink->sa = *sa;
     return S_OK;
 }
 
@@ -96,7 +105,10 @@ static IDWriteTextAnalysisSinkVtbl analysissinkvtbl = {
     analysissink_SetNumberSubstitution
 };
 
-static IDWriteTextAnalysisSink analysissink = { &analysissinkvtbl };
+static struct testanalysissink analysissink = {
+    { &analysissinkvtbl },
+    { 0 }
+};
 
 /* test IDWriteTextAnalysisSource */
 static HRESULT WINAPI analysissource_QueryInterface(IDWriteTextAnalysisSource *iface,
@@ -203,19 +215,20 @@ static void get_script_analysis(const WCHAR *str, UINT32 len, DWRITE_SCRIPT_ANAL
     hr = IDWriteFactory_CreateTextAnalyzer(factory, &analyzer);
     ok(hr == S_OK, "got 0x%08x\n", hr);
 
-    hr = IDWriteTextAnalyzer_AnalyzeScript(analyzer, &analysissource, 0, len, &analysissink);
+    hr = IDWriteTextAnalyzer_AnalyzeScript(analyzer, &analysissource, 0, len, &analysissink.IDWriteTextAnalysisSink_iface);
     ok(hr == S_OK, "got 0x%08x\n", hr);
 
-    *sa = g_sa;
+    *sa = analysissink.sa;
     IDWriteFactory_Release(factory);
 }
 
 #define EXPECT_REF(obj,ref) _expect_ref((IUnknown*)obj, ref, __LINE__)
 static void _expect_ref(IUnknown* obj, ULONG ref, int line)
 {
-    ULONG rc = IUnknown_AddRef(obj);
-    IUnknown_Release(obj);
-    ok_(__FILE__,line)(rc-1 == ref, "expected refcount %d, got %d\n", ref, rc-1);
+    ULONG rc;
+    IUnknown_AddRef(obj);
+    rc = IUnknown_Release(obj);
+    ok_(__FILE__,line)(rc == ref, "expected refcount %d, got %d\n", ref, rc);
 }
 
 enum drawcall_modifiers_kind {
@@ -306,13 +319,6 @@ static inline void flush_sequence(struct drawcall_sequence **seg, int sequence_i
     HeapFree(GetProcessHeap(), 0, call_seq->sequence);
     call_seq->sequence = NULL;
     call_seq->count = call_seq->size = 0;
-}
-
-static inline void flush_sequences(struct drawcall_sequence **seq, int n)
-{
-    int i;
-    for (i = 0; i < n; i++)
-        flush_sequence(seq, i);
 }
 
 static void init_call_sequences(struct drawcall_sequence **seq, int n)
@@ -513,7 +519,9 @@ static HRESULT WINAPI testrenderer_DrawGlyphRun(IDWriteTextRenderer *iface,
 
     /* see what's reported for control codes runs */
     get_script_analysis(descr->string, descr->stringLength, &sa);
-    if (sa.script == g_control_sa.script) {
+    if (sa.shapes == DWRITE_SCRIPT_SHAPES_NO_VISUAL) {
+        UINT32 i;
+
         /* glyphs are not reported at all for control code runs */
         ok(run->glyphCount == 0, "got %u\n", run->glyphCount);
         ok(run->glyphAdvances != NULL, "advances array %p\n", run->glyphAdvances);
@@ -523,6 +531,8 @@ static HRESULT WINAPI testrenderer_DrawGlyphRun(IDWriteTextRenderer *iface,
         ok(descr->string != NULL, "got string %p\n", descr->string);
         ok(descr->stringLength > 0, "got string length %u\n", descr->stringLength);
         ok(descr->clusterMap != NULL, "clustermap %p\n", descr->clusterMap);
+        for (i = 0; i < descr->stringLength; i++)
+            ok(descr->clusterMap[i] == i, "got %u\n", descr->clusterMap[i]);
     }
 
     entry.kind = DRAW_GLYPHRUN;
@@ -2054,10 +2064,7 @@ todo_wine
         if (metrics[i].isSoftHyphen)
             ok(!metrics[i].isWhitespace, "%u: got %d\n", i, metrics[i].isWhitespace);
         if (metrics[i].isNewline) {
-            if (i == 17 || i == 19)
-                todo_wine ok(metrics[i].width == 0.0f, "%u: got width %f\n", i, metrics[i].width);
-            else
-                ok(metrics[i].width == 0.0f, "%u: got width %f\n", i, metrics[i].width);
+            ok(metrics[i].width == 0.0f, "%u: got width %f\n", i, metrics[i].width);
             ok(metrics[i].isWhitespace == 1, "%u: got %d\n", i, metrics[i].isWhitespace);
             ok(metrics[i].canWrapLineAfter == 1, "%u: got %d\n", i, metrics[i].canWrapLineAfter);
         }
@@ -2383,9 +2390,7 @@ if (0) /* crashes on native */
 
     fallback = NULL;
     hr = IDWriteFactory2_GetSystemFontFallback(factory2, &fallback);
-todo_wine
     ok(hr == S_OK, "got 0x%08x\n", hr);
-if (hr == S_OK) {
     ok(fallback != NULL, "got %p\n", fallback);
 
     hr = IDWriteTextFormat1_SetFontFallback(format1, fallback);
@@ -2405,7 +2410,6 @@ if (hr == S_OK) {
     ok(fallback2 == NULL, "got %p\n", fallback2);
 
     IDWriteFontFallback_Release(fallback);
-}
     IDWriteTextFormat1_Release(format1);
     IDWriteTextLayout2_Release(layout2);
     IDWriteFactory_Release(factory);
@@ -4248,9 +4252,7 @@ static void test_MapCharacters(void)
 
     fallback = NULL;
     hr = IDWriteFactory2_GetSystemFontFallback(factory2, &fallback);
-todo_wine
     ok(hr == S_OK, "got 0x%08x\n", hr);
-if (hr == S_OK) {
     ok(fallback != NULL, "got %p\n", fallback);
 
     mappedlength = 1;
@@ -4281,10 +4283,14 @@ if (hr == S_OK) {
     font = NULL;
     hr = IDWriteFontFallback_MapCharacters(fallback, &analysissource, 0, 1, NULL, NULL, DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, &mappedlength, &font, &scale);
+todo_wine {
     ok(hr == S_OK, "got 0x%08x\n", hr);
     ok(mappedlength == 1, "got %u\n", mappedlength);
+}
     ok(scale == 1.0f, "got %f\n", scale);
+todo_wine
     ok(font != NULL, "got %p\n", font);
+if (font)
     IDWriteFont_Release(font);
 
     /* same latin text, full length */
@@ -4294,10 +4300,14 @@ if (hr == S_OK) {
     font = NULL;
     hr = IDWriteFontFallback_MapCharacters(fallback, &analysissource, 0, 3, NULL, NULL, DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, &mappedlength, &font, &scale);
+todo_wine {
     ok(hr == S_OK, "got 0x%08x\n", hr);
     ok(mappedlength == 3, "got %u\n", mappedlength);
+}
     ok(scale == 1.0f, "got %f\n", scale);
+todo_wine
     ok(font != NULL, "got %p\n", font);
+if (font)
     IDWriteFont_Release(font);
 
     /* string 'a\x3058b' */
@@ -4307,10 +4317,14 @@ if (hr == S_OK) {
     font = NULL;
     hr = IDWriteFontFallback_MapCharacters(fallback, &analysissource, 0, 3, NULL, NULL, DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, &mappedlength, &font, &scale);
+todo_wine {
     ok(hr == S_OK, "got 0x%08x\n", hr);
     ok(mappedlength == 1, "got %u\n", mappedlength);
+}
     ok(scale == 1.0f, "got %f\n", scale);
+todo_wine
     ok(font != NULL, "got %p\n", font);
+if (font)
     IDWriteFont_Release(font);
 
     g_source = str2W;
@@ -4319,11 +4333,14 @@ if (hr == S_OK) {
     font = NULL;
     hr = IDWriteFontFallback_MapCharacters(fallback, &analysissource, 1, 2, NULL, NULL, DWRITE_FONT_WEIGHT_NORMAL,
         DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, &mappedlength, &font, &scale);
+todo_wine {
     ok(hr == S_OK, "got 0x%08x\n", hr);
     ok(mappedlength == 1, "got %u\n", mappedlength);
+}
     ok(scale == 1.0f, "got %f\n", scale);
+todo_wine
     ok(font != NULL, "got %p\n", font);
-
+if (font) {
     /* font returned for Hiragana character, check if it supports Latin too */
     exists = FALSE;
     hr = IDWriteFont_HasCharacter(font, 'b', &exists);
@@ -4331,7 +4348,7 @@ if (hr == S_OK) {
     ok(exists, "got %d\n", exists);
 
     IDWriteFont_Release(font);
-
+}
     /* Try with explicit collection, Tahoma will be forced. */
     /* 1. Latin part */
     g_source = str2W;
@@ -4352,7 +4369,6 @@ if (hr == S_OK) {
     ok(hr == S_OK, "got 0x%08x\n", hr);
     ok(!lstrcmpW(buffW, tahomaW), "%s\n", wine_dbgstr_w(buffW));
     IDWriteLocalizedStrings_Release(strings);
-
     IDWriteFont_Release(font);
 
     /* 2. Hiragana character, force Tahoma font does not support Japanese */
@@ -4372,12 +4388,12 @@ if (hr == S_OK) {
     ok(hr == S_OK && exists, "got 0x%08x, exists %d\n", hr, exists);
     hr = IDWriteLocalizedStrings_GetString(strings, 0, buffW, sizeof(buffW)/sizeof(WCHAR));
     ok(hr == S_OK, "got 0x%08x\n", hr);
+todo_wine
     ok(lstrcmpW(buffW, tahomaW), "%s\n", wine_dbgstr_w(buffW));
     IDWriteLocalizedStrings_Release(strings);
-
     IDWriteFont_Release(font);
+
     IDWriteFontFallback_Release(fallback);
-}
     IDWriteFactory2_Release(factory2);
 }
 
@@ -4841,18 +4857,66 @@ todo_wine
     IDWriteFactory_Release(factory);
 }
 
+static void test_InvalidateLayout(void)
+{
+    static const WCHAR strW[] = {'a',0};
+    IDWriteTextLayout3 *layout3;
+    IDWriteTextLayout *layout;
+    IDWriteTextFormat *format;
+    IDWriteFactory *factory;
+    HRESULT hr;
+
+    factory = create_factory();
+
+    hr = IDWriteFactory_CreateTextFormat(factory, tahomaW, NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+        DWRITE_FONT_STRETCH_NORMAL, 10.0f, enusW, &format);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    hr = IDWriteFactory_CreateTextLayout(factory, strW, 1, format, 1000.0f, 1000.0f, &layout);
+    ok(hr == S_OK, "got 0x%08x\n", hr);
+
+    hr = IDWriteTextLayout_QueryInterface(layout, &IID_IDWriteTextLayout3, (void**)&layout3);
+    if (hr == S_OK) {
+        IDWriteTextFormat1 *format1;
+        IDWriteTextFormat2 *format2;
+
+        hr = IDWriteTextFormat_QueryInterface(format, &IID_IDWriteTextFormat2, (void**)&format2);
+        ok(hr == S_OK, "got 0x%08x\n", hr);
+        IDWriteTextFormat2_Release(format2);
+
+        hr = IDWriteTextLayout_QueryInterface(layout, &IID_IDWriteTextFormat2, (void**)&format2);
+        ok(hr == E_NOINTERFACE, "got 0x%08x\n", hr);
+
+        hr = IDWriteTextLayout_QueryInterface(layout, &IID_IDWriteTextFormat1, (void**)&format1);
+        ok(hr == S_OK, "got 0x%08x\n", hr);
+
+        hr = IDWriteTextFormat1_QueryInterface(format1, &IID_IDWriteTextFormat2, (void**)&format2);
+        ok(hr == E_NOINTERFACE, "got 0x%08x\n", hr);
+        IDWriteTextFormat1_Release(format1);
+
+        hr = IDWriteTextLayout3_QueryInterface(layout3, &IID_IDWriteTextFormat2, (void**)&format2);
+        ok(hr == E_NOINTERFACE, "got 0x%08x\n", hr);
+
+        hr = IDWriteTextLayout3_InvalidateLayout(layout3);
+        ok(hr == S_OK, "got 0x%08x\n", hr);
+        IDWriteTextLayout3_Release(layout3);
+    }
+    else
+        win_skip("IDWriteTextLayout3::InvalidateLayout() is not supported.\n");
+
+    IDWriteTextLayout_Release(layout);
+    IDWriteTextFormat_Release(format);
+    IDWriteFactory_Release(factory);
+}
+
 START_TEST(layout)
 {
-    static const WCHAR ctrlstrW[] = {0x202a,0};
     IDWriteFactory *factory;
 
     if (!(factory = create_factory())) {
         win_skip("failed to create factory\n");
         return;
     }
-
-    /* actual script ids are not fixed */
-    get_script_analysis(ctrlstrW, 1, &g_control_sa);
 
     init_call_sequences(sequences, NUM_CALL_SEQUENCES);
     init_call_sequences(expected_seq, 1);
@@ -4892,6 +4956,7 @@ START_TEST(layout)
     test_SetLastLineWrapping();
     test_SetOpticalAlignment();
     test_SetUnderline();
+    test_InvalidateLayout();
 
     IDWriteFactory_Release(factory);
 }

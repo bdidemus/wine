@@ -1144,7 +1144,7 @@ SetupDiCreateDeviceInfoListExA(const GUID *ClassGuid,
  *   ClassGuid [I] if not NULL only devices with GUID ClassGuid are associated
  *                 with this list.
  *   hwndParent [I] hwnd needed for interface related actions.
- *   MachineName [I] name of machine to create emtpy DeviceInfoSet list, if NULL
+ *   MachineName [I] name of machine to create empty DeviceInfoSet list, if NULL
  *                   local registry will be used.
  *   Reserved [I] must be NULL
  *
@@ -3706,6 +3706,19 @@ BOOL WINAPI SetupDiSetDeviceInstallParamsA(
        HDEVINFO DeviceInfoSet,
        PSP_DEVINFO_DATA DeviceInfoData,
        PSP_DEVINSTALL_PARAMS_A DeviceInstallParams)
+{
+    FIXME("(%p, %p, %p) stub\n", DeviceInfoSet, DeviceInfoData, DeviceInstallParams);
+
+    return TRUE;
+}
+
+/***********************************************************************
+ *              SetupDiSetDeviceInstallParamsW  (SETUPAPI.@)
+ */
+BOOL WINAPI SetupDiSetDeviceInstallParamsW(
+       HDEVINFO DeviceInfoSet,
+       PSP_DEVINFO_DATA DeviceInfoData,
+       PSP_DEVINSTALL_PARAMS_W DeviceInstallParams)
 {
     FIXME("(%p, %p, %p) stub\n", DeviceInfoSet, DeviceInfoData, DeviceInstallParams);
 

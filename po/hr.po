@@ -11368,6 +11368,48 @@ msgstr "Odabrana datoteka već postoji. Želite li je zamijeniti?"
 msgid "The registry operation was cancelled\n"
 msgstr ""
 
+#: reg.rc:48 regedit.rc:204
+msgid "(Default)"
+msgstr "(Podrazumijevano)"
+
+#: reg.rc:49
+#, fuzzy
+#| msgid "Are you sure you want to delete these %1 items?"
+msgid "Are you sure you want to delete the registry value '%1'?"
+msgstr "Sigurno želite izbrisati ovih %1 stavki?"
+
+#: reg.rc:50
+#, fuzzy
+#| msgid "Are you sure you want to delete '%1'?"
+msgid "Are you sure you want to delete all registry values in '%1'?"
+msgstr "Sigurno želite izbrisati '%1'?"
+
+#: reg.rc:51
+#, fuzzy
+#| msgid "Are you sure you want to delete '%1'?"
+msgid "Are you sure you want to delete the registry key '%1'?"
+msgstr "Sigurno želite izbrisati '%1'?"
+
+#: reg.rc:52
+msgid "reg: The option [/d] must be followed by a valid string\n"
+msgstr ""
+
+#: reg.rc:53
+msgid ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:54
+msgid ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:55
+msgid "Search complete. Number of matches found: %1!d!\n"
+msgstr ""
+
 #: regedit.rc:34
 msgid "&Registry"
 msgstr "&Registar"
@@ -11568,10 +11610,6 @@ msgstr "Datotoeke registra (*.reg)"
 #: regedit.rc:197
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
 msgstr ""
-
-#: regedit.rc:204
-msgid "(Default)"
-msgstr "(Podrazumijevano)"
 
 #: regedit.rc:205
 msgid "(value not set)"

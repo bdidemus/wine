@@ -44,4 +44,12 @@ STRINGTABLE
     STRING_YES, "#msgctxt#Yes key#Y"
     STRING_NO, "#msgctxt#No key#N"
     STRING_CANCELLED, "The registry operation was cancelled\n"
+    STRING_DEFAULT_VALUE, "(Default)"
+    STRING_DELETE_VALUE, "Are you sure you want to delete the registry value '%1'?"
+    STRING_DELETE_VALUEALL, "Are you sure you want to delete all registry values in '%1'?"
+    STRING_DELETE_SUBKEY, "Are you sure you want to delete the registry key '%1'?"
+    STRING_INVALID_STRING, "reg: The option [/d] must be followed by a valid string\n"
+    STRING_VALUEALL_FAILED, "reg: Unable to delete all registry values in '%1'. An unexpected error occurred.\n"
+    STRING_GENERAL_FAILURE, "reg: Unable to complete the specified operation. An unexpected error occurred.\n"
+    STRING_MATCHES_FOUND, "Search complete. Number of matches found: %1!d!\n"
 }

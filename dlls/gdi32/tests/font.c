@@ -107,6 +107,22 @@ static void init(void)
     system_lang_id = PRIMARYLANGID(GetSystemDefaultLangID());
 }
 
+static void *heap_alloc( size_t len )
+{
+    return HeapAlloc( GetProcessHeap(), 0, len );
+}
+
+static void *heap_realloc( void *p, size_t len )
+{
+    if (!p) return heap_alloc( len );
+    return HeapReAlloc( GetProcessHeap(), 0, p, len );
+}
+
+static void heap_free( void *p )
+{
+    HeapFree( GetProcessHeap(), 0, p );
+}
+
 static INT CALLBACK is_truetype_font_installed_proc(const LOGFONTA *elf, const TEXTMETRICA *ntm, DWORD type, LPARAM lParam)
 {
     if (type != TRUETYPE_FONTTYPE) return 1;
@@ -974,9 +990,7 @@ static void test_bitmap_font_metrics(void)
             {
                 if (font_res == fd[i].dpi && lf.lfCharSet == expected_cs)
                 {
-                    if (ret) /* FIXME: Remove once Wine is fixed */
-                        todo_wine ok(!ret, "%s height %d charset %d dpi %d should be enumerated\n", lf.lfFaceName, lf.lfHeight, lf.lfCharSet, fd[i].dpi);
-                    else
+                    todo_wine_if (ret) /* FIXME: Remove once Wine is fixed */
                         ok(!ret, "%s height %d charset %d dpi %d should be enumerated\n", lf.lfFaceName, lf.lfHeight, lf.lfCharSet, fd[i].dpi);
                 }
             }
@@ -1018,7 +1032,7 @@ static void test_bitmap_font_metrics(void)
                 ok(ret == expected_cs, "got charset %d, expected %d\n", ret, expected_cs);
 
             trace("created %s, height %d charset %x dpi %d\n", face_name, tm.tmHeight, tm.tmCharSet, tm.tmDigitizedAspectX);
-            trace("expected %s, height %d scaled_hight %d, dpi %d\n", fd[i].face_name, height, fd[i].scaled_height, fd[i].dpi);
+            trace("expected %s, height %d scaled_height %d, dpi %d\n", fd[i].face_name, height, fd[i].scaled_height, fd[i].dpi);
 
             if(fd[i].dpi == tm.tmDigitizedAspectX)
             {
@@ -1136,26 +1150,26 @@ static void ABCWidths_helper(const char* description, HDC hdc, WORD *glyphs, ABC
     ret = pGetCharABCWidthsI(hdc, 0, 1, glyphs, abc);
     ok(ret, "%s: GetCharABCWidthsI should have succeeded\n", description);
     ok ((INT)abc->abcB > 0, "%s: abcB should be positive\n", description);
-    if (todo) todo_wine ok(abc->abcA * base_abci->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
-    else ok(abc->abcA * base_abci->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
-    if (todo) todo_wine ok(abc->abcC * base_abci->abcC >= 0, "%s: abcC's sign should be unchanged\n", description);
-    else ok(abc->abcC * base_abci->abcC >= 0, "%s: abcC's sign should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abc->abcA * base_abci->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abc->abcC * base_abci->abcC >= 0, "%s: abcC's sign should be unchanged\n", description);
 
     ret = pGetCharABCWidthsW(hdc, 'i', 'i', abc);
     ok(ret, "%s: GetCharABCWidthsW should have succeeded\n", description);
     ok ((INT)abc->abcB > 0, "%s: abcB should be positive\n", description);
-    if (todo) todo_wine ok(abc->abcA * base_abcw->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
-    else ok(abc->abcA * base_abcw->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
-    if (todo) todo_wine ok(abc->abcC * base_abcw->abcC >= 0, "%s: abcC's sign should be unchanged\n", description);
-    else ok(abc->abcC * base_abcw->abcC >= 0, "%s: abcC's should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abc->abcA * base_abcw->abcA >= 0, "%s: abcA's sign should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abc->abcC * base_abcw->abcC >= 0, "%s: abcC's sign should be unchanged\n", description);
 
     ret = pGetCharABCWidthsFloatW(hdc, 'i', 'i', abcf);
     ok(ret, "%s: GetCharABCWidthsFloatW should have succeeded\n", description);
     ok (abcf->abcfB > 0.0, "%s: abcfB should be positive\n", description);
-    if (todo) todo_wine ok(abcf->abcfA * base_abcf->abcfA >= 0.0, "%s: abcfA's sign should be unchanged\n", description);
-    else ok(abcf->abcfA * base_abcf->abcfA >= 0.0, "%s: abcfA's should be unchanged\n", description);
-    if (todo) todo_wine ok(abcf->abcfC * base_abcf->abcfC >= 0.0, "%s: abcfC's sign should be unchanged\n", description);
-    else ok(abcf->abcfC * base_abcf->abcfC >= 0.0, "%s: abcfC's sign should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abcf->abcfA * base_abcf->abcfA >= 0.0, "%s: abcfA's sign should be unchanged\n", description);
+    todo_wine_if (todo)
+        ok(abcf->abcfC * base_abcf->abcfC >= 0.0, "%s: abcfC's sign should be unchanged\n", description);
 }
 
 static void test_GetCharABCWidths(void)
@@ -2144,9 +2158,22 @@ static void test_GetOutlineTextMetrics(void)
     LPSTR unset_ptr;
     UINT fsSelection;
 
+    /* check fsSelection field with bold simulation */
+    memset(&lf, 0, sizeof(lf));
+    strcpy(lf.lfFaceName, "Wingdings");
+    lf.lfCharSet = SYMBOL_CHARSET;
+
+    /* regular face */
+    fsSelection = get_font_fsselection(&lf);
+    ok((fsSelection & (1 << 5)) == 0, "got 0x%x\n", fsSelection);
+
+    /* face with bold simulation */
+    lf.lfWeight = FW_BOLD;
+    fsSelection = get_font_fsselection(&lf);
+    ok((fsSelection & (1 << 5)) != 0, "got 0x%x\n", fsSelection);
+
     /* check fsSelection field with oblique simulation */
     memset(&lf, 0, sizeof(lf));
-
     strcpy(lf.lfFaceName, "Tahoma");
     lf.lfHeight = -13;
     lf.lfWeight = FW_NORMAL;
@@ -2725,24 +2752,22 @@ static void test_GetFontUnicodeRanges(void)
     ReleaseDC(NULL, hdc);
 }
 
-#define MAX_ENUM_FONTS 4096
-
 struct enum_font_data
 {
-    int total;
-    LOGFONTA lf[MAX_ENUM_FONTS];
+    int total, size;
+    LOGFONTA *lf;
 };
 
 struct enum_fullname_data
 {
-    int total;
-    ENUMLOGFONTA elf[MAX_ENUM_FONTS];
+    int total, size;
+    ENUMLOGFONTA *elf;
 };
 
 struct enum_font_dataW
 {
-    int total;
-    LOGFONTW lf[MAX_ENUM_FONTS];
+    int total, size;
+    LOGFONTW *lf;
 };
 
 static INT CALLBACK arial_enum_proc(const LOGFONTA *lf, const TEXTMETRICA *tm, DWORD type, LPARAM lParam)
@@ -2760,10 +2785,13 @@ static INT CALLBACK arial_enum_proc(const LOGFONTA *lf, const TEXTMETRICA *tm, D
     if (0) /* Disabled to limit console spam */
         trace("enumed font \"%s\", charset %d, height %d, weight %d, italic %d\n",
               lf->lfFaceName, lf->lfCharSet, lf->lfHeight, lf->lfWeight, lf->lfItalic);
-    if (efd->total < MAX_ENUM_FONTS)
-        efd->lf[efd->total++] = *lf;
-    else
-        trace("enum tests invalid; you have more than %d fonts\n", MAX_ENUM_FONTS);
+    if (efd->total >= efd->size)
+    {
+        efd->size = max( (efd->total + 1) * 2, 256 );
+        efd->lf = heap_realloc( efd->lf, efd->size * sizeof(*efd->lf) );
+        if (!efd->lf) return 0;
+    }
+    efd->lf[efd->total++] = *lf;
 
     return 1;
 }
@@ -2783,10 +2811,13 @@ static INT CALLBACK arial_enum_procw(const LOGFONTW *lf, const TEXTMETRICW *tm, 
     if (0) /* Disabled to limit console spam */
         trace("enumed font %s, charset %d, height %d, weight %d, italic %d\n",
               wine_dbgstr_w(lf->lfFaceName), lf->lfCharSet, lf->lfHeight, lf->lfWeight, lf->lfItalic);
-    if (efd->total < MAX_ENUM_FONTS)
-        efd->lf[efd->total++] = *lf;
-    else
-        trace("enum tests invalid; you have more than %d fonts\n", MAX_ENUM_FONTS);
+    if (efd->total >= efd->size)
+    {
+        efd->size = max( (efd->total + 1) * 2, 256 );
+        efd->lf = heap_realloc( efd->lf, efd->size * sizeof(*efd->lf) );
+        if (!efd->lf) return 0;
+    }
+    efd->lf[efd->total++] = *lf;
 
     return 1;
 }
@@ -2860,6 +2891,8 @@ static void test_EnumFontFamilies(const char *font_name, INT font_charset)
         skip("%s is not installed\n", font_name);
         return;
     }
+    memset( &efd, 0, sizeof(efd) );
+    memset( &efdw, 0, sizeof(efdw) );
 
     hdc = GetDC(0);
 
@@ -3053,6 +3086,9 @@ else
     }
 
     ReleaseDC(0, hdc);
+
+    heap_free( efd.lf );
+    heap_free( efdw.lf );
 }
 
 static INT CALLBACK enum_multi_charset_font_proc(const LOGFONTA *lf, const TEXTMETRICA *tm, DWORD type, LPARAM lParam)
@@ -3082,10 +3118,13 @@ static INT CALLBACK enum_font_data_proc(const LOGFONTA *lf, const TEXTMETRICA *n
 
     if (type != TRUETYPE_FONTTYPE) return 1;
 
-    if (efd->total < MAX_ENUM_FONTS)
-        efd->lf[efd->total++] = *lf;
-    else
-        trace("enum tests invalid; you have more than %d fonts\n", MAX_ENUM_FONTS);
+    if (efd->total >= efd->size)
+    {
+        efd->size = max( (efd->total + 1) * 2, 256 );
+        efd->lf = heap_realloc( efd->lf, efd->size * sizeof(*efd->lf) );
+        if (!efd->lf) return 0;
+    }
+    efd->lf[efd->total++] = *lf;
 
     return 1;
 }
@@ -3096,10 +3135,13 @@ static INT CALLBACK enum_fullname_data_proc(const LOGFONTA *lf, const TEXTMETRIC
 
     if (type != TRUETYPE_FONTTYPE) return 1;
 
-    if (efnd->total < MAX_ENUM_FONTS)
-        efnd->elf[efnd->total++] = *(ENUMLOGFONTA *)lf;
-    else
-        trace("enum tests invalid; you have more than %d fonts\n", MAX_ENUM_FONTS);
+    if (efnd->total >= efnd->size)
+    {
+        efnd->size = max( (efnd->total + 1) * 2, 256 );
+        efnd->elf = heap_realloc( efnd->elf, efnd->size * sizeof(*efnd->elf) );
+        if (!efnd->elf) return 0;
+    }
+    efnd->elf[efnd->total++] = *(ENUMLOGFONTA *)lf;
 
     return 1;
 }
@@ -3133,7 +3175,7 @@ static void test_EnumFontFamiliesEx_default_charset(void)
         target.lfCharSet = ANSI_CHARSET;
     }
 
-    efd.total = 0;
+    memset(&efd, 0, sizeof(efd));
     memset(&enum_font, 0, sizeof(enum_font));
     strcpy(enum_font.lfFaceName, target.lfFaceName);
     enum_font.lfCharSet = DEFAULT_CHARSET;
@@ -3141,15 +3183,14 @@ static void test_EnumFontFamiliesEx_default_charset(void)
     ReleaseDC(0, hdc);
 
     trace("'%s' has %d charsets.\n", target.lfFaceName, efd.total);
-    if (efd.total < 2) {
+    if (efd.total < 2)
         ok(0, "EnumFontFamilies is broken. Expected >= 2, got %d.\n", efd.total);
-        return;
-    }
+    else
+        ok(efd.lf[0].lfCharSet == target.lfCharSet,
+           "(%s) got charset %d expected %d\n",
+           efd.lf[0].lfFaceName, efd.lf[0].lfCharSet, target.lfCharSet);
 
-    ok(efd.lf[0].lfCharSet == target.lfCharSet,
-       "(%s) got charset %d expected %d\n",
-       efd.lf[0].lfFaceName, efd.lf[0].lfCharSet, target.lfCharSet);
-
+    heap_free(efd.lf);
     return;
 }
 
@@ -3851,11 +3892,7 @@ static void test_text_metrics(const LOGFONTA *lf, const NEWTEXTMETRICA *ntm)
         expect_default_A  = expect_default_W;
 
         /* Wine currently uses SYMBOL_CHARSET to identify whether the ANSI metrics need special handling */
-        if(cmap_type != cmap_ms_symbol && tmA.tmCharSet == SYMBOL_CHARSET && expect_first_A != 0x1e)
-            todo_wine ok(tmA.tmFirstChar == expect_first_A ||
-                         tmA.tmFirstChar == expect_first_A + 1 /* win9x */,
-                         "A: tmFirstChar for %s got %02x expected %02x\n", font_name, tmA.tmFirstChar, expect_first_A);
-        else
+        todo_wine_if(cmap_type != cmap_ms_symbol && tmA.tmCharSet == SYMBOL_CHARSET && expect_first_A != 0x1e)
             ok(tmA.tmFirstChar == expect_first_A ||
                tmA.tmFirstChar == expect_first_A + 1 /* win9x */,
                "A: tmFirstChar for %s got %02x expected %02x\n", font_name, tmA.tmFirstChar, expect_first_A);
@@ -3879,18 +3916,12 @@ static void test_text_metrics(const LOGFONTA *lf, const NEWTEXTMETRICA *ntm)
         if (ret)
         {
             /* Wine uses the os2 first char */
-            if(cmap_first != os2_first_char && cmap_type != cmap_ms_symbol)
-                todo_wine ok(tmW.tmFirstChar == expect_first_W, "W: tmFirstChar for %s got %02x expected %02x\n",
-                             font_name, tmW.tmFirstChar, expect_first_W);
-            else
+            todo_wine_if(cmap_first != os2_first_char && cmap_type != cmap_ms_symbol)
                 ok(tmW.tmFirstChar == expect_first_W, "W: tmFirstChar for %s got %02x expected %02x\n",
                    font_name, tmW.tmFirstChar, expect_first_W);
 
             /* Wine uses the os2 last char */
-            if(expect_last_W != os2_last_char && cmap_type != cmap_ms_symbol)
-                todo_wine ok(tmW.tmLastChar == expect_last_W, "W: tmLastChar for %s got %02x expected %02x\n",
-                             font_name, tmW.tmLastChar, expect_last_W);
-            else
+            todo_wine_if(expect_last_W != os2_last_char && cmap_type != cmap_ms_symbol)
                 ok(tmW.tmLastChar == expect_last_W, "W: tmLastChar for %s got %02x expected %02x\n",
                    font_name, tmW.tmLastChar, expect_last_W);
             ok(tmW.tmBreakChar == expect_break_W, "W: tmBreakChar for %s got %02x expected %02x\n",
@@ -5214,6 +5245,12 @@ if (0) /* Disabled to limit console spam */
     if (type != TRUETYPE_FONTTYPE) return 1;
     if (strcmp(lf->lfFaceName, "MS Shell Dlg") != 0) return 1;
 
+    if (efnd->total >= efnd->size)
+    {
+        efnd->size = max( (efnd->total + 1) * 2, 256 );
+        efnd->elf = heap_realloc( efnd->elf, efnd->size * sizeof(*efnd->elf) );
+        if (!efnd->elf) return 0;
+    }
     efnd->elf[efnd->total++] = *(ENUMLOGFONTA *)lf;
     return 0;
 }
@@ -5229,6 +5266,12 @@ if (0) /* Disabled to limit console spam */
     if (type != TRUETYPE_FONTTYPE) return 1;
     if (strcmp(lf->lfFaceName, "MS Shell Dlg 2") != 0) return 1;
 
+    if (efnd->total >= efnd->size)
+    {
+        efnd->size = max( (efnd->total + 1) * 2, 256 );
+        efnd->elf = heap_realloc( efnd->elf, efnd->size * sizeof(*efnd->elf) );
+        if (!efnd->elf) return 0;
+    }
     efnd->elf[efnd->total++] = *(ENUMLOGFONTA *)lf;
     return 0;
 }
@@ -5260,7 +5303,7 @@ static void test_EnumFonts_subst(void)
     memset(&lf, 0, sizeof(lf));
     lf.lfCharSet = DEFAULT_CHARSET;
 
-    memset(&efnd, 0, sizeof(efnd));
+    efnd.total = 0;
     strcpy(lf.lfFaceName, "MS Shell Dlg");
     ret = EnumFontFamiliesExA(hdc, &lf, enum_ms_shell_dlg_proc, (LPARAM)&efnd, 0);
     ok(!ret, "MS Shell Dlg should be enumerated\n");
@@ -5270,12 +5313,12 @@ static void test_EnumFonts_subst(void)
     ret = strcmp((const char *)efnd.elf[0].elfFullName, "MS Shell Dlg");
     ok(ret, "did not expect MS Shell Dlg\n");
 
-    memset(&efnd, 0, sizeof(efnd));
+    efnd.total = 0;
     ret = EnumFontFamiliesExA(hdc, NULL, enum_ms_shell_dlg2_proc, (LPARAM)&efnd, 0);
     ok(ret, "MS Shell Dlg 2 should not be enumerated\n");
     ok(!efnd.total, "MS Shell Dlg 2 should not be enumerated\n");
 
-    memset(&efnd, 0, sizeof(efnd));
+    efnd.total = 0;
     strcpy(lf.lfFaceName, "MS Shell Dlg 2");
     ret = EnumFontFamiliesExA(hdc, &lf, enum_ms_shell_dlg2_proc, (LPARAM)&efnd, 0);
     ok(!ret, "MS Shell Dlg 2 should be enumerated\n");
@@ -5285,6 +5328,7 @@ static void test_EnumFonts_subst(void)
     ret = strcmp((const char *)efnd.elf[0].elfFullName, "MS Shell Dlg 2");
     ok(ret, "did not expect MS Shell Dlg 2\n");
 
+    heap_free(efnd.elf);
     DeleteDC(hdc);
 }
 
@@ -5395,7 +5439,7 @@ static void test_fullname2_helper(const char *Family)
     lf.lfItalic = FALSE;
     lf.lfWeight = FW_DONTCARE;
     strcpy(lf.lfFaceName, Family);
-    efnd.total = 0;
+    memset(&efnd, 0, sizeof(efnd));
     EnumFontFamiliesExA(hdc, &lf, enum_fullname_data_proc, (LPARAM)&efnd, 0);
     if (efnd.total == 0)
         skip("%s is not installed\n", lf.lfFaceName);
@@ -5476,6 +5520,7 @@ static void test_fullname2_helper(const char *Family)
         HeapFree(GetProcessHeap(), 0, bufW);
         HeapFree(GetProcessHeap(), 0, bufA);
     }
+    heap_free(efnd.elf);
     DeleteDC(hdc);
 }
 
@@ -6123,14 +6168,11 @@ static void test_stock_fonts(void)
             }
 
             /* FIXME: Remove once Wine is fixed */
-            if (td[i][j].dpi != 96 &&
+            todo_wine_if (td[i][j].dpi != 96 &&
                 /* MS Sans Serif for 120 dpi and higher should include 12 pixel bitmap set */
                 ((!strcmp(td[i][j].face_name, "MS Sans Serif") && td[i][j].height == 12) ||
                 /* System for 120 dpi and higher should include 20 pixel bitmap set */
                 (!strcmp(td[i][j].face_name, "System") && td[i][j].height > 16)))
-            todo_wine
-            ok(height == td[i][j].height_pixels, "%d(%d): expected height %d, got %d\n", i, j, td[i][j].height_pixels, height);
-            else
             ok(height == td[i][j].height_pixels, "%d(%d): expected height %d, got %d\n", i, j, td[i][j].height_pixels, height);
 
             ok(td[i][j].weight == lf.lfWeight, "%d(%d): expected lfWeight %d, got %d\n", i, j, td[i][j].weight, lf.lfWeight);
@@ -6227,7 +6269,7 @@ static void test_vertical_order(void)
     lf.lfQuality = DEFAULT_QUALITY;
     lf.lfItalic = FALSE;
     lf.lfWeight = FW_DONTCARE;
-    efd.total = 0;
+    memset( &efd, 0, sizeof(efd) );
     EnumFontFamiliesExA(hdc, &lf, enum_font_data_proc, (LPARAM)&efd, 0);
     for (i = 0; i < efd.total; i++)
     {
@@ -6241,6 +6283,7 @@ static void test_vertical_order(void)
             }
         }
     }
+    heap_free( efd.lf );
     DeleteDC( hdc );
 }
 

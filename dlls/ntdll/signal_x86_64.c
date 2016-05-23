@@ -2170,6 +2170,17 @@ static EXCEPTION_RECORD *setup_exception( ucontext_t *sigcontext, raise_func fun
 }
 
 
+/***********************************************************************
+ *           get_exception_context
+ *
+ * Get a pointer to the context built by setup_exception.
+ */
+static inline CONTEXT *get_exception_context( EXCEPTION_RECORD *rec )
+{
+    return (CONTEXT *)rec - 1;  /* cf. stack_layout structure */
+}
+
+
 /**********************************************************************
  *           find_function_info
  */
@@ -2471,6 +2482,9 @@ static NTSTATUS raise_exception( EXCEPTION_RECORD *rec, CONTEXT *context, BOOL f
         if (status == DBG_CONTINUE || status == DBG_EXCEPTION_HANDLED)
             return STATUS_SUCCESS;
 
+        /* fix up instruction pointer in context for EXCEPTION_BREAKPOINT */
+        if (rec->ExceptionCode == EXCEPTION_BREAKPOINT) context->Rip--;
+
         if (call_vectored_handlers( rec, context ) == EXCEPTION_CONTINUE_EXECUTION)
             return STATUS_SUCCESS;
 
@@ -2513,9 +2527,20 @@ static void raise_segv_exception( EXCEPTION_RECORD *rec, CONTEXT *context )
                 set_cpu_context( context );
         }
         break;
+    case EXCEPTION_BREAKPOINT:
+        switch (rec->ExceptionInformation[0])
+        {
+            case 1: /* BREAKPOINT_PRINT */
+            case 3: /* BREAKPOINT_LOAD_SYMBOLS */
+            case 4: /* BREAKPOINT_UNLOAD_SYMBOLS */
+            case 5: /* BREAKPOINT_COMMAND_STRING (>= Win2003) */
+                goto done;
+        }
+        break;
     }
     status = raise_exception( rec, context, TRUE );
     if (status) raise_status( status, rec );
+done:
     set_cpu_context( context );
 }
 
@@ -2533,6 +2558,28 @@ static void raise_generic_exception( EXCEPTION_RECORD *rec, CONTEXT *context )
 }
 
 
+/***********************************************************************
+ *           handle_interrupt
+ *
+ * Handle an interrupt.
+ */
+static inline BOOL handle_interrupt( unsigned int interrupt, EXCEPTION_RECORD *rec, CONTEXT *context )
+{
+    switch(interrupt)
+    {
+    case 0x2d:
+        context->Rip += 3;
+        rec->ExceptionCode = EXCEPTION_BREAKPOINT;
+        rec->ExceptionAddress = (void *)context->Rip;
+        rec->NumberParameters = 1;
+        rec->ExceptionInformation[0] = context->Rax;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+
 /**********************************************************************
  *		segv_handler
  *
@@ -2540,8 +2587,26 @@ static void raise_generic_exception( EXCEPTION_RECORD *rec, CONTEXT *context )
  */
 static void segv_handler( int signal, siginfo_t *siginfo, void *sigcontext )
 {
-    EXCEPTION_RECORD *rec = setup_exception( sigcontext, raise_segv_exception );
+    EXCEPTION_RECORD *rec;
     ucontext_t *ucontext = sigcontext;
+
+    /* check for page fault inside the thread stack */
+    if (TRAP_sig(ucontext) == TRAP_x86_PAGEFLT &&
+        (char *)siginfo->si_addr >= (char *)NtCurrentTeb()->DeallocationStack &&
+        (char *)siginfo->si_addr < (char *)NtCurrentTeb()->Tib.StackBase &&
+        virtual_handle_stack_fault( siginfo->si_addr ))
+    {
+        /* check if this was the last guard page */
+        if ((char *)siginfo->si_addr < (char *)NtCurrentTeb()->DeallocationStack + 2*4096)
+        {
+            rec = setup_exception( sigcontext, raise_segv_exception );
+            rec->ExceptionCode = EXCEPTION_STACK_OVERFLOW;
+        }
+        return;
+    }
+
+    rec = setup_exception( sigcontext, raise_segv_exception );
+    if (rec->ExceptionCode == EXCEPTION_STACK_OVERFLOW) return;
 
     switch(TRAP_sig(ucontext))
     {
@@ -2560,8 +2625,13 @@ static void segv_handler( int signal, siginfo_t *siginfo, void *sigcontext )
     case TRAP_x86_SEGNPFLT:  /* Segment not present exception */
     case TRAP_x86_PROTFLT:   /* General protection fault */
     case TRAP_x86_UNKNOWN:   /* Unknown fault code */
-        rec->ExceptionCode = ERROR_sig(ucontext) ? EXCEPTION_ACCESS_VIOLATION : EXCEPTION_PRIV_INSTRUCTION;
-        rec->ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
+        {
+            CONTEXT *win_context = get_exception_context( rec );
+            WORD err = ERROR_sig(ucontext);
+            if ((err & 7) == 2 && handle_interrupt( err >> 3, rec, win_context )) break;
+            rec->ExceptionCode = err ? EXCEPTION_ACCESS_VIOLATION : EXCEPTION_PRIV_INSTRUCTION;
+            rec->ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
+        }
         break;
     case TRAP_x86_PAGEFLT:  /* Page fault */
         rec->ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
@@ -2606,6 +2676,8 @@ static void trap_handler( int signal, siginfo_t *siginfo, void *sigcontext )
         /* fall through */
     default:
         rec->ExceptionCode = EXCEPTION_BREAKPOINT;
+        rec->NumberParameters = 1;
+        rec->ExceptionInformation[0] = 0;
         break;
     }
 }
@@ -2708,7 +2780,7 @@ static void usr1_handler( int signal, siginfo_t *siginfo, void *ucontext )
  */
 int CDECL __wine_set_signal_handler(unsigned int sig, wine_signal_handler wsh)
 {
-    if (sig > sizeof(handlers) / sizeof(handlers[0])) return -1;
+    if (sig >= sizeof(handlers) / sizeof(handlers[0])) return -1;
     if (handlers[sig] != NULL) return -2;
     handlers[sig] = wsh;
     return 0;

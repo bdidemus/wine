@@ -214,6 +214,10 @@ MAKE_FUNCPTR(FcPatternGetString);
 #define GET_BE_WORD(x) RtlUshortByteSwap(x)
 #endif
 
+#ifndef WINE_FONT_DIR
+#define WINE_FONT_DIR "fonts"
+#endif
+
 /* This is basically a copy of FT_Bitmap_Size with an extra element added */
 typedef struct {
     FT_Short height;
@@ -2387,7 +2391,7 @@ static void LoadReplaceList(void)
                         replace += strlenW(replace) + 1;
                     }
                 }
-                else
+                else if (type == REG_SZ)
                     map_font_family(value, data);
             }
             else
@@ -2969,22 +2973,44 @@ static void load_mac_fonts(void)
 
 #endif
 
+static char *get_font_dir(void)
+{
+    const char *build_dir, *data_dir;
+    char *name = NULL;
+
+    if ((data_dir = wine_get_data_dir()))
+    {
+        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(data_dir) + 1 + sizeof(WINE_FONT_DIR) )))
+            return NULL;
+        strcpy( name, data_dir );
+        strcat( name, "/" );
+        strcat( name, WINE_FONT_DIR );
+    }
+    else if ((build_dir = wine_get_build_dir()))
+    {
+        if (!(name = HeapAlloc( GetProcessHeap(), 0, strlen(build_dir) + sizeof("/fonts") )))
+            return NULL;
+        strcpy( name, build_dir );
+        strcat( name, "/fonts" );
+    }
+    return name;
+}
+
 static char *get_data_dir_path( LPCWSTR file )
 {
     char *unix_name = NULL;
-    const char *data_dir = wine_get_data_dir();
+    char *font_dir = get_font_dir();
 
-    if (!data_dir) data_dir = wine_get_build_dir();
-
-    if (data_dir)
+    if (font_dir)
     {
         INT len = WideCharToMultiByte(CP_UNIXCP, 0, file, -1, NULL, 0, NULL, NULL);
 
-        unix_name = HeapAlloc(GetProcessHeap(), 0, strlen(data_dir) + len + sizeof("/fonts/"));
-        strcpy(unix_name, data_dir);
-        strcat(unix_name, "/fonts/");
+        unix_name = HeapAlloc(GetProcessHeap(), 0, strlen(font_dir) + len + 1 );
+        strcpy(unix_name, font_dir);
+        strcat(unix_name, "/");
 
         WideCharToMultiByte(CP_UNIXCP, 0, file, -1, unix_name + strlen(unix_name), len, NULL, NULL);
+        HeapFree( GetProcessHeap(), 0, font_dir );
     }
     return unix_name;
 }
@@ -4131,7 +4157,6 @@ static void init_font_list(void)
     DWORD valuelen, datalen, i = 0, type, dlen, vlen;
     WCHAR windowsdir[MAX_PATH];
     char *unixname;
-    const char *data_dir;
 
     delete_external_font_keys();
 
@@ -4147,13 +4172,9 @@ static void init_font_list(void)
         HeapFree(GetProcessHeap(), 0, unixname);
     }
 
-    /* load the system truetype fonts */
-    data_dir = wine_get_data_dir();
-    if (!data_dir) data_dir = wine_get_build_dir();
-    if (data_dir && (unixname = HeapAlloc(GetProcessHeap(), 0, strlen(data_dir) + sizeof("/fonts/"))))
+    /* load the wine fonts */
+    if ((unixname = get_font_dir()))
     {
-        strcpy(unixname, data_dir);
-        strcat(unixname, "/fonts/");
         ReadFontDir(unixname, TRUE);
         HeapFree(GetProcessHeap(), 0, unixname);
     }
@@ -4217,6 +4238,8 @@ static void init_font_list(void)
     load_fontconfig_fonts();
 #elif defined(HAVE_CARBON_CARBON_H)
     load_mac_fonts();
+#elif defined(__ANDROID__)
+    ReadFontDir("/system/fonts", TRUE);
 #endif
 
     /* then look in any directories that we've specified in the config file */
@@ -6439,7 +6462,7 @@ static inline BYTE get_max_level( UINT format )
     return 255;
 }
 
-extern const unsigned short vertical_orientation_table[];
+extern const unsigned short vertical_orientation_table[] DECLSPEC_HIDDEN;
 
 static BOOL check_unicode_tategaki(WCHAR uchar)
 {
@@ -7458,7 +7481,7 @@ static BOOL get_bitmap_text_metrics(GdiFont *font)
         TM.tmUnderlined = font->underline;
         TM.tmStruckOut = font->strikeout;
         /* NB inverted meaning of TMPF_FIXED_PITCH */
-        TM.tmPitchAndFamily = ft_face->face_flags & FT_FACE_FLAG_FIXED_WIDTH ? 0 : TMPF_FIXED_PITCH;
+        TM.tmPitchAndFamily = FT_IS_FIXED_WIDTH(ft_face) ? 0 : TMPF_FIXED_PITCH;
         TM.tmCharSet = font->charset;
     }
 #undef TM
@@ -7850,6 +7873,8 @@ static BOOL get_outline_text_metrics(GdiFont *font)
     font->potm->otmfsSelection = pOS2->fsSelection;
     if (font->fake_italic)
         font->potm->otmfsSelection |= 1;
+    if (font->fake_bold)
+        font->potm->otmfsSelection |= 1 << 5;
     font->potm->otmfsType = pOS2->fsType;
     font->potm->otmsCharSlopeRise = pHori->caret_Slope_Rise;
     font->potm->otmsCharSlopeRun = pHori->caret_Slope_Run;

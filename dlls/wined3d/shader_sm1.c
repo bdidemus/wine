@@ -518,14 +518,12 @@ static int shader_skip_unrecognized(const struct wined3d_sm1_data *priv, const D
             struct wined3d_shader_dst_param dst;
 
             shader_parse_dst_param(token, token & WINED3D_SM1_ADDRESS_MODE_RELATIVE ? &rel_addr : NULL, &dst);
-            shader_dump_dst_param(&dst, &priv->shader_version);
         }
         else
         {
             struct wined3d_shader_src_param src;
 
             shader_parse_src_param(token, token & WINED3D_SM1_ADDRESS_MODE_RELATIVE ? &rel_addr : NULL, &src);
-            shader_dump_src_param(&src, &priv->shader_version);
         }
         FIXME("\n");
         ++i;
@@ -737,6 +735,7 @@ static void shader_sm1_read_instruction(void *data, const DWORD **ptr, struct wi
     ins->dst = &priv->dst_param;
     ins->src_count = opcode_info->param_count - opcode_info->dst_count;
     ins->src = priv->src_param;
+    memset(&ins->texel_offset, 0, sizeof(ins->texel_offset));
 
     p = *ptr;
     *ptr += shader_skip_opcode(priv, opcode_info, opcode_token);

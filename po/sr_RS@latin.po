@@ -11862,6 +11862,51 @@ msgstr ""
 msgid "The registry operation was cancelled\n"
 msgstr ""
 
+#: reg.rc:48 regedit.rc:204
+#, fuzzy
+msgid "(Default)"
+msgstr ""
+"#-#-#-#-#  sr_RS@latin.po (Wine)  #-#-#-#-#\n"
+"Podrazumevano\n"
+"#-#-#-#-#  sr_RS@latin.po (Wine)  #-#-#-#-#\n"
+"Osnovno"
+
+#: reg.rc:49
+#, fuzzy
+msgid "Are you sure you want to delete the registry value '%1'?"
+msgstr "Želite li da izbrišete ovih %1 stavki?"
+
+#: reg.rc:50
+#, fuzzy
+msgid "Are you sure you want to delete all registry values in '%1'?"
+msgstr "Želite li da izbrišete „%1“?"
+
+#: reg.rc:51
+#, fuzzy
+#| msgid "Are you sure you want to delete '%1'?"
+msgid "Are you sure you want to delete the registry key '%1'?"
+msgstr "Želite li da izbrišete „%1“?"
+
+#: reg.rc:52
+msgid "reg: The option [/d] must be followed by a valid string\n"
+msgstr ""
+
+#: reg.rc:53
+msgid ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:54
+msgid ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:55
+msgid "Search complete. Number of matches found: %1!d!\n"
+msgstr ""
+
 #: regedit.rc:34
 msgid "&Registry"
 msgstr ""
@@ -12088,15 +12133,6 @@ msgstr "Tekstualne datoteke (*.txt)"
 #: regedit.rc:197
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
 msgstr ""
-
-#: regedit.rc:204
-#, fuzzy
-msgid "(Default)"
-msgstr ""
-"#-#-#-#-#  sr_RS@latin.po (Wine)  #-#-#-#-#\n"
-"Podrazumevano\n"
-"#-#-#-#-#  sr_RS@latin.po (Wine)  #-#-#-#-#\n"
-"Osnovno"
 
 #: regedit.rc:205
 msgid "(value not set)"

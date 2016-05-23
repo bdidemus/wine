@@ -181,20 +181,16 @@ static const struct object_ops job_ops =
     job_destroy                    /* destroy */
 };
 
-static struct job *create_job_object( struct directory *root, const struct unicode_str *name,
+static struct job *create_job_object( struct object *root, const struct unicode_str *name,
                                       unsigned int attr, const struct security_descriptor *sd )
 {
     struct job *job;
 
-    if ((job = create_named_object_dir( root, name, attr, &job_ops )))
+    if ((job = create_named_object( root, &job_ops, name, attr, sd )))
     {
         if (get_error() != STATUS_OBJECT_NAME_EXISTS)
         {
             /* initialize it if it didn't already exist */
-            if (sd) default_set_sd( &job->obj, sd, OWNER_SECURITY_INFORMATION |
-                                                   GROUP_SECURITY_INFORMATION |
-                                                   DACL_SECURITY_INFORMATION |
-                                                   SACL_SECURITY_INFORMATION );
             list_init( &job->process_list );
             job->num_processes = 0;
             job->limit_flags = 0;
@@ -342,6 +338,7 @@ static unsigned int used_ptid_entries;      /* number of entries in use */
 static unsigned int alloc_ptid_entries;     /* number of allocated entries */
 static unsigned int next_free_ptid;         /* next free entry */
 static unsigned int last_free_ptid;         /* last free entry */
+static unsigned int num_free_ptids;         /* number of free ptids */
 
 static void kill_all_processes(void);
 
@@ -358,16 +355,17 @@ unsigned int alloc_ptid( void *ptr )
         id = used_ptid_entries + PTID_OFFSET;
         entry = &ptid_entries[used_ptid_entries++];
     }
-    else if (next_free_ptid)
+    else if (next_free_ptid && num_free_ptids >= 256)
     {
         id = next_free_ptid;
         entry = &ptid_entries[id - PTID_OFFSET];
         if (!(next_free_ptid = entry->next)) last_free_ptid = 0;
+        num_free_ptids--;
     }
     else  /* need to grow the array */
     {
         unsigned int count = alloc_ptid_entries + (alloc_ptid_entries / 2);
-        if (!count) count = 64;
+        if (!count) count = 512;
         if (!(entry = realloc( ptid_entries, count * sizeof(*entry) )))
         {
             set_error( STATUS_NO_MEMORY );
@@ -394,8 +392,8 @@ void free_ptid( unsigned int id )
     /* append to end of free list so that we don't reuse it too early */
     if (last_free_ptid) ptid_entries[last_free_ptid - PTID_OFFSET].next = id;
     else next_free_ptid = id;
-
     last_free_ptid = id;
+    num_free_ptids++;
 }
 
 /* retrieve the pointer corresponding to a process or thread id */
@@ -508,7 +506,7 @@ struct thread *create_process( int fd, struct thread *parent_thread, int inherit
         close( fd );
         goto error;
     }
-    process->parent          = NULL;
+    process->parent_id       = 0;
     process->debugger        = NULL;
     process->handles         = NULL;
     process->msg_fd          = NULL;
@@ -528,6 +526,7 @@ struct thread *create_process( int fd, struct thread *parent_thread, int inherit
     process->idle_event      = NULL;
     process->peb             = 0;
     process->ldt_copy        = 0;
+    process->dir_cache       = NULL;
     process->winstation      = 0;
     process->desktop         = 0;
     process->token           = NULL;
@@ -560,7 +559,7 @@ struct thread *create_process( int fd, struct thread *parent_thread, int inherit
     else
     {
         struct process *parent = parent_thread->process;
-        process->parent = (struct process *)grab_object( parent );
+        process->parent_id = parent->id;
         process->handles = inherit_all ? copy_handle_table( process, parent )
                                        : alloc_handle_table( process, 0 );
         /* Note: for security reasons, starting a new process does not attempt
@@ -627,12 +626,12 @@ static void process_destroy( struct object *obj )
         release_object( process->job );
     }
     if (process->console) release_object( process->console );
-    if (process->parent) release_object( process->parent );
     if (process->msg_fd) release_object( process->msg_fd );
     list_remove( &process->entry );
     if (process->idle_event) release_object( process->idle_event );
     if (process->id) free_ptid( process->id );
     if (process->token) release_object( process->token );
+    free( process->dir_cache );
 }
 
 /* dump a process on stdout for debugging purposes */
@@ -1356,7 +1355,7 @@ DECL_HANDLER(get_process_info)
     if ((process = get_process_from_handle( req->handle, PROCESS_QUERY_LIMITED_INFORMATION )))
     {
         reply->pid              = get_process_id( process );
-        reply->ppid             = process->parent ? get_process_id( process->parent ) : 0;
+        reply->ppid             = process->parent_id;
         reply->exit_code        = process->exit_code;
         reply->priority         = process->priority;
         reply->affinity         = process->affinity;
@@ -1544,7 +1543,7 @@ DECL_HANDLER(create_job)
 {
     struct job *job;
     struct unicode_str name;
-    struct directory *root;
+    struct object *root;
     const struct security_descriptor *sd;
     const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, &root );
 

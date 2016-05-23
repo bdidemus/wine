@@ -584,7 +584,7 @@ static HRESULT WINAPI HTMLWindow2_clearTimeout(IHTMLWindow2 *iface, LONG timerID
 
     TRACE("(%p)->(%d)\n", This, timerID);
 
-    return clear_task_timer(This->inner_window, FALSE, timerID);
+    return clear_task_timer(This->inner_window, timerID);
 }
 
 #define MAX_MESSAGE_LEN 2000
@@ -1374,7 +1374,7 @@ static HRESULT WINAPI HTMLWindow2_clearInterval(IHTMLWindow2 *iface, LONG timerI
 
     TRACE("(%p)->(%d)\n", This, timerID);
 
-    return clear_task_timer(This->inner_window, TRUE, timerID);
+    return clear_task_timer(This->inner_window, timerID);
 }
 
 static HRESULT WINAPI HTMLWindow2_put_offscreenBuffering(IHTMLWindow2 *iface, VARIANT v)
@@ -2134,8 +2134,16 @@ static HRESULT WINAPI HTMLWindow6_get_maxConnectionsPerServer(IHTMLWindow6 *ifac
 static HRESULT WINAPI HTMLWindow6_postMessage(IHTMLWindow6 *iface, BSTR msg, VARIANT targetOrigin)
 {
     HTMLWindow *This = impl_from_IHTMLWindow6(iface);
-    FIXME("(%p)->(%s %s)\n", This, debugstr_w(msg), debugstr_variant(&targetOrigin));
-    return E_NOTIMPL;
+
+    FIXME("(%p)->(%s %s) semi-stub\n", This, debugstr_w(msg), debugstr_variant(&targetOrigin));
+
+    if(!This->inner_window->doc) {
+        FIXME("No document\n");
+        return E_FAIL;
+    }
+
+    fire_event(This->inner_window->doc, EVENTID_MESSAGE, TRUE, &This->inner_window->doc->node, NULL, NULL);
+    return S_OK;
 }
 
 static HRESULT WINAPI HTMLWindow6_toStaticHTML(IHTMLWindow6 *iface, BSTR bstrHTML, BSTR *pbstrStaticHTML)
@@ -2148,15 +2156,19 @@ static HRESULT WINAPI HTMLWindow6_toStaticHTML(IHTMLWindow6 *iface, BSTR bstrHTM
 static HRESULT WINAPI HTMLWindow6_put_onmessage(IHTMLWindow6 *iface, VARIANT v)
 {
     HTMLWindow *This = impl_from_IHTMLWindow6(iface);
-    FIXME("(%p)->(%s)\n", This, debugstr_variant(&v));
-    return E_NOTIMPL;
+
+    TRACE("(%p)->(%s)\n", This, debugstr_variant(&v));
+
+    return set_window_event(This, EVENTID_MESSAGE, &v);
 }
 
 static HRESULT WINAPI HTMLWindow6_get_onmessage(IHTMLWindow6 *iface, VARIANT *p)
 {
     HTMLWindow *This = impl_from_IHTMLWindow6(iface);
-    FIXME("(%p)->(%p)\n", This, p);
-    return E_NOTIMPL;
+
+    TRACE("(%p)->(%p)\n", This, p);
+
+    return get_window_event(This, EVENTID_MESSAGE, p);
 }
 
 static HRESULT WINAPI HTMLWindow6_msWriteProfilerMark(IHTMLWindow6 *iface, BSTR bstrProfilerMark)
@@ -2939,7 +2951,8 @@ static dispex_static_data_t HTMLWindow_dispex = {
     &HTMLWindow_dispex_vtbl,
     DispHTMLWindow2_tid,
     NULL,
-    HTMLWindow_iface_tids
+    HTMLWindow_iface_tids,
+    IHTMLWindow5_tid
 };
 
 static void *alloc_window(size_t size)

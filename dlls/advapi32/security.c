@@ -1642,6 +1642,22 @@ BOOL WINAPI AddAccessAllowedAceEx(
 }
 
 /******************************************************************************
+ *  AddAccessAllowedObjectAce [ADVAPI32.@]
+ */
+BOOL WINAPI AddAccessAllowedObjectAce(
+        IN OUT PACL pAcl,
+        IN DWORD dwAceRevision,
+        IN DWORD dwAceFlags,
+        IN DWORD dwAccessMask,
+        IN GUID* pObjectTypeGuid,
+        IN GUID* pInheritedObjectTypeGuid,
+        IN PSID pSid)
+{
+    return set_ntstatus(RtlAddAccessAllowedObjectAce(pAcl, dwAceRevision, dwAceFlags, dwAccessMask,
+                        pObjectTypeGuid, pInheritedObjectTypeGuid, pSid));
+}
+
+/******************************************************************************
  *  AddAccessDeniedAce [ADVAPI32.@]
  */
 BOOL WINAPI AddAccessDeniedAce(
@@ -1664,6 +1680,22 @@ BOOL WINAPI AddAccessDeniedAceEx(
         IN PSID pSid)
 {
     return set_ntstatus(RtlAddAccessDeniedAceEx(pAcl, dwAceRevision, AceFlags, AccessMask, pSid));
+}
+
+/******************************************************************************
+ *  AddAccessDeniedObjectAce [ADVAPI32.@]
+ */
+BOOL WINAPI AddAccessDeniedObjectAce(
+    IN OUT PACL pAcl,
+    IN DWORD dwAceRevision,
+    IN DWORD dwAceFlags,
+    IN DWORD dwAccessMask,
+    IN GUID* pObjectTypeGuid,
+    IN GUID* pInheritedObjectTypeGuid,
+    IN PSID pSid)
+{
+    return set_ntstatus( RtlAddAccessDeniedObjectAce(pAcl, dwAceRevision, dwAceFlags, dwAccessMask,
+                         pObjectTypeGuid, pInheritedObjectTypeGuid, pSid) );
 }
 
 /******************************************************************************
@@ -2669,6 +2701,24 @@ BOOL WINAPI AddAuditAccessAceEx(
 {
     return set_ntstatus( RtlAddAuditAccessAceEx(pAcl, dwAceRevision, dwAceFlags, dwAccessMask, pSid,
                                               bAuditSuccess, bAuditFailure) );
+}
+
+/******************************************************************************
+ *  AddAuditAccessObjectAce [ADVAPI32.@]
+ */
+BOOL WINAPI AddAuditAccessObjectAce(
+    IN OUT PACL pAcl,
+    IN DWORD dwAceRevision,
+    IN DWORD dwAceFlags,
+    IN DWORD dwAccessMask,
+    IN GUID* pObjectTypeGuid,
+    IN GUID* pInheritedObjectTypeGuid,
+    IN PSID pSid,
+    IN BOOL bAuditSuccess,
+    IN BOOL bAuditFailure)
+{
+    return set_ntstatus( RtlAddAuditAccessObjectAce(pAcl, dwAceRevision, dwAceFlags, dwAccessMask,
+           pObjectTypeGuid, pInheritedObjectTypeGuid, pSid, bAuditSuccess, bAuditFailure) );
 }
 
 /******************************************************************************
@@ -5249,20 +5299,16 @@ BOOL WINAPI ConvertToAutoInheritPrivateObjectSecurity(
     return FALSE;
 }
 
-BOOL WINAPI CreatePrivateObjectSecurity(
-        PSECURITY_DESCRIPTOR ParentDescriptor,
-        PSECURITY_DESCRIPTOR CreatorDescriptor,
-        PSECURITY_DESCRIPTOR* NewDescriptor,
-        BOOL IsDirectoryObject,
-        HANDLE Token,
-        PGENERIC_MAPPING GenericMapping )
+BOOL WINAPI CreatePrivateObjectSecurityEx(
+    PSECURITY_DESCRIPTOR parent, PSECURITY_DESCRIPTOR creator, PSECURITY_DESCRIPTOR *out,
+    GUID *objtype, BOOL is_directory, ULONG flags, HANDLE token, PGENERIC_MAPPING mapping)
 {
     SECURITY_DESCRIPTOR_RELATIVE *relative;
     DWORD needed, offset;
     BYTE *buffer;
 
-    FIXME("%p %p %p %d %p %p - returns fake SECURITY_DESCRIPTOR\n", ParentDescriptor,
-          CreatorDescriptor, NewDescriptor, IsDirectoryObject, Token, GenericMapping);
+    FIXME("%p %p %p %p %d %u %p %p - returns fake SECURITY_DESCRIPTOR\n", parent, creator, out,
+          objtype, is_directory, flags, token, mapping);
 
     needed = sizeof(SECURITY_DESCRIPTOR_RELATIVE);
     needed += sizeof(sidWorld);
@@ -5295,8 +5341,15 @@ BOOL WINAPI CreatePrivateObjectSecurity(
     GetWorldAccessACL( (ACL *)(buffer + offset) );
     relative->Sacl = offset;
 
-    *NewDescriptor = relative;
+    *out = relative;
     return TRUE;
+}
+
+BOOL WINAPI CreatePrivateObjectSecurity(
+    PSECURITY_DESCRIPTOR parent, PSECURITY_DESCRIPTOR creator, PSECURITY_DESCRIPTOR *out,
+    BOOL is_container, HANDLE token, PGENERIC_MAPPING mapping)
+{
+    return CreatePrivateObjectSecurityEx(parent, creator, out, NULL, is_container, 0, token, mapping);
 }
 
 BOOL WINAPI CreatePrivateObjectSecurityWithMultipleInheritance(
@@ -5304,7 +5357,7 @@ BOOL WINAPI CreatePrivateObjectSecurityWithMultipleInheritance(
     GUID **types, ULONG count, BOOL is_container, ULONG flags, HANDLE token, PGENERIC_MAPPING mapping)
 {
     FIXME(": semi-stub\n");
-    return CreatePrivateObjectSecurity(parent, creator, out, is_container, token, mapping);
+    return CreatePrivateObjectSecurityEx(parent, creator, out, NULL, is_container, flags, token, mapping);
 }
 
 BOOL WINAPI DestroyPrivateObjectSecurity( PSECURITY_DESCRIPTOR* ObjectDescriptor )

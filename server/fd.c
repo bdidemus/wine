@@ -83,6 +83,11 @@
 #endif
 #include <sys/stat.h>
 #include <sys/time.h>
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#elif defined(MAJOR_IN_SYSMACROS)
+#include <sys/sysmacros.h>
+#endif
 #include <sys/types.h>
 #include <unistd.h>
 #ifdef HAVE_SYS_SYSCALL_H
@@ -574,8 +579,8 @@ static inline void set_fd_epoll_events( struct fd *fd, int user, int events )
 
     if (kqueue_fd == -1) return;
 
-    EV_SET( &ev[0], fd->unix_fd, EVFILT_READ, 0, NOTE_LOWAT, 1, (void *)user );
-    EV_SET( &ev[1], fd->unix_fd, EVFILT_WRITE, 0, NOTE_LOWAT, 1, (void *)user );
+    EV_SET( &ev[0], fd->unix_fd, EVFILT_READ, 0, NOTE_LOWAT, 1, (void *)(long)user );
+    EV_SET( &ev[1], fd->unix_fd, EVFILT_WRITE, 0, NOTE_LOWAT, 1, (void *)(long)user );
 
     if (events == -1)  /* stop waiting on this fd completely */
     {

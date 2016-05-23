@@ -3035,6 +3035,9 @@ static BOOL MENU_TrackMenu( HMENU hmenu, UINT wFlags, INT x, INT y,
     capture_win = (wFlags & TPM_POPUPMENU) ? menu->hWnd : mt.hOwnerWnd;
     set_capture_window( capture_win, GUI_INMENUMODE, NULL );
 
+    if ((wFlags & TPM_POPUPMENU) && menu->nItems == 0)
+        return FALSE;
+
     __TRY while (!fEndMenu)
     {
 	menu = MENU_GetMenu( mt.hCurrentMenu );

@@ -21,6 +21,7 @@
 
 #include <stdarg.h>
 
+#define WINE_NO_INLINE_RECT
 #include "windef.h"
 #include "winbase.h"
 #include "wingdi.h"
@@ -1483,7 +1484,7 @@ INT WINAPI FrameRect( HDC hdc, const RECT *rect, HBRUSH hbrush )
     HBRUSH prevBrush;
     RECT r = *rect;
 
-    if ( (r.right <= r.left) || (r.bottom <= r.top) ) return 0;
+    if (IsRectEmpty(&r)) return 0;
     if (!(prevBrush = SelectObject( hdc, hbrush ))) return 0;
 
     PatBlt( hdc, r.left, r.top, 1, r.bottom - r.top, PATCOPY );

@@ -424,9 +424,7 @@ static void test_device_caps( HDC hdc, HDC ref_dc, const char *descr, int scale 
         else
             ok( ret || broken(!ret) /* NT4 */, "GetDeviceGammaRamp failed on %s (type %d), error %u\n", descr, GetObjectType( hdc ), GetLastError() );
         type = GetClipBox( hdc, &rect );
-        if (GetObjectType( hdc ) == OBJ_ENHMETADC)
-            todo_wine ok( type == SIMPLEREGION, "GetClipBox returned %d on memdc for %s\n", type, descr );
-        else
+        todo_wine_if (GetObjectType( hdc ) == OBJ_ENHMETADC)
             ok( type == SIMPLEREGION, "GetClipBox returned %d on memdc for %s\n", type, descr );
 
         type = GetBoundsRect( hdc, &rect, 0 );
@@ -443,12 +441,7 @@ static void test_device_caps( HDC hdc, HDC ref_dc, const char *descr, int scale 
         SetMapMode( hdc, MM_TEXT );
         Rectangle( hdc, 2, 2, 4, 4 );
         type = GetBoundsRect( hdc, &rect, DCB_RESET );
-        if (GetObjectType( hdc ) == OBJ_ENHMETADC || (GetObjectType( hdc ) == OBJ_DC && GetDeviceCaps( hdc, TECHNOLOGY ) == DT_RASPRINTER))
-            todo_wine
-            ok( rect.left == 2 && rect.top == 2 && rect.right == 4 && rect.bottom == 4 && type == DCB_SET,
-                "GetBoundsRect returned %d,%d,%d,%d type %x for %s\n",
-                rect.left, rect.top, rect.right, rect.bottom, type, descr );
-        else
+        todo_wine_if (GetObjectType( hdc ) == OBJ_ENHMETADC || (GetObjectType( hdc ) == OBJ_DC && GetDeviceCaps( hdc, TECHNOLOGY ) == DT_RASPRINTER))
             ok( rect.left == 2 && rect.top == 2 && rect.right == 4 && rect.bottom == 4 && type == DCB_SET,
                 "GetBoundsRect returned %d,%d,%d,%d type %x for %s\n",
                 rect.left, rect.top, rect.right, rect.bottom, type, descr );
@@ -462,20 +455,12 @@ static void test_device_caps( HDC hdc, HDC ref_dc, const char *descr, int scale 
         ok( type == SIMPLEREGION, "GetClipBox returned %d on %s\n", type, descr );
         if (GetDeviceCaps( ref_dc, TECHNOLOGY ) == DT_RASDISPLAY)
         {
-            if (GetSystemMetrics( SM_CXSCREEN ) != GetSystemMetrics( SM_CXVIRTUALSCREEN ))
-                todo_wine ok( GetDeviceCaps( ref_dc, DESKTOPHORZRES ) == GetSystemMetrics( SM_CXSCREEN ),
-                              "Got DESKTOPHORZRES %d on %s, expected %d\n",
-                              GetDeviceCaps( ref_dc, DESKTOPHORZRES ), descr, GetSystemMetrics( SM_CXSCREEN ) );
-            else
+            todo_wine_if (GetSystemMetrics( SM_CXSCREEN ) != GetSystemMetrics( SM_CXVIRTUALSCREEN ))
                 ok( GetDeviceCaps( ref_dc, DESKTOPHORZRES ) == GetSystemMetrics( SM_CXSCREEN ),
                     "Got DESKTOPHORZRES %d on %s, expected %d\n",
                     GetDeviceCaps( ref_dc, DESKTOPHORZRES ), descr, GetSystemMetrics( SM_CXSCREEN ) );
 
-            if (GetSystemMetrics( SM_CYSCREEN ) != GetSystemMetrics( SM_CYVIRTUALSCREEN ))
-                todo_wine ok( GetDeviceCaps( ref_dc, DESKTOPVERTRES ) == GetSystemMetrics( SM_CYSCREEN ),
-                              "Got DESKTOPVERTRES %d on %s, expected %d\n",
-                              GetDeviceCaps( ref_dc, DESKTOPVERTRES ), descr, GetSystemMetrics( SM_CYSCREEN ) );
-            else
+            todo_wine_if (GetSystemMetrics( SM_CYSCREEN ) != GetSystemMetrics( SM_CYVIRTUALSCREEN ))
                 ok( GetDeviceCaps( ref_dc, DESKTOPVERTRES ) == GetSystemMetrics( SM_CYSCREEN ),
                     "Got DESKTOPVERTRES %d on %s, expected %d\n",
                     GetDeviceCaps( ref_dc, DESKTOPVERTRES ), descr, GetSystemMetrics( SM_CYSCREEN ) );
@@ -490,11 +475,8 @@ static void test_device_caps( HDC hdc, HDC ref_dc, const char *descr, int scale 
                      GetDeviceCaps( ref_dc, DESKTOPVERTRES ) );
         }
 
-        if (GetDeviceCaps( ref_dc, TECHNOLOGY ) == DT_RASDISPLAY && GetObjectType( hdc ) != OBJ_ENHMETADC &&
+        todo_wine_if (GetDeviceCaps( ref_dc, TECHNOLOGY ) == DT_RASDISPLAY && GetObjectType( hdc ) != OBJ_ENHMETADC &&
             (GetSystemMetrics( SM_XVIRTUALSCREEN ) || GetSystemMetrics( SM_YVIRTUALSCREEN )))
-            todo_wine ok( EqualRect( &rect, &ref_rect ), "GetClipBox returned %d,%d,%d,%d on %s\n",
-                          rect.left, rect.top, rect.right, rect.bottom, descr );
-        else
             ok( EqualRect( &rect, &ref_rect ), "GetClipBox returned %d,%d,%d,%d on %s\n",
                 rect.left, rect.top, rect.right, rect.bottom, descr );
     }
@@ -830,7 +812,6 @@ static void test_DeleteDC(void)
     ok(ret, "UnregisterClassA failed\n");
 
     ret = GetObjectType(hdc_test);
-todo_wine
     ok(!ret, "GetObjectType should fail for a deleted DC\n");
 
     /* CS_OWNDC */
@@ -909,7 +890,7 @@ static void test_boundsrect(void)
     ret = GetBoundsRect(hdc, &rect, 0);
     ok(ret == DCB_RESET,
        "Expected GetBoundsRect to return DCB_RESET, got %u\n", ret);
-    SetRect(&expect, 0, 0, 0, 0);
+    SetRectEmpty(&expect);
     ok(EqualRect(&rect, &expect) ||
        broken(EqualRect(&rect, &set_rect)), /* nt4 sp1-5 */
        "Expected output rectangle (0,0)-(0,0), got (%d,%d)-(%d,%d)\n",
@@ -1004,7 +985,7 @@ static void test_boundsrect(void)
        "GetBoundsRect returned %x\n", ret);
     if (ret == DCB_RESET)
     {
-        SetRect(&expect, 0, 0, 0, 0);
+        SetRectEmpty(&expect);
         ok(EqualRect(&rect, &expect), "Got (%d,%d)-(%d,%d)\n",
            rect.left, rect.top, rect.right, rect.bottom);
 
@@ -1013,7 +994,7 @@ static void test_boundsrect(void)
         ok(ret == (DCB_RESET | DCB_DISABLE), "SetBoundsRect returned %x\n", ret);
         ret = GetBoundsRect(hdc, &rect, 0);
         ok(ret == DCB_RESET, "GetBoundsRect returned %x\n", ret);
-        SetRect(&expect, 0, 0, 0, 0);
+        SetRectEmpty(&expect);
         ok(EqualRect(&rect, &expect), "Got (%d,%d)-(%d,%d)\n",
            rect.left, rect.top, rect.right, rect.bottom);
     }

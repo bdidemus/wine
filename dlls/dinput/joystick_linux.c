@@ -65,9 +65,9 @@
 #include "device_private.h"
 #include "joystick_private.h"
 
-WINE_DEFAULT_DEBUG_CHANNEL(dinput);
-
 #ifdef HAVE_LINUX_22_JOYSTICK_API
+
+WINE_DEFAULT_DEBUG_CHANNEL(dinput);
 
 #define JOYDEV_NEW "/dev/input/js"
 #define JOYDEV_OLD "/dev/js"
@@ -163,7 +163,7 @@ static INT find_joystick_devices(void)
 #ifdef JSIOCGAXES
         if (ioctl(fd, JSIOCGAXES, &joydev.axis_count) < 0)
         {
-            WARN("ioctl(%s,JSIOCGAXES) failed: %s, defauting to 2\n", joydev.device, strerror(errno));
+            WARN("ioctl(%s,JSIOCGAXES) failed: %s, defaulting to 2\n", joydev.device, strerror(errno));
             joydev.axis_count = 2;
         }
 #else
@@ -173,7 +173,7 @@ static INT find_joystick_devices(void)
 #ifdef JSIOCGBUTTONS
         if (ioctl(fd, JSIOCGBUTTONS, &joydev.button_count) < 0)
         {
-            WARN("ioctl(%s,JSIOCGBUTTONS) failed: %s, defauting to 2\n", joydev.device, strerror(errno));
+            WARN("ioctl(%s,JSIOCGBUTTONS) failed: %s, defaulting to 2\n", joydev.device, strerror(errno));
             joydev.button_count = 2;
         }
 #else

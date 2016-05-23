@@ -85,38 +85,28 @@ static inline void _test_items_ok(LPCWSTR string, DWORD cchString,
         winetest_win_skip("This test broken on this platform\n");
         return;
     }
-    if (nItemsToDo)
-        todo_wine winetest_ok(outnItems == nItems, "Wrong number of items\n");
-    else
+    todo_wine_if (nItemsToDo)
         winetest_ok(outnItems == nItems, "Wrong number of items\n");
     for (x = 0; x <= outnItems; x++)
     {
         if (items[x].isBroken && broken(outpItems[x].iCharPos == items[x].broken_value[0]))
             winetest_win_skip("This test broken on this platform\n");
-        else if (items[x].todo_flag[0])
-            todo_wine winetest_ok(outpItems[x].iCharPos == items[x].iCharPos, "%i:Wrong CharPos\n",x);
-        else
+        else todo_wine_if (items[x].todo_flag[0])
             winetest_ok(outpItems[x].iCharPos == items[x].iCharPos, "%i:Wrong CharPos (%i)\n",x,outpItems[x].iCharPos);
 
         if (items[x].isBroken && broken(outpItems[x].a.fRTL== items[x].broken_value[1]))
             winetest_win_skip("This test broken on this platform\n");
-        else if (items[x].todo_flag[1])
-            todo_wine winetest_ok(outpItems[x].a.fRTL == items[x].fRTL, "%i:Wrong fRTL\n",x);
-        else
+        else todo_wine_if (items[x].todo_flag[1])
             winetest_ok(outpItems[x].a.fRTL == items[x].fRTL, "%i:Wrong fRTL(%i)\n",x,outpItems[x].a.fRTL);
 
         if (items[x].isBroken && broken(outpItems[x].a.fLayoutRTL == items[x].broken_value[2]))
             winetest_win_skip("This test broken on this platform\n");
-        else if (items[x].todo_flag[2])
-            todo_wine winetest_ok(outpItems[x].a.fLayoutRTL == items[x].fLayoutRTL, "%i:Wrong fLayoutRTL\n",x);
-        else
+        else todo_wine_if (items[x].todo_flag[2])
             winetest_ok(outpItems[x].a.fLayoutRTL == items[x].fLayoutRTL, "%i:Wrong fLayoutRTL(%i)\n",x,outpItems[x].a.fLayoutRTL);
 
         if (items[x].isBroken && broken(outpItems[x].a.s.uBidiLevel == items[x].broken_value[3]))
             winetest_win_skip("This test broken on this platform\n");
-        else if (items[x].todo_flag[3])
-            todo_wine winetest_ok(outpItems[x].a.s.uBidiLevel == items[x].uBidiLevel, "%i:Wrong BidiLevel\n",x);
-        else
+        else todo_wine_if (items[x].todo_flag[3])
             winetest_ok(outpItems[x].a.s.uBidiLevel == items[x].uBidiLevel, "%i:Wrong BidiLevel(%i)\n",x,outpItems[x].a.s.uBidiLevel);
         if (x != outnItems)
             winetest_ok(outpItems[x].a.eScript != SCRIPT_UNDEFINED, "%i: Undefined script\n",x);
@@ -124,17 +114,13 @@ static inline void _test_items_ok(LPCWSTR string, DWORD cchString,
         {
             if (items[x].isBroken && broken(tags[x] == items[x].broken_value[4]))
                 winetest_win_skip("This test broken on this platform\n");
-            else if (items[x].todo_flag[4])
-                todo_wine winetest_ok(tags[x] == items[x].scriptTag,"%i:Incorrect Script Tag %x != %x\n",x,tags[x],items[x].scriptTag);
-            else
+            else todo_wine_if (items[x].todo_flag[4])
                 winetest_ok(tags[x] == items[x].scriptTag,"%i:Incorrect Script Tag %x != %x\n",x,tags[x],items[x].scriptTag);
         }
 
         if (items[x].isBroken && broken(outpItems[x].a.s.fOverrideDirection == items[x].broken_value[5]))
             winetest_win_skip("This test broken on this platform\n");
-        else if (items[x].todo_flag[5])
-            todo_wine winetest_ok(outpItems[x].a.s.fOverrideDirection == items[x].fOverrideDirection, "%i:Wrong fOverrideDirection\n",x);
-        else
+        else todo_wine_if (items[x].todo_flag[5])
             winetest_ok(outpItems[x].a.s.fOverrideDirection == items[x].fOverrideDirection, "%i:Wrong fOverrideDirection(%i)\n",x,outpItems[x].a.s.fOverrideDirection);
     }
 }
@@ -577,6 +563,11 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
                                 {{0,0,0,0,0,0},2,0,1,0,1,0,FALSE},
                                 {{0,0,0,0,0,0},8,0,0,0,0,-1,FALSE}};
 
+    /* ZWNJ */
+    static const WCHAR test56[] = {0x0645, 0x06cc, 0x200c, 0x06a9, 0x0646, 0x0645}; /* می‌کنم */
+    static const itemTest t561[] = {{{0,0,0,0,0,0},0,1,1,1,0,arab_tag,FALSE},{{0,0,0,0,0,0},6,0,0,0,0,-1,FALSE}};
+    static const itemTest t562[] = {{{0,0,0,0,0,0},0,0,0,0,1,arab_tag,FALSE},{{0,0,0,0,0,0},6,0,0,0,0,-1,FALSE}};
+
     SCRIPT_ITEM items[15];
     SCRIPT_CONTROL  Control;
     SCRIPT_STATE    State;
@@ -657,6 +648,7 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
     test_items_ok(test45,24,NULL,NULL,1,t451,FALSE,0);
     test_items_ok(test46,16,NULL,NULL,1,t461,FALSE,0);
     test_items_ok(test47,26,NULL,NULL,1,t471,FALSE,0);
+    test_items_ok(test56,6,NULL,NULL,1,t561,FALSE,0);
 
     State.uBidiLevel = 0;
     test_items_ok(test1,4,&Control,&State,1,t11,FALSE,0);
@@ -719,6 +711,7 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
     test_items_ok(test53,8,&Control,&State,4,t531,FALSE,0);
     test_items_ok(test54,7,&Control,&State,2,t541,FALSE,0);
     test_items_ok(test55,8,&Control,&State,2,t551,FALSE,0);
+    test_items_ok(test56,6,&Control,&State,1,t561,FALSE,0);
 
     State.uBidiLevel = 1;
     test_items_ok(test1,4,&Control,&State,1,t12,FALSE,0);
@@ -773,6 +766,7 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
     test_items_ok(test45,24,&Control,&State,1,t452,FALSE,0);
     test_items_ok(test46,16,&Control,&State,1,t462,FALSE,0);
     test_items_ok(test47,26,&Control,&State,1,t472,FALSE,0);
+    test_items_ok(test56,6,&Control,&State,1,t561,FALSE,0);
 
     State.uBidiLevel = 1;
     Control.fMergeNeutralItems = TRUE;
@@ -828,6 +822,7 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
     test_items_ok(test45,24,&Control,&State,1,t452,FALSE,0);
     test_items_ok(test46,16,&Control,&State,1,t462,FALSE,0);
     test_items_ok(test47,26,&Control,&State,1,t472,FALSE,0);
+    test_items_ok(test56,6,&Control,&State,1,t561,FALSE,0);
 
     State.uBidiLevel = 0;
     Control.fMergeNeutralItems = FALSE;
@@ -892,6 +887,7 @@ static const itemTest t74[4] = {{{0,0,0,0,0,0},0,0,0,0,1,latn_tag,FALSE},
     test_items_ok(test53,8,&Control,&State,4,t532,FALSE,0);
     test_items_ok(test54,7,&Control,&State,2,t542,FALSE,0);
     test_items_ok(test55,8,&Control,&State,2,t552,FALSE,0);
+    test_items_ok(test56,6,&Control,&State,1,t562,FALSE,0);
 }
 
 static inline void _test_shape_ok(int valid, HDC hdc, LPCWSTR string,
@@ -1746,6 +1742,19 @@ static void test_ScriptPlace(HDC hdc)
     hr = ScriptPlace(hdc, &sc, glyphs, 4, attrs, &items[0].a, widths, offset, NULL);
     ok(hr == S_OK, "ScriptPlace should return S_OK not %08x\n", hr);
     ok(items[0].a.fNoGlyphIndex == FALSE, "fNoGlyphIndex TRUE\n");
+
+    if (widths[0] != 0)
+    {
+        int old_width = widths[0];
+        attrs[0].fZeroWidth = 1;
+
+        hr = ScriptPlace(hdc, &sc, glyphs, 4, attrs, &items[0].a, widths, offset, NULL);
+        ok(hr == S_OK, "ScriptPlace should return S_OK not %08x\n", hr);
+        ok(widths[0] == 0, "got width %d\n", widths[0]);
+        widths[0] = old_width;
+    }
+    else
+        skip("Glyph already has zero-width - skipping fZeroWidth test\n");
 
     ret = ExtTextOutW(hdc, 1, 1, 0, NULL, glyphs, 4, widths);
     ok(ret, "ExtTextOutW should return TRUE\n");

@@ -304,9 +304,7 @@ static void test_conversion(const struct bitmap_data *src, const struct bitmap_d
     CreateTestBitmap(src, &src_obj);
 
     hr = WICConvertBitmapSource(dst->format, &src_obj->IWICBitmapSource_iface, &dst_bitmap);
-    if (todo)
-        todo_wine ok(SUCCEEDED(hr), "WICConvertBitmapSource(%s) failed, hr=%x\n", name, hr);
-    else
+    todo_wine_if (todo)
         ok(SUCCEEDED(hr), "WICConvertBitmapSource(%s) failed, hr=%x\n", name, hr);
 
     if (SUCCEEDED(hr))
@@ -495,7 +493,7 @@ static void test_encoder_properties(const CLSID* clsid_encoder, IPropertyBag2 *o
         if (FAILED(hr))
             return;
 
-        ok(cProperties == cProperties2, "Missmatch of property count (IPropertyBag2::CountProperties=%i, IPropertyBag2::GetPropertyInfo=%i)\n",
+        ok(cProperties == cProperties2, "Mismatch of property count (IPropertyBag2::CountProperties=%i, IPropertyBag2::GetPropertyInfo=%i)\n",
            (int)cProperties, (int)cProperties2);
     }
 

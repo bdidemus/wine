@@ -3185,7 +3185,7 @@ static void depth_clamp_test(void)
     ok(SUCCEEDED(hr), "BeginScene failed, hr %#x.\n", hr);
 
     hr = IDirect3DDevice8_SetVertexShader(device, D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-    ok(SUCCEEDED(hr), "SetVertexSahder failed, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "SetVertexShader failed, hr %#x.\n", hr);
 
     hr = IDirect3DDevice8_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, quad1, sizeof(*quad1));
     ok(SUCCEEDED(hr), "DrawPrimitiveUP failed, hr %#x.\n", hr);
@@ -5829,10 +5829,7 @@ static void test_fog_interpolation(void)
         color = getPixelColor(device, 0, 240);
         ok(color_match(color, 0x000000ff, 2), "Got unexpected color 0x%08x, case %u.\n", color, i);
         color = getPixelColor(device, 320, 240);
-        if (tests[i].todo)
-            todo_wine ok(color_match(color, tests[i].middle_color, 2),
-                    "Got unexpected color 0x%08x, case %u.\n", color, i);
-        else
+        todo_wine_if (tests[i].todo)
             ok(color_match(color, tests[i].middle_color, 2),
                     "Got unexpected color 0x%08x, case %u.\n", color, i);
         color = getPixelColor(device, 639, 240);
@@ -8044,9 +8041,9 @@ static void test_flip(void)
 
     /* Contents were changed. */
     color = get_surface_color(back_buffers[0], 1, 1);
-    todo_wine ok(color == 0xff00ff00, "Got unexpected color 0x%08x.\n", color);
+    ok(color == 0xff00ff00, "Got unexpected color 0x%08x.\n", color);
     color = get_surface_color(back_buffers[1], 1, 1);
-    todo_wine ok(color == 0xff0000ff, "Got unexpected color 0x%08x.\n", color);
+    ok(color == 0xff0000ff, "Got unexpected color 0x%08x.\n", color);
 
     hr = IDirect3DDevice8_Clear(device, 0, NULL, D3DCLEAR_TARGET, 0xff808080, 0.0f, 0);
     ok(SUCCEEDED(hr), "Failed to clear, hr %#x\n", hr);
@@ -8055,21 +8052,66 @@ static void test_flip(void)
     ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
 
     color = get_surface_color(back_buffers[0], 1, 1);
-    todo_wine ok(color == 0xff0000ff, "Got unexpected color 0x%08x.\n", color);
+    ok(color == 0xff0000ff, "Got unexpected color 0x%08x.\n", color);
     color = get_surface_color(back_buffers[1], 1, 1);
-    todo_wine ok(color == 0xff808080, "Got unexpected color 0x%08x.\n", color);
+    ok(color == 0xff808080, "Got unexpected color 0x%08x.\n", color);
 
     hr = IDirect3DDevice8_Present(device, NULL, NULL, NULL, NULL);
     ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
 
     color = get_surface_color(back_buffers[0], 1, 1);
-    todo_wine ok(color == 0xff808080, "Got unexpected color 0x%08x.\n", color);
+    ok(color == 0xff808080, "Got unexpected color 0x%08x.\n", color);
 
     for (i = 0; i < sizeof(back_buffers) / sizeof(*back_buffers); ++i)
         IDirect3DSurface8_Release(back_buffers[i]);
 
     refcount = IDirect3DDevice8_Release(device);
     ok(!refcount, "Device has %u references left.\n", refcount);
+
+    if (FAILED(IDirect3D8_CheckDeviceMultiSampleType(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            D3DFMT_A8R8G8B8, TRUE, D3DMULTISAMPLE_2_SAMPLES)))
+    {
+        skip("Multisampling not supported for D3DFMT_A8R8G8B8, skipping multisample flip test.\n");
+        goto done;
+    }
+
+    present_parameters.BackBufferCount = 2;
+    present_parameters.MultiSampleType = D3DMULTISAMPLE_2_SAMPLES;
+    present_parameters.Flags = 0;
+    hr = IDirect3D8_CreateDevice(d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+            window, D3DCREATE_SOFTWARE_VERTEXPROCESSING, &present_parameters, &device);
+
+    for (i = 0; i < present_parameters.BackBufferCount; ++i)
+    {
+        hr = IDirect3DDevice8_GetBackBuffer(device, i, D3DBACKBUFFER_TYPE_MONO, &back_buffers[i]);
+        ok(SUCCEEDED(hr), "Failed to get back buffer, hr %#x.\n", hr);
+    }
+
+    hr = IDirect3DDevice8_SetRenderTarget(device, back_buffers[1], NULL);
+    ok(SUCCEEDED(hr), "Failed to set render target, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_Clear(device, 0, NULL, D3DCLEAR_TARGET, 0xff808080, 0.0f, 0);
+    ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
+
+    hr = IDirect3DDevice8_Present(device, NULL, NULL, NULL, NULL);
+    ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
+
+    hr = IDirect3DDevice8_CreateRenderTarget(device, 640, 480, D3DFMT_A8R8G8B8,
+            D3DMULTISAMPLE_NONE, TRUE, &test_surface);
+    ok(SUCCEEDED(hr), "Failed to create surface, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_CopyRects(device, back_buffers[0], NULL, 0, test_surface, NULL);
+    ok(SUCCEEDED(hr), "CopyRects failed, hr %#x.\n", hr);
+
+    color = get_surface_color(test_surface, 1, 1);
+    ok(color == 0xff808080, "Got unexpected color 0x%08x.\n", color);
+
+    IDirect3DSurface8_Release(test_surface);
+    for (i = 0; i < present_parameters.BackBufferCount; ++i)
+        IDirect3DSurface8_Release(back_buffers[i]);
+
+    refcount = IDirect3DDevice8_Release(device);
+    ok(!refcount, "Device has %u references left.\n", refcount);
+
+done:
     IDirect3D8_Release(d3d);
     DestroyWindow(window);
 }
@@ -9134,6 +9176,182 @@ done:
     DestroyWindow(window);
 }
 
+static void test_color_clamping(void)
+{
+    static const D3DMATRIX mat =
+    {{{
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f,
+    }}};
+    static const struct vec3 quad[] =
+    {
+        {-1.0f, -1.0f, 0.1f},
+        {-1.0f,  1.0f, 0.1f},
+        { 1.0f, -1.0f, 0.1f},
+        { 1.0f,  1.0f, 0.1f},
+    };
+    static const DWORD decl[] =
+    {
+        D3DVSD_STREAM(0),
+        D3DVSD_REG(D3DVSDE_POSITION, D3DVSDT_FLOAT3),
+        D3DVSD_CONST(0, 1), 0x3f800000, 0x3f800000, 0x3f800000, 0x3f800000,     /* def c0, 1.0, 1.0, 1.0, 1.0 */
+        D3DVSD_END()
+    };
+    static const DWORD vs1_code[] =
+    {
+        0xfffe0101,                                                             /* vs_1_1                         */
+        0x00000001, 0xc00f0000, 0x90e40000,                                     /* mov oPos, v0                   */
+        0x00000002, 0xd00f0000, 0xa0e40000, 0xa0e40000,                         /* add oD0, c0, c0                */
+        0x00000002, 0xd00f0001, 0xa0e40000, 0xa0e40000,                         /* add oD1, c0, c0                */
+        0x0000ffff
+    };
+    static const DWORD ps1_code[] =
+    {
+        0xffff0101,                                                             /* ps_1_1                         */
+        0x00000051, 0xa00f0000, 0x3e800000, 0x3e800000, 0x3e800000, 0x3e800000, /* def c0, 0.25, 0.25, 0.25, 0.25 */
+        0x00000002, 0x800f0000, 0x90e40000, 0x90e40001,                         /* add r0, v0, v1                 */
+        0x00000005, 0x800f0000, 0x80e40000, 0xa0e40000,                         /* mul r0, r0, c0                 */
+        0x0000ffff
+    };
+    static const struct
+    {
+        DWORD vs_version;
+        const DWORD *vs;
+        DWORD ps_version;
+        const DWORD *ps;
+        D3DCOLOR expected, broken;
+    }
+    tests[] =
+    {
+        {0, NULL, 0, NULL, 0x00404040},
+        {0, NULL, D3DPS_VERSION(1, 1), ps1_code, 0x00404040, 0x00808080},
+        {D3DVS_VERSION(1, 1), vs1_code, 0, NULL, 0x00404040},
+        {D3DVS_VERSION(1, 1), vs1_code, D3DPS_VERSION(1, 1), ps1_code, 0x007f7f7f},
+    };
+    IDirect3DDevice8 *device;
+    IDirect3D8 *d3d;
+    unsigned int i;
+    ULONG refcount;
+    D3DCOLOR color;
+    D3DCAPS8 caps;
+    DWORD vs, ps;
+    HWND window;
+    HRESULT hr;
+
+    window = CreateWindowA("static", "d3d8_test", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+            0, 0, 640, 480, NULL, NULL, NULL, NULL);
+    d3d = Direct3DCreate8(D3D_SDK_VERSION);
+    ok(!!d3d, "Failed to create a D3D object.\n");
+    if (!(device = create_device(d3d, window, window, TRUE)))
+    {
+        skip("Failed to create a D3D device, skipping tests.\n");
+        IDirect3D8_Release(d3d);
+        DestroyWindow(window);
+        return;
+    }
+
+    hr = IDirect3DDevice8_GetDeviceCaps(device, &caps);
+    ok(SUCCEEDED(hr), "Failed to get caps, hr %#x.\n", hr);
+
+    hr = IDirect3DDevice8_SetTransform(device, D3DTS_WORLD, &mat);
+    ok(SUCCEEDED(hr), "Failed to set world transform, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTransform(device, D3DTS_VIEW, &mat);
+    ok(SUCCEEDED(hr), "Failed to set view transform, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTransform(device, D3DTS_PROJECTION, &mat);
+    ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_CLIPPING, FALSE);
+    ok(SUCCEEDED(hr), "Failed to disable clipping, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_ZENABLE, FALSE);
+    ok(SUCCEEDED(hr), "Failed to disable Z test, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_FOGENABLE, FALSE);
+    ok(SUCCEEDED(hr), "Failed to disable fog, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_STENCILENABLE, FALSE);
+    ok(SUCCEEDED(hr), "Failed to disable stencil test, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_CULLMODE, D3DCULL_NONE);
+    ok(SUCCEEDED(hr), "Failed to disable culling, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_LIGHTING, FALSE);
+    ok(SUCCEEDED(hr), "Failed to disable lighting, hr %#x.\n", hr);
+
+    hr = IDirect3DDevice8_SetRenderState(device, D3DRS_TEXTUREFACTOR, 0xff404040);
+    ok(SUCCEEDED(hr), "Failed to set texture factor, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 0, D3DTSS_COLOROP, D3DTOP_ADD);
+    ok(SUCCEEDED(hr), "Failed to set color op, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 0, D3DTSS_COLORARG1, D3DTA_DIFFUSE);
+    ok(SUCCEEDED(hr), "Failed to set color arg, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 0, D3DTSS_COLORARG2, D3DTA_SPECULAR);
+    ok(SUCCEEDED(hr), "Failed to set color arg, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 1, D3DTSS_COLOROP, D3DTOP_MODULATE);
+    ok(SUCCEEDED(hr), "Failed to set color op, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 1, D3DTSS_COLORARG1, D3DTA_TFACTOR);
+    ok(SUCCEEDED(hr), "Failed to set color arg, hr %#x.\n", hr);
+    hr = IDirect3DDevice8_SetTextureStageState(device, 1, D3DTSS_COLORARG2, D3DTA_CURRENT);
+    ok(SUCCEEDED(hr), "Failed to set color arg, hr %#x.\n", hr);
+
+    for (i = 0; i < sizeof(tests) / sizeof(tests[0]); ++i)
+    {
+        if (caps.VertexShaderVersion < tests[i].vs_version
+                || caps.PixelShaderVersion < tests[i].ps_version)
+        {
+            skip("Vertex / pixel shader version not supported, skipping test %u.\n", i);
+            continue;
+        }
+        if (tests[i].vs)
+        {
+            hr = IDirect3DDevice8_CreateVertexShader(device, decl, tests[i].vs, &vs, 0);
+            ok(SUCCEEDED(hr), "Failed to create vertex shader, hr %#x (case %u).\n", hr, i);
+        }
+        else
+        {
+            vs = D3DFVF_XYZ;
+        }
+        if (tests[i].ps)
+        {
+            hr = IDirect3DDevice8_CreatePixelShader(device, tests[i].ps, &ps);
+            ok(SUCCEEDED(hr), "Failed to create pixel shader, hr %#x (case %u).\n", hr, i);
+        }
+        else
+        {
+            ps = 0;
+        }
+
+        hr = IDirect3DDevice8_SetVertexShader(device, vs);
+        ok(SUCCEEDED(hr), "Failed to set vertex shader, hr %#x.\n", hr);
+        hr = IDirect3DDevice8_SetPixelShader(device, ps);
+        ok(SUCCEEDED(hr), "Failed to set pixel shader, hr %#x.\n", hr);
+
+        hr = IDirect3DDevice8_Clear(device, 0, NULL, D3DCLEAR_TARGET, 0xff00ff00, 0.0f, 0);
+        ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
+
+        hr = IDirect3DDevice8_BeginScene(device);
+        ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+
+        hr = IDirect3DDevice8_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
+        ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+
+        hr = IDirect3DDevice8_EndScene(device);
+        ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+
+        color = getPixelColor(device, 320, 240);
+        ok(color_match(color, tests[i].expected, 1) || broken(color_match(color, tests[i].broken, 1)),
+                "Got unexpected color 0x%08x, case %u.\n", color, i);
+
+        if (vs != D3DFVF_XYZ)
+            IDirect3DDevice8_DeleteVertexShader(device, vs);
+        if (ps)
+            IDirect3DDevice8_DeletePixelShader(device, ps);
+    }
+
+    hr = IDirect3DDevice8_Present(device, NULL, NULL, NULL, NULL);
+    ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
+
+    refcount = IDirect3DDevice8_Release(device);
+    ok(!refcount, "Device has %u references left.\n", refcount);
+    IDirect3D8_Release(d3d);
+    DestroyWindow(window);
+}
+
 START_TEST(visual)
 {
     D3DADAPTER_IDENTIFIER8 identifier;
@@ -9200,4 +9418,5 @@ START_TEST(visual)
     test_shademode();
     test_multisample_init();
     test_texture_blending();
+    test_color_clamping();
 }

@@ -1441,9 +1441,12 @@ done:
 static void test_user_memory_getdc(void)
 {
     IDirect3DDevice9Ex *device;
+    HBITMAP bitmap;
+    DIBSECTION dib;
     HWND window;
     HRESULT hr;
     ULONG ref;
+    int size;
     IDirect3DSurface9 *surface;
     DWORD *data;
     HDC dc;
@@ -1464,6 +1467,11 @@ static void test_user_memory_getdc(void)
 
     hr = IDirect3DSurface9_GetDC(surface, &dc);
     ok(SUCCEEDED(hr), "Failed to get dc, hr %#x.\n", hr);
+    bitmap = GetCurrentObject(dc, OBJ_BITMAP);
+    ok(!!bitmap, "Failed to get bitmap.\n");
+    size = GetObjectA(bitmap, sizeof(dib), &dib);
+    ok(size == sizeof(dib), "Got unexpected size %d.\n", size);
+    ok(dib.dsBm.bmBits == data, "Got unexpected bits %p, expected %p.\n", dib.dsBm.bmBits, data);
     BitBlt(dc, 0, 0, 16, 8, NULL, 0, 0, WHITENESS);
     BitBlt(dc, 0, 8, 16, 8, NULL, 0, 0, BLACKNESS);
     hr = IDirect3DSurface9_ReleaseDC(surface, dc);
@@ -2869,11 +2877,8 @@ static void test_window_style(void)
         ok(SUCCEEDED(hr), "Failed to reset device, hr %#x.\n", hr);
 
         style = GetWindowLongA(device_window, GWL_STYLE);
-        if (tests[i].style_flags & WS_VISIBLE)
+        todo_wine_if (!(tests[i].style_flags & WS_VISIBLE))
             ok(style == device_style, "Expected device window style %#x, got %#x, i=%u.\n",
-                    device_style, style, i);
-        else
-            todo_wine ok(style == device_style, "Expected device window style %#x, got %#x, i=%u.\n",
                     device_style, style, i);
         style = GetWindowLongA(device_window, GWL_EXSTYLE);
         todo_wine ok(style == device_exstyle, "Expected device window extended style %#x, got %#x, i=%u.\n",
@@ -2890,12 +2895,9 @@ static void test_window_style(void)
         ok(ref == 0, "The device was not properly freed: refcount %u.\n", ref);
 
         style = GetWindowLongA(device_window, GWL_STYLE);
-        if (device_style & WS_VISIBLE)
+        todo_wine_if (!(device_style & WS_VISIBLE))
             ok(style == device_style, "Expected device window style %#x, got %#x, i=%u.\n",
                 device_style, style, i);
-        else
-            todo_wine ok(style == device_style, "Expected device window style %#x, got %#x, i=%u.\n",
-                    device_style, style, i);
         style = GetWindowLongA(device_window, GWL_EXSTYLE);
         todo_wine ok(style == device_exstyle, "Expected device window extended style %#x, got %#x, i=%u.\n",
                 device_exstyle, style, i);

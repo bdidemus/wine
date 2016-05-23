@@ -592,15 +592,20 @@ PIRP WINAPI IoAllocateIrp( CCHAR stack_size, BOOLEAN charge_quota )
 {
     SIZE_T size;
     PIRP irp;
+    CCHAR loc_count = stack_size;
 
     TRACE( "%d, %d\n", stack_size, charge_quota );
 
-    size = sizeof(IRP) + stack_size * sizeof(IO_STACK_LOCATION);
+    if (loc_count < 8 && loc_count != 1)
+        loc_count = 8;
+
+    size = sizeof(IRP) + loc_count * sizeof(IO_STACK_LOCATION);
     irp = ExAllocatePool( NonPagedPool, size );
     if (irp == NULL)
         return NULL;
     IoInitializeIrp( irp, size, stack_size );
-    irp->AllocationFlags = IRP_ALLOCATED_FIXED_SIZE;
+    if (stack_size >= 1 && stack_size <= 8)
+        irp->AllocationFlags = IRP_ALLOCATED_FIXED_SIZE;
     if (charge_quota)
         irp->AllocationFlags |= IRP_LOOKASIDE_ALLOCATION;
     return irp;
@@ -1258,8 +1263,8 @@ NTSTATUS WINAPI IoReportResourceUsage(PUNICODE_STRING name, PDRIVER_OBJECT drv_o
                                       ULONG drv_size, PDRIVER_OBJECT dev_obj, PCM_RESOURCE_LIST dev_list,
                                       ULONG dev_size, BOOLEAN overwrite, PBOOLEAN detected)
 {
-    FIXME("(%s %p %p %u %p %p %u %d %p) stub\n", debugstr_w(name? name->Buffer : NULL),
-          drv_obj, drv_list, drv_size, dev_obj, dev_list, dev_size, overwrite, detected);
+    FIXME( "(%s, %p, %p, %u, %p, %p, %u, %d, %p): stub\n", debugstr_us(name),
+           drv_obj, drv_list, drv_size, dev_obj, dev_list, dev_size, overwrite, detected );
     return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -1412,6 +1417,34 @@ LONG WINAPI NTOSKRNL_InterlockedIncrement( LONG volatile *dest )
 #endif
 {
     return InterlockedIncrement( dest );
+}
+
+
+/***********************************************************************
+ *           InterlockedPopEntrySList   (NTOSKRNL.EXE.@)
+ */
+#ifdef DEFINE_FASTCALL1_ENTRYPOINT
+DEFINE_FASTCALL1_ENTRYPOINT( NTOSKRNL_InterlockedPopEntrySList )
+PSLIST_ENTRY WINAPI __regs_NTOSKRNL_InterlockedPopEntrySList( PSLIST_HEADER list )
+#else
+PSLIST_ENTRY WINAPI NTOSKRNL_InterlockedPopEntrySList( PSLIST_HEADER list )
+#endif
+{
+    return InterlockedPopEntrySList( list );
+}
+
+
+/***********************************************************************
+ *           InterlockedPushEntrySList   (NTOSKRNL.EXE.@)
+ */
+#ifdef DEFINE_FASTCALL2_ENTRYPOINT
+DEFINE_FASTCALL2_ENTRYPOINT( NTOSKRNL_InterlockedPushEntrySList )
+PSLIST_ENTRY WINAPI __regs_NTOSKRNL_InterlockedPushEntrySList( PSLIST_HEADER list, PSLIST_ENTRY entry )
+#else
+PSLIST_ENTRY WINAPI NTOSKRNL_InterlockedPushEntrySList( PSLIST_HEADER list, PSLIST_ENTRY entry )
+#endif
+{
+    return InterlockedPushEntrySList( list, entry );
 }
 
 
@@ -1957,13 +1990,6 @@ VOID WINAPI MmUnmapIoSpace( PVOID BaseAddress, SIZE_T NumberOfBytes )
     FIXME( "stub: %p, %lu\n", BaseAddress, NumberOfBytes );
 }
 
-/***********************************************************************
- *           ObfReferenceObject   (NTOSKRNL.EXE.@)
- */
-VOID WINAPI ObfReferenceObject(PVOID Object)
-{
-    FIXME("(%p): stub\n", Object);
-}
 
  /***********************************************************************
  *           ObReferenceObjectByHandle    (NTOSKRNL.EXE.@)
@@ -1993,17 +2019,32 @@ NTSTATUS WINAPI ObReferenceObjectByName( UNICODE_STRING *ObjectName,
     return STATUS_NOT_IMPLEMENTED;
 }
 
+
+/***********************************************************************
+ *           ObfReferenceObject   (NTOSKRNL.EXE.@)
+ */
+#ifdef DEFINE_FASTCALL1_ENTRYPOINT
+DEFINE_FASTCALL1_ENTRYPOINT( ObfReferenceObject )
+void WINAPI __regs_ObfReferenceObject( void *obj )
+#else
+void WINAPI ObfReferenceObject( void *obj )
+#endif
+{
+    FIXME( "(%p): stub\n", obj );
+}
+
+
 /***********************************************************************
  *           ObfDereferenceObject   (NTOSKRNL.EXE.@)
  */
 #ifdef DEFINE_FASTCALL1_ENTRYPOINT
 DEFINE_FASTCALL1_ENTRYPOINT( ObfDereferenceObject )
-void WINAPI __regs_ObfDereferenceObject( VOID *obj )
+void WINAPI __regs_ObfDereferenceObject( void *obj )
 #else
-void WINAPI ObfDereferenceObject( VOID *obj )
+void WINAPI ObfDereferenceObject( void *obj )
 #endif
 {
-    FIXME( "stub: %p\n", obj );
+    FIXME( "(%p): stub\n", obj );
 }
 
 
@@ -2109,6 +2150,16 @@ NTSTATUS WINAPI PsRemoveCreateThreadNotifyRoutine( PCREATE_THREAD_NOTIFY_ROUTINE
     FIXME( "stub: %p\n", NotifyRoutine );
     return STATUS_SUCCESS;
 }
+
+
+/***********************************************************************
+ *           PsRemoveLoadImageNotifyRoutine  (NTOSKRNL.EXE.@)
+ */
+ NTSTATUS WINAPI PsRemoveLoadImageNotifyRoutine(PLOAD_IMAGE_NOTIFY_ROUTINE NotifyRoutine)
+ {
+    FIXME( "stub: %p\n", NotifyRoutine );
+    return STATUS_SUCCESS;
+ }
 
 
 /***********************************************************************
@@ -2440,5 +2491,14 @@ NTSTATUS WINAPI CmRegisterCallback(EX_CALLBACK_FUNCTION *function, void *context
 NTSTATUS WINAPI CmUnRegisterCallback(LARGE_INTEGER cookie)
 {
     FIXME("(%s): stub\n", wine_dbgstr_longlong(cookie.QuadPart));
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/***********************************************************************
+ *           KeDelayExecutionThread  (NTOSKRNL.EXE.@)
+ */
+NTSTATUS WINAPI KeDelayExecutionThread(KPROCESSOR_MODE waitmode, BOOLEAN alertable, PLARGE_INTEGER interval)
+{
+    FIXME("(%u, %u, %p): stub\n", waitmode, alertable, interval);
     return STATUS_NOT_IMPLEMENTED;
 }

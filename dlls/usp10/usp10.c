@@ -300,7 +300,7 @@ static const scriptRange scriptRanges[] = {
     { SCRIPT_UNDEFINED,  0, 0, 0}
 };
 
-/* the must be in order so that the index matches the Script value */
+/* this must be in order so that the index matches the Script value */
 const scriptData scriptInformation[] = {
     {{SCRIPT_UNDEFINED, 0, 0, 0, 0, 0, 0, { 0,0,0,0,0,0,0,0,0,0,0}},
      {LANG_NEUTRAL, 0, 0, 0, 0, ANSI_CHARSET, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -741,7 +741,7 @@ static inline BOOL set_cache_font_properties(const HDC hdc, ScriptCache *sc)
         static const WCHAR chars[4] = {0x0020, 0x200B, 0xF71B, 0x0640};
         /* U+0020: numeric space
            U+200B: zero width space
-           U+F71B: unknow char found by black box testing
+           U+F71B: unknown char found by black box testing
            U+0640: kashida */
         WORD gi[4];
 
@@ -873,7 +873,7 @@ static HRESULT init_script_cache(const HDC hdc, SCRIPT_CACHE *psc)
 
 static WCHAR mirror_char( WCHAR ch )
 {
-    extern const WCHAR wine_mirror_map[];
+    extern const WCHAR wine_mirror_map[] DECLSPEC_HIDDEN;
     return ch + wine_mirror_map[wine_mirror_map[ch >> 8] + (ch & 0xff)];
 }
 
@@ -908,7 +908,7 @@ static WORD get_char_script( LPCWSTR str, INT index, INT end, INT *consumed)
     if (str[index] == 0x2212 || str[index] == 0x2044)
         return Script_Punctuation;
 
-    /* Currency Symboles by Unicode point */
+    /* Currency Symbols by Unicode point */
     switch (str[index])
     {
         case 0x09f2:
@@ -2292,8 +2292,8 @@ HRESULT WINAPI ScriptStringOut(SCRIPT_STRING_ANALYSIS ssa,
     int   item;
     HRESULT hr;
 
-    TRACE("(%p,%d,%d,0x%1x,%p,%d,%d,%d)\n",
-         ssa, iX, iY, uOptions, prc, iMinSel, iMaxSel, fDisabled);
+    TRACE("(%p,%d,%d,0x%08x,%s,%d,%d,%d)\n",
+         ssa, iX, iY, uOptions, wine_dbgstr_rect(prc), iMinSel, iMaxSel, fDisabled);
 
     if (!(analysis = ssa)) return E_INVALIDARG;
     if (!(analysis->dwFlags & SSA_GLYPHS)) return E_INVALIDARG;
@@ -2765,8 +2765,8 @@ static inline int get_cluster_advance(const int* piAdvance,
  *  use piAdvance to find the cluster we are looking at
  *  Find the character that is the first character of the cluster
  *  That is our base piCP
- *  If the script snaps to cluster boundries (Hebrew, Indic, Thai) then we
- *  are good Otherwise if the cluster is larger than 1 glyph we need to
+ *  If the script snaps to cluster boundaries (Hebrew, Indic, Thai) then we
+ *  are good. Otherwise if the cluster is larger than 1 glyph we need to
  *  determine how far through the cluster to advance the cursor.
  */
 HRESULT WINAPI ScriptXtoCP(int iX,
@@ -2955,7 +2955,7 @@ HRESULT WINAPI ScriptXtoCP(int iX,
  *
  *  PARAMS
  *   chars [I] Array of characters.
- *   sa    [I] String analysis.
+ *   sa    [I] Script analysis.
  *   la    [I] Array of logical attribute structures.
  *
  *  RETURNS
@@ -3259,7 +3259,7 @@ HRESULT WINAPI ScriptShape(HDC hdc, SCRIPT_CACHE *psc, const WCHAR *pwcChars,
  * PARAMS
  *  hdc       [I]   Device context.
  *  psc       [I/O] Opaque pointer to a script cache.
- *  psa       [I/O] String analysis.
+ *  psa       [I/O] Script analysis.
  *  tagScript   [I]   The OpenType tag for the Script
  *  tagLangSys  [I]   The OpenType tag for the Language
  *  rcRangeChars[I]   Array of Character counts in each range
@@ -3316,7 +3316,11 @@ HRESULT WINAPI ScriptPlaceOpenType( HDC hdc, SCRIPT_CACHE *psc, SCRIPT_ANALYSIS 
     for (i = 0; i < cGlyphs; i++)
     {
         ABC abc;
-        if (!get_cache_glyph_widths(psc, pwGlyphs[i], &abc))
+        if (pGlyphProps[i].sva.fZeroWidth)
+        {
+            abc.abcA = abc.abcB = abc.abcC = 0;
+        }
+        else if (!get_cache_glyph_widths(psc, pwGlyphs[i], &abc))
         {
             if (!hdc) return E_PENDING;
             if ((get_cache_pitch_family(psc) & TMPF_TRUETYPE) && !psa->fNoGlyphIndex)
@@ -3479,8 +3483,8 @@ HRESULT WINAPI ScriptTextOut(const HDC hdc, SCRIPT_CACHE *psc, int x, int y, UIN
     INT *lpDx;
     WORD *reordered_glyphs = (WORD *)pwGlyphs;
 
-    TRACE("(%p, %p, %d, %d, %04x, %p, %p, %p, %d, %p, %d, %p, %p, %p)\n",
-         hdc, psc, x, y, fuOptions, lprc, psa, pwcReserved, iReserved, pwGlyphs, cGlyphs,
+    TRACE("(%p, %p, %d, %d, %08x, %s, %p, %p, %d, %p, %d, %p, %p, %p)\n",
+         hdc, psc, x, y, fuOptions, wine_dbgstr_rect(lprc), psa, pwcReserved, iReserved, pwGlyphs, cGlyphs,
          piAdvance, piJustify, pGoffset);
 
     if (!hdc || !psc) return E_INVALIDARG;
@@ -3641,7 +3645,6 @@ HRESULT WINAPI ScriptLayout(int runs, const BYTE *level, int *vistolog, int *log
     if (!indexs)
         return E_OUTOFMEMORY;
 
-
     if (vistolog)
     {
         for( ich = 0; ich < runs; ich++)
@@ -3650,10 +3653,8 @@ HRESULT WINAPI ScriptLayout(int runs, const BYTE *level, int *vistolog, int *log
         ich = 0;
         while (ich < runs)
             ich += BIDI_ReorderV2lLevel(0, indexs+ich, level+ich, runs - ich, FALSE);
-        for (ich = 0; ich < runs; ich++)
-            vistolog[ich] = indexs[ich];
+        memcpy(vistolog, indexs, runs * sizeof(*vistolog));
     }
-
 
     if (logtovis)
     {
@@ -3663,8 +3664,7 @@ HRESULT WINAPI ScriptLayout(int runs, const BYTE *level, int *vistolog, int *log
         ich = 0;
         while (ich < runs)
             ich += BIDI_ReorderL2vLevel(0, indexs+ich, level+ich, runs - ich, FALSE);
-        for (ich = 0; ich < runs; ich++)
-            logtovis[ich] = indexs[ich];
+        memcpy(logtovis, indexs, runs * sizeof(*logtovis));
     }
     heap_free(indexs);
 

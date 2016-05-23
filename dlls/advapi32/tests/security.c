@@ -1411,6 +1411,164 @@ static void test_AccessCheck(void)
         GetLastError());
     trace("AccessCheck with MAXIMUM_ALLOWED got Access 0x%08x\n", Access);
 
+    /* Null PrivSet with null PrivSetLen pointer */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      NULL, NULL, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(!ret && err == ERROR_NOACCESS, "AccessCheck should have "
+       "failed with ERROR_NOACCESS, instead of %d\n", err);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Null PrivSet with zero PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = 0;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      0, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+todo_wine
+    ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+       "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Null PrivSet with insufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = 1;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      0, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(!ret && err == ERROR_NOACCESS, "AccessCheck should have "
+       "failed with ERROR_NOACCESS, instead of %d\n", err);
+    ok(PrivSetLen == 1, "PrivSetLen returns %d\n", PrivSetLen);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Null PrivSet with insufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = sizeof(PRIVILEGE_SET) - 1;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      0, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(!ret && err == ERROR_NOACCESS, "AccessCheck should have "
+       "failed with ERROR_NOACCESS, instead of %d\n", err);
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET) - 1, "PrivSetLen returns %d\n", PrivSetLen);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Null PrivSet with minimal sufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = sizeof(PRIVILEGE_SET);
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      0, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(!ret && err == ERROR_NOACCESS, "AccessCheck should have "
+       "failed with ERROR_NOACCESS, instead of %d\n", err);
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Valid PrivSet with zero PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = 0;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      PrivSet, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+todo_wine
+    ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+       "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+todo_wine
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Valid PrivSet with insufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = 1;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      PrivSet, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+todo_wine
+    ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+       "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+todo_wine
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Valid PrivSet with insufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = sizeof(PRIVILEGE_SET) - 1;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      PrivSet, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+todo_wine
+    ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+       "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+todo_wine
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
+    /* Valid PrivSet with minimal sufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = sizeof(PRIVILEGE_SET);
+    memset(PrivSet, 0xcc, PrivSetLen);
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      PrivSet, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(ret, "AccessCheck failed with error %d\n", GetLastError());
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+    ok(AccessStatus && (Access == KEY_READ),
+        "AccessCheck failed to grant access with error %d\n", GetLastError());
+    ok(PrivSet->PrivilegeCount == 0, "PrivilegeCount returns %d, expects 0\n",
+        PrivSet->PrivilegeCount);
+
+    /* Valid PrivSet with sufficient PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    PrivSetLen = sizeof(PRIVILEGE_SET) + 1;
+    memset(PrivSet, 0xcc, PrivSetLen);
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      PrivSet, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(ret, "AccessCheck failed with error %d\n", GetLastError());
+todo_wine
+    ok(PrivSetLen == sizeof(PRIVILEGE_SET) + 1, "PrivSetLen returns %d\n", PrivSetLen);
+    ok(AccessStatus && (Access == KEY_READ),
+        "AccessCheck failed to grant access with error %d\n", GetLastError());
+    ok(PrivSet->PrivilegeCount == 0, "PrivilegeCount returns %d, expects 0\n",
+        PrivSet->PrivilegeCount);
+
+    PrivSetLen = FIELD_OFFSET(PRIVILEGE_SET, Privilege[16]);
+
+    /* Null PrivSet with valid PrivSetLen */
+    SetLastError(0xdeadbeef);
+    Access = AccessStatus = 0x1abe11ed;
+    ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                      0, &PrivSetLen, &Access, &AccessStatus);
+    err = GetLastError();
+    ok(!ret && err == ERROR_NOACCESS, "AccessCheck should have "
+       "failed with ERROR_NOACCESS, instead of %d\n", err);
+    ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+       "Access and/or AccessStatus were changed!\n");
+
     /* Access denied by SD */
     SetLastError(0xdeadbeef);
     Access = AccessStatus = 0x1abe11ed;
@@ -1422,7 +1580,7 @@ static void test_AccessCheck(void)
        "with ERROR_ACCESS_DENIED, instead of %d\n", err);
     ok(!Access, "Should have failed to grant any access, got 0x%08x\n", Access);
 
-    SetLastError(0);
+    SetLastError(0xdeadbeef);
     PrivSet->PrivilegeCount = 16;
     ret = AccessCheck(SecurityDescriptor, Token, ACCESS_SYSTEM_SECURITY, &Mapping,
                       PrivSet, &PrivSetLen, &Access, &AccessStatus);
@@ -1435,16 +1593,69 @@ static void test_AccessCheck(void)
     ret = pRtlAdjustPrivilege(SE_SECURITY_PRIVILEGE, TRUE, TRUE, &Enabled);
     if (!ret)
     {
-        SetLastError(0);
-        PrivSet->PrivilegeCount = 16;
+        /* Valid PrivSet with zero PrivSetLen */
+        SetLastError(0xdeadbeef);
+        Access = AccessStatus = 0x1abe11ed;
+        PrivSetLen = 0;
+        ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                          PrivSet, &PrivSetLen, &Access, &AccessStatus);
+        err = GetLastError();
+    todo_wine
+        ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+           "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+    todo_wine
+        ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+    todo_wine
+        ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+           "Access and/or AccessStatus were changed!\n");
+
+        /* Valid PrivSet with insufficient PrivSetLen */
+        SetLastError(0xdeadbeef);
+        Access = AccessStatus = 0x1abe11ed;
+        PrivSetLen = sizeof(PRIVILEGE_SET) - 1;
+        ret = AccessCheck(SecurityDescriptor, Token, KEY_READ, &Mapping,
+                          PrivSet, &PrivSetLen, &Access, &AccessStatus);
+        err = GetLastError();
+    todo_wine
+        ok(!ret && err == ERROR_INSUFFICIENT_BUFFER, "AccessCheck should have "
+           "failed with ERROR_INSUFFICIENT_BUFFER, instead of %d\n", err);
+    todo_wine
+        ok(PrivSetLen == sizeof(PRIVILEGE_SET), "PrivSetLen returns %d\n", PrivSetLen);
+    todo_wine
+        ok(Access == 0x1abe11ed && AccessStatus == 0x1abe11ed,
+           "Access and/or AccessStatus were changed!\n");
+
+        /* Valid PrivSet with minimal sufficient PrivSetLen */
+        SetLastError(0xdeadbeef);
+        Access = AccessStatus = 0x1abe11ed;
+        PrivSetLen = sizeof(PRIVILEGE_SET);
+        memset(PrivSet, 0xcc, PrivSetLen);
         ret = AccessCheck(SecurityDescriptor, Token, ACCESS_SYSTEM_SECURITY, &Mapping,
                           PrivSet, &PrivSetLen, &Access, &AccessStatus);
-        ok(ret && AccessStatus && GetLastError() == 0,
+        ok(ret && AccessStatus && GetLastError() == 0xdeadbeef,
             "AccessCheck should have succeeded, error %d\n",
             GetLastError());
         ok(Access == ACCESS_SYSTEM_SECURITY,
             "Access should be equal to ACCESS_SYSTEM_SECURITY instead of 0x%08x\n",
             Access);
+        ok(PrivSet->PrivilegeCount == 1, "PrivilegeCount returns %d, expects 1\n",
+            PrivSet->PrivilegeCount);
+
+        /* Valid PrivSet with large PrivSetLen */
+        SetLastError(0xdeadbeef);
+        Access = AccessStatus = 0x1abe11ed;
+        PrivSetLen = FIELD_OFFSET(PRIVILEGE_SET, Privilege[16]);
+        memset(PrivSet, 0xcc, PrivSetLen);
+        ret = AccessCheck(SecurityDescriptor, Token, ACCESS_SYSTEM_SECURITY, &Mapping,
+                          PrivSet, &PrivSetLen, &Access, &AccessStatus);
+        ok(ret && AccessStatus && GetLastError() == 0xdeadbeef,
+            "AccessCheck should have succeeded, error %d\n",
+            GetLastError());
+        ok(Access == ACCESS_SYSTEM_SECURITY,
+            "Access should be equal to ACCESS_SYSTEM_SECURITY instead of 0x%08x\n",
+            Access);
+        ok(PrivSet->PrivilegeCount == 1, "PrivilegeCount returns %d, expects 1\n",
+            PrivSet->PrivilegeCount);
     }
     else
         trace("Couldn't get SE_SECURITY_PRIVILEGE (0x%08x), skipping ACCESS_SYSTEM_SECURITY test\n",
@@ -3159,12 +3370,7 @@ static void test_inherited_dacl(PACL dacl, PSID admin_sid, PSID user_sid, DWORD 
     bret = pGetAclInformation(dacl, &acl_size, sizeof(acl_size), AclSizeInformation);
     ok_(__FILE__, line)(bret, "GetAclInformation failed\n");
 
-    if (todo_count)
-        todo_wine
-        ok_(__FILE__, line)(acl_size.AceCount == 2,
-            "GetAclInformation returned unexpected entry count (%d != 2)\n",
-            acl_size.AceCount);
-    else
+    todo_wine_if (todo_count)
         ok_(__FILE__, line)(acl_size.AceCount == 2,
             "GetAclInformation returned unexpected entry count (%d != 2)\n",
             acl_size.AceCount);
@@ -3175,18 +3381,10 @@ static void test_inherited_dacl(PACL dacl, PSID admin_sid, PSID user_sid, DWORD 
         ok_(__FILE__, line)(bret, "Failed to get Current User ACE\n");
 
         bret = EqualSid(&ace->SidStart, user_sid);
-        if (todo_sid)
-            todo_wine
-                ok_(__FILE__, line)(bret, "Current User ACE (%s) != Current User SID (%s)\n", debugstr_sid(&ace->SidStart), debugstr_sid(user_sid));
-        else
+        todo_wine_if (todo_sid)
             ok_(__FILE__, line)(bret, "Current User ACE (%s) != Current User SID (%s)\n", debugstr_sid(&ace->SidStart), debugstr_sid(user_sid));
 
-        if (todo_flags)
-            todo_wine
-            ok_(__FILE__, line)(((ACE_HEADER *)ace)->AceFlags == flags,
-                "Current User ACE has unexpected flags (0x%x != 0x%x)\n",
-                ((ACE_HEADER *)ace)->AceFlags, flags);
-        else
+        todo_wine_if (todo_flags)
             ok_(__FILE__, line)(((ACE_HEADER *)ace)->AceFlags == flags,
                 "Current User ACE has unexpected flags (0x%x != 0x%x)\n",
                 ((ACE_HEADER *)ace)->AceFlags, flags);
@@ -3201,18 +3399,10 @@ static void test_inherited_dacl(PACL dacl, PSID admin_sid, PSID user_sid, DWORD 
         ok_(__FILE__, line)(bret, "Failed to get Administators Group ACE\n");
 
         bret = EqualSid(&ace->SidStart, admin_sid);
-        if (todo_sid)
-            todo_wine
-            ok_(__FILE__, line)(bret, "Administators Group ACE (%s) != Administators Group SID (%s)\n", debugstr_sid(&ace->SidStart), debugstr_sid(admin_sid));
-        else
+        todo_wine_if (todo_sid)
             ok_(__FILE__, line)(bret, "Administators Group ACE (%s) != Administators Group SID (%s)\n", debugstr_sid(&ace->SidStart), debugstr_sid(admin_sid));
 
-        if (todo_flags)
-            todo_wine
-            ok_(__FILE__, line)(((ACE_HEADER *)ace)->AceFlags == flags,
-                "Administators Group ACE has unexpected flags (0x%x != 0x%x)\n",
-                ((ACE_HEADER *)ace)->AceFlags, flags);
-        else
+        todo_wine_if (todo_flags)
             ok_(__FILE__, line)(((ACE_HEADER *)ace)->AceFlags == flags,
                 "Administators Group ACE has unexpected flags (0x%x != 0x%x)\n",
                 ((ACE_HEADER *)ace)->AceFlags, flags);
@@ -3284,7 +3474,7 @@ static void test_CreateDirectoryA(void)
                                   GENERIC_ALL, admin_sid);
     ok(bret, "Failed to add Administrator Group to ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
 
     GetTempPathA(MAX_PATH, tmpdir);
     lstrcatA(tmpdir, "Please Remove Me");
@@ -3331,7 +3521,7 @@ static void test_CreateDirectoryA(void)
     bret = InitializeAcl(pDacl, sizeof(ACL), ACL_REVISION);
     ok(bret, "Failed to initialize ACL\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor\n");
+    ok(bret, "Failed to add ACL to security descriptor\n");
 
     strcpy(tmpfile, tmpdir);
     lstrcatA(tmpfile, "/tmpfile");
@@ -3405,7 +3595,7 @@ static void test_CreateDirectoryA(void)
     bret = InitializeAcl(pDacl, sizeof(ACL), ACL_REVISION);
     ok(bret, "Failed to initialize ACL\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor\n");
+    ok(bret, "Failed to add ACL to security descriptor\n");
 
     strcpy(tmpfile, tmpdir);
     lstrcatA(tmpfile, "/tmpfile");
@@ -3588,7 +3778,7 @@ static void test_GetNamedSecurityInfoA(void)
     bret = pAddAccessAllowedAceEx(pDacl, ACL_REVISION, 0, GENERIC_ALL, admin_sid);
     ok(bret, "Failed to add Administrator Group to ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
     GetTempFileNameA(".", "foo", 0, tmpfile);
     hTemp = CreateFileA(tmpfile, WRITE_DAC|GENERIC_WRITE, FILE_SHARE_DELETE|FILE_SHARE_READ,
                         NULL, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, NULL);
@@ -3697,7 +3887,7 @@ static void test_GetNamedSecurityInfoA(void)
     bret = InitializeAcl(pDacl, sizeof(ACL), ACL_REVISION);
     ok(bret, "Failed to initialize ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
     status = pNtSetSecurityObject(hTemp, DACL_SECURITY_INFORMATION, pSD);
     ok(status == ERROR_SUCCESS, "NtSetSecurityObject returned %x\n", status);
 
@@ -3733,7 +3923,7 @@ static void test_GetNamedSecurityInfoA(void)
     bret = pAddAccessDeniedAceEx(pDacl, ACL_REVISION, 0, GENERIC_ALL, user_sid);
     ok(bret, "Failed to add Current User to ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
     status = pNtSetSecurityObject(hTemp, DACL_SECURITY_INFORMATION, pSD);
     ok(status == ERROR_SUCCESS, "NtSetSecurityObject returned %x\n", status);
 
@@ -3749,7 +3939,7 @@ static void test_GetNamedSecurityInfoA(void)
     bret = pAddAccessAllowedAceEx(pDacl, ACL_REVISION, 0, GENERIC_ALL, user_sid);
     ok(bret, "Failed to add Current User to ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
     status = pNtSetSecurityObject(hTemp, DACL_SECURITY_INFORMATION, pSD);
     ok(status == ERROR_SUCCESS, "NtSetSecurityObject returned %x\n", status);
 
@@ -4399,7 +4589,7 @@ static void test_GetSecurityInfo(void)
     bret = pAddAccessAllowedAceEx(pDacl, ACL_REVISION, 0, GENERIC_ALL, admin_sid);
     ok(bret, "Failed to add Administrator Group to ACL.\n");
     bret = SetSecurityDescriptorDacl(pSD, TRUE, pDacl, FALSE);
-    ok(bret, "Failed to add ACL to security desciptor.\n");
+    ok(bret, "Failed to add ACL to security descriptor.\n");
     ret = pSetSecurityInfo(obj, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
                           NULL, NULL, pDacl, NULL);
     ok(ret == ERROR_SUCCESS, "SetSecurityInfo returned %d\n", ret);
@@ -5231,11 +5421,8 @@ static void test_named_pipe_security(HANDLE token)
             ok(ret, "DuplicateHandle error %d\n", GetLastError());
 
             access = get_obj_access(dup);
-            if (map[i].todo)
-todo_wine
-            ok(access == map[i].mapped, "%d: expected %#x, got %#x\n", i, map[i].mapped, access);
-            else
-            ok(access == map[i].mapped, "%d: expected %#x, got %#x\n", i, map[i].mapped, access);
+            todo_wine_if (map[i].todo)
+                ok(access == map[i].mapped, "%d: expected %#x, got %#x\n", i, map[i].mapped, access);
 
             CloseHandle(dup);
         }
@@ -5373,17 +5560,23 @@ static void test_filemap_security(void)
     char temp_path[MAX_PATH];
     char file_name[MAX_PATH];
     DWORD ret, i, access;
-    HANDLE file, mapping, dup;
+    HANDLE file, mapping, dup, created_mapping;
     static const struct
     {
         int generic, mapped;
+        BOOL open_only;
     } map[] =
     {
         { 0, 0 },
         { GENERIC_READ, STANDARD_RIGHTS_READ | SECTION_QUERY | SECTION_MAP_READ },
         { GENERIC_WRITE, STANDARD_RIGHTS_WRITE | SECTION_MAP_WRITE },
         { GENERIC_EXECUTE, STANDARD_RIGHTS_EXECUTE | SECTION_MAP_EXECUTE },
-        { GENERIC_ALL, STANDARD_RIGHTS_REQUIRED | SECTION_ALL_ACCESS }
+        { GENERIC_ALL, STANDARD_RIGHTS_REQUIRED | SECTION_ALL_ACCESS },
+        { SECTION_MAP_READ | SECTION_MAP_WRITE, SECTION_MAP_READ | SECTION_MAP_WRITE },
+        { SECTION_MAP_WRITE, SECTION_MAP_WRITE },
+        { SECTION_MAP_READ | SECTION_QUERY, SECTION_MAP_READ | SECTION_QUERY },
+        { SECTION_QUERY, SECTION_MAP_READ, TRUE },
+        { SECTION_QUERY | SECTION_MAP_READ, SECTION_QUERY | SECTION_MAP_READ }
     };
     static const struct
     {
@@ -5412,6 +5605,8 @@ static void test_filemap_security(void)
 
     for (i = 0; i < sizeof(prot_map)/sizeof(prot_map[0]); i++)
     {
+        if (map[i].open_only) continue;
+
         SetLastError(0xdeadbeef);
         mapping = CreateFileMappingW(file, NULL, prot_map[i].prot, 0, 4096, NULL);
         if (prot_map[i].mapped)
@@ -5458,6 +5653,8 @@ static void test_filemap_security(void)
 
     for (i = 0; i < sizeof(map)/sizeof(map[0]); i++)
     {
+        if (map[i].open_only) continue;
+
         SetLastError( 0xdeadbeef );
         ret = DuplicateHandle(GetCurrentProcess(), mapping, GetCurrentProcess(), &dup,
                               map[i].generic, FALSE, 0);
@@ -5472,6 +5669,24 @@ static void test_filemap_security(void)
     CloseHandle(mapping);
     CloseHandle(file);
     DeleteFileA(file_name);
+
+    created_mapping = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, 0x1000,
+                                         "Wine Test Open Mapping");
+    ok(created_mapping != NULL, "CreateFileMapping failed with error %u\n", GetLastError());
+
+    for (i = 0; i < sizeof(map)/sizeof(map[0]); i++)
+    {
+        if (!map[i].generic) continue;
+
+        mapping = OpenFileMappingA(map[i].generic, FALSE, "Wine Test Open Mapping");
+        ok(mapping != NULL, "OpenFileMapping failed with error %d\n", GetLastError());
+        access = get_obj_access(mapping);
+        ok(access == map[i].mapped, "%d: unexpected access flags %#x, expected %#x\n",
+           i, access, map[i].mapped);
+        CloseHandle(mapping);
+    }
+
+    CloseHandle(created_mapping);
 }
 
 static void test_thread_security(void)
@@ -6103,6 +6318,57 @@ static void test_GetSidIdentifierAuthority(void)
     ok(GetLastError() == ERROR_SUCCESS, "expected ERROR_SUCCESS, got %u\n", GetLastError());
 }
 
+static void test_pseudo_tokens(void)
+{
+    TOKEN_STATISTICS statistics1, statistics2;
+    HANDLE token;
+    DWORD retlen;
+    BOOL ret;
+
+    ret = OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token);
+    ok(ret, "OpenProcessToken failed with error %u\n", GetLastError());
+    memset(&statistics1, 0x11, sizeof(statistics1));
+    ret = GetTokenInformation(token, TokenStatistics, &statistics1, sizeof(statistics1), &retlen);
+    ok(ret, "GetTokenInformation failed with %u\n", GetLastError());
+    CloseHandle(token);
+
+    /* test GetCurrentProcessToken() */
+    SetLastError(0xdeadbeef);
+    memset(&statistics2, 0x22, sizeof(statistics2));
+    ret = GetTokenInformation(GetCurrentProcessToken(), TokenStatistics,
+                              &statistics2, sizeof(statistics2), &retlen);
+    ok(ret || broken(GetLastError() == ERROR_INVALID_HANDLE),
+       "GetTokenInformation failed with %u\n", GetLastError());
+    if (ret)
+        ok(!memcmp(&statistics1, &statistics2, sizeof(statistics1)), "Token statistics do not match\n");
+    else
+        win_skip("CurrentProcessToken not supported, skipping test\n");
+
+    /* test GetCurrentThreadEffectiveToken() */
+    SetLastError(0xdeadbeef);
+    memset(&statistics2, 0x22, sizeof(statistics2));
+    ret = GetTokenInformation(GetCurrentThreadEffectiveToken(), TokenStatistics,
+                              &statistics2, sizeof(statistics2), &retlen);
+    ok(ret || broken(GetLastError() == ERROR_INVALID_HANDLE),
+       "GetTokenInformation failed with %u\n", GetLastError());
+    if (ret)
+        ok(!memcmp(&statistics1, &statistics2, sizeof(statistics1)), "Token statistics do not match\n");
+    else
+        win_skip("CurrentThreadEffectiveToken not supported, skipping test\n");
+
+    SetLastError(0xdeadbeef);
+    ret = OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, TRUE, &token);
+    ok(!ret, "OpenThreadToken should have failed\n");
+    ok(GetLastError() == ERROR_NO_TOKEN, "Expected ERROR_NO_TOKEN, got %u\n", GetLastError());
+
+    /* test GetCurrentThreadToken() */
+    SetLastError(0xdeadbeef);
+    ret = GetTokenInformation(GetCurrentThreadToken(), TokenStatistics,
+                              &statistics2, sizeof(statistics2), &retlen);
+    todo_wine ok(GetLastError() == ERROR_NO_TOKEN || broken(GetLastError() == ERROR_INVALID_HANDLE),
+                 "Expected ERROR_NO_TOKEN, got %u\n", GetLastError());
+}
+
 START_TEST(security)
 {
     init();
@@ -6148,4 +6414,5 @@ START_TEST(security)
     test_AddAce();
     test_system_security_access();
     test_GetSidIdentifierAuthority();
+    test_pseudo_tokens();
 }

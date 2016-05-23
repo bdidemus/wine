@@ -170,24 +170,32 @@ static const struct addr_hint_tests
 } hinttests[] = {
     {AF_UNSPEC, SOCK_STREAM, IPPROTO_TCP, 0 },
     {AF_UNSPEC, SOCK_STREAM, IPPROTO_UDP, 0 },
+    {AF_UNSPEC, SOCK_STREAM, IPPROTO_IPV6,0 },
     {AF_UNSPEC, SOCK_DGRAM,  IPPROTO_TCP, 0 },
     {AF_UNSPEC, SOCK_DGRAM,  IPPROTO_UDP, 0 },
+    {AF_UNSPEC, SOCK_DGRAM,  IPPROTO_IPV6,0 },
     {AF_INET,   SOCK_STREAM, IPPROTO_TCP, 0 },
     {AF_INET,   SOCK_STREAM, IPPROTO_UDP, 0 },
+    {AF_INET,   SOCK_STREAM, IPPROTO_IPV6,0 },
     {AF_INET,   SOCK_DGRAM,  IPPROTO_TCP, 0 },
     {AF_INET,   SOCK_DGRAM,  IPPROTO_UDP, 0 },
+    {AF_INET,   SOCK_DGRAM,  IPPROTO_IPV6,0 },
     {AF_UNSPEC, 0,           IPPROTO_TCP, 0 },
     {AF_UNSPEC, 0,           IPPROTO_UDP, 0 },
+    {AF_UNSPEC, 0,           IPPROTO_IPV6,0 },
     {AF_UNSPEC, SOCK_STREAM, 0,           0 },
     {AF_UNSPEC, SOCK_DGRAM,  0,           0 },
     {AF_INET,   0,           IPPROTO_TCP, 0 },
     {AF_INET,   0,           IPPROTO_UDP, 0 },
+    {AF_INET,   0,           IPPROTO_IPV6,0 },
     {AF_INET,   SOCK_STREAM, 0,           0 },
     {AF_INET,   SOCK_DGRAM,  0,           0 },
     {AF_UNSPEC, 999,         IPPROTO_TCP, WSAESOCKTNOSUPPORT },
     {AF_UNSPEC, 999,         IPPROTO_UDP, WSAESOCKTNOSUPPORT },
+    {AF_UNSPEC, 999,         IPPROTO_IPV6,WSAESOCKTNOSUPPORT },
     {AF_INET,   999,         IPPROTO_TCP, WSAESOCKTNOSUPPORT },
     {AF_INET,   999,         IPPROTO_UDP, WSAESOCKTNOSUPPORT },
+    {AF_INET,   999,         IPPROTO_IPV6,WSAESOCKTNOSUPPORT },
     {AF_UNSPEC, SOCK_STREAM, 999,         0 },
     {AF_UNSPEC, SOCK_STREAM, 999,         0 },
     {AF_INET,   SOCK_DGRAM,  999,         0 },
@@ -1328,6 +1336,7 @@ static void test_set_getsockopt(void)
     WSAPROTOCOL_INFOA infoA;
     WSAPROTOCOL_INFOW infoW;
     char providername[WSAPROTOCOL_LEN + 1];
+    DWORD value;
     struct _prottest
     {
         int family, type, proto;
@@ -1371,6 +1380,27 @@ static void test_set_getsockopt(void)
         err = getsockopt(s, SOL_SOCKET, SO_SNDTIMEO, (char *) &timeout, &size); 
     ok( !err, "get/setsockopt(SO_SNDTIMEO) failed error: %d\n", WSAGetLastError());
     ok( timeout == SOCKTIMEOUT2, "getsockopt(SO_SNDTIMEO) returned wrong value %d\n", timeout);
+
+    /* SO_SNDBUF */
+    value = 4096;
+    size = sizeof(value);
+    err = setsockopt(s, SOL_SOCKET, SO_SNDBUF, (char *)&value, size);
+    ok( !err, "setsockopt(SO_SNDBUF) failed error: %u\n", WSAGetLastError() );
+    value = 0xdeadbeef;
+    err = getsockopt(s, SOL_SOCKET, SO_SNDBUF, (char *)&value, &size);
+    ok( !err, "getsockopt(SO_SNDBUF) failed error: %u\n", WSAGetLastError() );
+    todo_wine ok( value == 4096, "expected 4096, got %u\n", value );
+
+    /* SO_RCVBUF */
+    value = 4096;
+    size = sizeof(value);
+    err = setsockopt(s, SOL_SOCKET, SO_RCVBUF, (char *)&value, size);
+    ok( !err, "setsockopt(SO_RCVBUF) failed error: %u\n", WSAGetLastError() );
+    value = 0xdeadbeef;
+    err = getsockopt(s, SOL_SOCKET, SO_RCVBUF, (char *)&value, &size);
+    ok( !err, "getsockopt(SO_RCVBUF) failed error: %u\n", WSAGetLastError() );
+    todo_wine ok( value == 4096, "expected 4096, got %u\n", value );
+
     /* SO_LINGER */
     for( i = 0; i < sizeof(linger_testvals)/sizeof(LINGER);i++) {
         size =  sizeof(lingval);
@@ -1569,17 +1599,10 @@ todo_wine
            "SO_PROTOCOL_INFO[A/W] comparison failed\n");
 
         /* Remove IF when WSAEnumProtocols support IPV6 data */
-        if (prottest[i].family == AF_INET6)
-        {
-            todo_wine
+        todo_wine_if (prottest[i].family == AF_INET6)
             ok(infoA.iAddressFamily == prottest[i].family, "socket family invalid, expected %d received %d\n",
                prottest[i].family, infoA.iAddressFamily);
-        }
-        else
-        {
-            ok(infoA.iAddressFamily == prottest[i].family, "socket family invalid, expected %d received %d\n",
-               prottest[i].family, infoA.iAddressFamily);
-        }        ok(infoA.iSocketType == prottest[i].type, "socket type invalid, expected %d received %d\n",
+        ok(infoA.iSocketType == prottest[i].type, "socket type invalid, expected %d received %d\n",
            prottest[i].type, infoA.iSocketType);
         ok(infoA.iProtocol == prottest[i].proto, "socket protocol invalid, expected %d received %d\n",
            prottest[i].proto, infoA.iProtocol);
@@ -2776,27 +2799,15 @@ static void test_WSAEnumNetworkEvents(void)
                     "Test[%d]: WSAEnumNetworkEvents failed\n", i);
                 if (i >= 1 && j == 0) /* FD_WRITE is SET on first try for UDP and connected TCP */
                 {
-                    if (i == 0) /* Remove when fixed */
-                    {
-                        todo_wine
+                    todo_wine_if (i == 0) /* Remove when fixed */
                         ok (net_events.lNetworkEvents == FD_WRITE, "Test[%d]: expected 2, got %d\n",
                             i, net_events.lNetworkEvents);
-                    }
-                    else
-                    ok (net_events.lNetworkEvents == FD_WRITE, "Test[%d]: expected 2, got %d\n",
-                        i, net_events.lNetworkEvents);
                 }
                 else
                 {
-                    if (i != 0) /* Remove when fixed */
-                    {
-                        todo_wine
+                    todo_wine_if (i != 0) /* Remove when fixed */
                         ok (net_events.lNetworkEvents == 0, "Test[%d]: expected 0, got %d\n",
                             i, net_events.lNetworkEvents);
-                    }
-                    else
-                    ok (net_events.lNetworkEvents == 0, "Test[%d]: expected 0, got %d\n",
-                        i, net_events.lNetworkEvents);
                 }
                 for (k = 0; k < FD_MAX_EVENTS; k++)
                 {
@@ -7807,6 +7818,102 @@ end:
         closesocket(connector2);
 }
 
+static void test_DisconnectEx(void)
+{
+    SOCKET listener, acceptor, connector;
+    LPFN_DISCONNECTEX pDisconnectEx;
+    GUID disconnectExGuid = WSAID_DISCONNECTEX;
+    struct sockaddr_in address;
+    DWORD num_bytes, flags;
+    OVERLAPPED overlapped;
+    int addrlen, iret;
+    BOOL bret;
+
+    connector = socket(AF_INET, SOCK_STREAM, 0);
+    ok(connector != INVALID_SOCKET, "failed to create connector socket, error %d\n", WSAGetLastError());
+
+    iret = WSAIoctl(connector, SIO_GET_EXTENSION_FUNCTION_POINTER, &disconnectExGuid, sizeof(disconnectExGuid),
+                    &pDisconnectEx, sizeof(pDisconnectEx), &num_bytes, NULL, NULL);
+    if (iret)
+    {
+        win_skip("WSAIoctl failed to get DisconnectEx, error %d\n", WSAGetLastError());
+        closesocket(connector);
+        return;
+    }
+
+    listener = socket(AF_INET, SOCK_STREAM, 0);
+    ok(listener != INVALID_SOCKET, "failed to create listener socket, error %d\n", WSAGetLastError());
+
+    memset(&address, 0, sizeof(address));
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");
+    iret = bind(listener, (struct sockaddr *)&address, sizeof(address));
+    ok(iret == 0, "failed to bind, error %d\n", WSAGetLastError());
+
+    addrlen = sizeof(address);
+    iret = getsockname(listener, (struct sockaddr *)&address, &addrlen);
+    ok(iret == 0, "failed to lookup bind address, error %d\n", WSAGetLastError());
+
+    iret = listen(listener, 1);
+    ok(iret == 0, "failed to listen, error %d\n", WSAGetLastError());
+
+    set_blocking(listener, TRUE);
+
+    memset(&overlapped, 0, sizeof(overlapped));
+    bret = pDisconnectEx(INVALID_SOCKET, &overlapped, 0, 0);
+    ok(bret == FALSE, "DisconnectEx unexpectedly succeeded\n");
+    ok(WSAGetLastError() == WSAENOTSOCK, "expected WSAENOTSOCK, got %d\n", WSAGetLastError());
+
+    memset(&overlapped, 0, sizeof(overlapped));
+    bret = pDisconnectEx(connector, &overlapped, 0, 0);
+    ok(bret == FALSE, "DisconnectEx unexpectedly succeeded\n");
+    todo_wine ok(WSAGetLastError() == WSAENOTCONN, "expected WSAENOTCONN, got %d\n", WSAGetLastError());
+
+    iret = connect(connector, (struct sockaddr *)&address, addrlen);
+    ok(iret == 0, "failed to connect, error %d\n", WSAGetLastError());
+
+    acceptor = accept(listener, NULL, NULL);
+    ok(acceptor != INVALID_SOCKET, "could not accept socket, error %d\n", WSAGetLastError());
+
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.hEvent = WSACreateEvent();
+    ok(overlapped.hEvent != WSA_INVALID_EVENT, "WSACreateEvent failed, error %d\n", WSAGetLastError());
+    bret = pDisconnectEx(connector, &overlapped, 0, 0);
+    if (bret)
+        ok(overlapped.Internal == STATUS_PENDING, "expected STATUS_PENDING, got %08lx\n", overlapped.Internal);
+    else if (WSAGetLastError() == ERROR_IO_PENDING)
+        bret = WSAGetOverlappedResult(connector, &overlapped, &num_bytes, TRUE, &flags);
+    ok(bret, "DisconnectEx failed, error %d\n", WSAGetLastError());
+    WSACloseEvent(overlapped.hEvent);
+
+    iret = connect(connector, (struct sockaddr *)&address, sizeof(address));
+    ok(iret != 0, "connect unexpectedly succeeded\n");
+    ok(WSAGetLastError() == WSAEISCONN, "expected WSAEISCONN, got %d\n", WSAGetLastError());
+
+    closesocket(acceptor);
+    closesocket(connector);
+
+    connector = socket(AF_INET, SOCK_STREAM, 0);
+    ok(connector != INVALID_SOCKET, "failed to create connector socket, error %d\n", WSAGetLastError());
+
+    iret = connect(connector, (struct sockaddr *)&address, addrlen);
+    ok(iret == 0, "failed to connect, error %d\n", WSAGetLastError());
+
+    acceptor = accept(listener, NULL, NULL);
+    ok(acceptor != INVALID_SOCKET, "could not accept socket, error %d\n", WSAGetLastError());
+
+    bret = pDisconnectEx(connector, NULL, 0, 0);
+    ok(bret, "DisconnectEx failed, error %d\n", WSAGetLastError());
+
+    iret = connect(connector, (struct sockaddr *)&address, sizeof(address));
+    ok(iret != 0, "connect unexpectedly succeeded\n");
+    ok(WSAGetLastError() == WSAEISCONN, "expected WSAEISCONN, got %d\n", WSAGetLastError());
+
+    closesocket(acceptor);
+    closesocket(connector);
+    closesocket(listener);
+}
+
 #define compare_file(h,s,o) compare_file2(h,s,o,__FILE__,__LINE__)
 
 static void compare_file2(HANDLE handle, SOCKET sock, int offset, const char *file, int line)
@@ -9585,6 +9692,7 @@ START_TEST( sock )
     test_getaddrinfo();
     test_AcceptEx();
     test_ConnectEx();
+    test_DisconnectEx();
 
     test_sioRoutingInterfaceQuery();
     test_sioAddressListChange();

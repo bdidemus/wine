@@ -11333,6 +11333,48 @@ msgstr ""
 msgid "The registry operation was cancelled\n"
 msgstr ""
 
+#: reg.rc:48 regedit.rc:204
+msgid "(Default)"
+msgstr "(Predvolené)"
+
+#: reg.rc:49
+#, fuzzy
+#| msgid "Are you sure you want to delete these values?"
+msgid "Are you sure you want to delete the registry value '%1'?"
+msgstr "Ste si istý že chcete zmazať tieto hodnoty?"
+
+#: reg.rc:50
+#, fuzzy
+#| msgid "Are you sure you want to delete value '%s'?"
+msgid "Are you sure you want to delete all registry values in '%1'?"
+msgstr "Ste si istý že chcete zmazať túto hodnotu '%s'?"
+
+#: reg.rc:51
+#, fuzzy
+#| msgid "Are you sure you want to delete these values?"
+msgid "Are you sure you want to delete the registry key '%1'?"
+msgstr "Ste si istý že chcete zmazať tieto hodnoty?"
+
+#: reg.rc:52
+msgid "reg: The option [/d] must be followed by a valid string\n"
+msgstr ""
+
+#: reg.rc:53
+msgid ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:54
+msgid ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+msgstr ""
+
+#: reg.rc:55
+msgid "Search complete. Number of matches found: %1!d!\n"
+msgstr ""
+
 #: regedit.rc:34
 msgid "&Registry"
 msgstr "&Registry"
@@ -11534,10 +11576,6 @@ msgstr "Súbory registrov (*.reg)"
 #: regedit.rc:197
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
 msgstr "Win9x/NT4 súbory registrov (REGEDIT4)"
-
-#: regedit.rc:204
-msgid "(Default)"
-msgstr "(Predvolené)"
 
 #: regedit.rc:205
 msgid "(value not set)"

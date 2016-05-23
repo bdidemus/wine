@@ -2218,11 +2218,10 @@ BOOL WINAPI ImmSetCandidateWindow(
     if (IMM_IsCrossThreadAccess(NULL, hIMC))
         return FALSE;
 
-    TRACE("\t%x, %x, (%i,%i), (%i,%i - %i,%i)\n",
-            lpCandidate->dwIndex, lpCandidate->dwStyle,
-            lpCandidate->ptCurrentPos.x, lpCandidate->ptCurrentPos.y,
-            lpCandidate->rcArea.top, lpCandidate->rcArea.left,
-            lpCandidate->rcArea.bottom, lpCandidate->rcArea.right);
+    TRACE("\t%x, %x, %s, %s\n",
+          lpCandidate->dwIndex, lpCandidate->dwStyle,
+          wine_dbgstr_point(&lpCandidate->ptCurrentPos),
+          wine_dbgstr_rect(&lpCandidate->rcArea));
 
     if ( lpCandidate->dwIndex >= (sizeof(data->IMC.cfCandForm) / sizeof(CANDIDATEFORM)) )
         return FALSE;
@@ -2408,9 +2407,10 @@ BOOL WINAPI ImmSetCompositionWindow(
     InputContextData *data = get_imc_data(hIMC);
 
     TRACE("(%p, %p)\n", hIMC, lpCompForm);
-    TRACE("\t%x, (%i,%i), (%i,%i - %i,%i)\n",lpCompForm->dwStyle,
-          lpCompForm->ptCurrentPos.x, lpCompForm->ptCurrentPos.y, lpCompForm->rcArea.top,
-          lpCompForm->rcArea.left, lpCompForm->rcArea.bottom, lpCompForm->rcArea.right);
+    if (lpCompForm)
+        TRACE("\t%x, %s, %s\n", lpCompForm->dwStyle,
+              wine_dbgstr_point(&lpCompForm->ptCurrentPos),
+              wine_dbgstr_rect(&lpCompForm->rcArea));
 
     if (!data)
     {
@@ -2533,7 +2533,7 @@ BOOL WINAPI ImmSetStatusWindowPos(HIMC hIMC, LPPOINT lpptPos)
     if (IMM_IsCrossThreadAccess(NULL, hIMC))
         return FALSE;
 
-    TRACE("\t(%i,%i)\n", lpptPos->x, lpptPos->y);
+    TRACE("\t%s\n", wine_dbgstr_point(lpptPos));
 
     data->IMC.ptStatusWndPos = *lpptPos;
     ImmNotifyIME( hIMC, NI_CONTEXTUPDATED, 0, IMC_SETSTATUSWINDOWPOS);
@@ -2893,15 +2893,23 @@ BOOL WINAPI ImmGenerateMessage(HIMC hIMC)
     if (data->IMC.dwNumMsgBuf > 0)
     {
         LPTRANSMSG lpTransMsg;
-        DWORD i;
+        HIMCC hMsgBuf;
+        DWORD i, dwNumMsgBuf;
 
-        lpTransMsg = ImmLockIMCC(data->IMC.hMsgBuf);
-        for (i = 0; i < data->IMC.dwNumMsgBuf; i++)
+        /* We are going to detach our hMsgBuff so that if processing messages
+           generates new messages they go into a new buffer */
+        hMsgBuf = data->IMC.hMsgBuf;
+        dwNumMsgBuf = data->IMC.dwNumMsgBuf;
+
+        data->IMC.hMsgBuf = ImmCreateIMCC(0);
+        data->IMC.dwNumMsgBuf = 0;
+
+        lpTransMsg = ImmLockIMCC(hMsgBuf);
+        for (i = 0; i < dwNumMsgBuf; i++)
             ImmInternalSendIMEMessage(data, lpTransMsg[i].message, lpTransMsg[i].wParam, lpTransMsg[i].lParam);
 
-        ImmUnlockIMCC(data->IMC.hMsgBuf);
-
-        data->IMC.dwNumMsgBuf = 0;
+        ImmUnlockIMCC(hMsgBuf);
+        ImmDestroyIMCC(hMsgBuf);
     }
 
     return TRUE;

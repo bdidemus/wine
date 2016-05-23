@@ -819,7 +819,7 @@ static void test_menu_ownerdraw(void)
     ok( MOD_rc[0].right - MOD_rc[0].left == 2 * MOD_avec + MOD_SIZE,
             "width of owner drawn menu item is wrong. Got %d expected %d\n",
             MOD_rc[0].right - MOD_rc[0].left , 2*MOD_avec + MOD_SIZE);
-    /* test hight */
+    /* test height */
     ok( MOD_rc[0].bottom - MOD_rc[0].top == GetSystemMetrics( SM_CYMENU) - 1,
             "Height of owner drawn menu item is wrong. Got %d expected %d\n",
             MOD_rc[0].bottom - MOD_rc[0].top, GetSystemMetrics( SM_CYMENU) - 1);
@@ -2382,13 +2382,7 @@ static DWORD WINAPI test_menu_input_thread(LPVOID lpParameter)
             return 0;
         }
 
-        if (menu_tests[i]._todo_wine)
-        {
-            todo_wine {
-                ok(menu_tests[i].bMenuVisible == bMenuVisible, "test %d\n", i);
-            }
-        }
-        else
+        todo_wine_if (menu_tests[i]._todo_wine)
             ok(menu_tests[i].bMenuVisible == bMenuVisible, "test %d\n", i);
     }
     return 0;
@@ -2450,11 +2444,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam,
         if (pGetMenuInfo) /* Skip on NT */
         {
             /* Native returns handle to destroyed window */
-            if (msg==WM_UNINITMENUPOPUP && popmenu==1)
-                todo_wine ok(!mbi.hwndMenu == !popmenu,
-                        "msg %x: GetMenuBarInfo.hwndMenu wrong: %p expected %sNULL\n",
-                        msg, mbi.hwndMenu, popmenu ? "not " : "");
-            else
+            todo_wine_if (msg==WM_UNINITMENUPOPUP && popmenu==1)
                 ok(!mbi.hwndMenu == !popmenu,
                         "msg %x: GetMenuBarInfo.hwndMenu wrong: %p expected %sNULL\n",
                         msg, mbi.hwndMenu, popmenu ? "not " : "");
@@ -3830,25 +3820,25 @@ static void test_emptypopup(void)
     ok(gflag_initmenupopup == 1, "got %i\n", gflag_initmenupopup);
     ok(gflag_entermenuloop == 1, "got %i\n", gflag_entermenuloop);
     ok(gflag_initmenu == 1, "got %i\n", gflag_initmenu);
-    todo_wine ok(gflag_enteridle == 0, "got %i\n", gflag_initmenu);
+    ok(gflag_enteridle == 0, "got %i\n", gflag_initmenu);
 
-    todo_wine ok(selectitem_wp == 0xdeadbeef, "got %lx\n", selectitem_wp);
-    todo_wine ok(selectitem_lp == 0xdeadbeef, "got %lx\n", selectitem_lp);
+    ok(selectitem_wp == 0xdeadbeef, "got %lx\n", selectitem_wp);
+    ok(selectitem_lp == 0xdeadbeef, "got %lx\n", selectitem_lp);
 
     gflag_initmenupopup = gflag_entermenuloop = gflag_initmenu = gflag_enteridle = 0;
     selectitem_wp = 0xdeadbeef;
     selectitem_lp = 0xdeadbeef;
 
     ret = TrackPopupMenu( hmenu, 0, 100,100, 0, hwnd, NULL);
-    todo_wine ok(ret == 0, "got %i\n", ret);
+    ok(ret == 0, "got %i\n", ret);
 
     ok(gflag_initmenupopup == 1, "got %i\n", gflag_initmenupopup);
     ok(gflag_entermenuloop == 1, "got %i\n", gflag_entermenuloop);
     ok(gflag_initmenu == 1, "got %i\n", gflag_initmenu);
-    todo_wine ok(gflag_enteridle == 0, "got %i\n", gflag_initmenu);
+    ok(gflag_enteridle == 0, "got %i\n", gflag_initmenu);
 
-    todo_wine ok(selectitem_wp == 0xdeadbeef, "got %lx\n", selectitem_wp);
-    todo_wine ok(selectitem_lp == 0xdeadbeef, "got %lx\n", selectitem_lp);
+    ok(selectitem_wp == 0xdeadbeef, "got %lx\n", selectitem_wp);
+    ok(selectitem_lp == 0xdeadbeef, "got %lx\n", selectitem_lp);
 
     SetWindowLongPtrA( hwnd, GWLP_WNDPROC, (LONG_PTR)menu_fill_in_init);
 

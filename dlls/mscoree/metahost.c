@@ -79,6 +79,9 @@ MonoClass* (CDECL *mono_class_from_name)(MonoImage *image, const char* name_spac
 MonoMethod* (CDECL *mono_class_get_method_from_name)(MonoClass *klass, const char *name, int param_count);
 static void (CDECL *mono_config_parse)(const char *filename);
 MonoAssembly* (CDECL *mono_domain_assembly_open)(MonoDomain *domain, const char *name);
+MonoDomain* (CDECL *mono_domain_get)(void);
+MonoDomain* (CDECL *mono_domain_get_by_id)(int id);
+BOOL (CDECL *mono_domain_set)(MonoDomain *domain,BOOL force);
 void (CDECL *mono_domain_set_config)(MonoDomain *domain,const char *base_dir,const char *config_file_name);
 static void (CDECL *mono_free)(void *);
 static MonoImage* (CDECL *mono_image_open)(const char *fname, MonoImageOpenStatus *status);
@@ -89,6 +92,7 @@ MonoDomain* (CDECL *mono_jit_init_version)(const char *domain_name, const char *
 static int (CDECL *mono_jit_set_trace_options)(const char* options);
 void* (CDECL *mono_marshal_get_vtfixup_ftnptr)(MonoImage *image, DWORD token, WORD type);
 MonoDomain* (CDECL *mono_object_get_domain)(MonoObject *obj);
+MonoMethod* (CDECL *mono_object_get_virtual_method)(MonoObject *obj, MonoMethod *method);
 MonoObject* (CDECL *mono_object_new)(MonoDomain *domain, MonoClass *klass);
 void* (CDECL *mono_object_unbox)(MonoObject *obj);
 static void (CDECL *mono_profiler_install)(MonoProfiler *prof, MonoProfileFunc shutdown_callback);
@@ -96,6 +100,7 @@ MonoType* (CDECL *mono_reflection_type_from_name)(char *name, MonoImage *image);
 MonoObject* (CDECL *mono_runtime_invoke)(MonoMethod *method, void *obj, void **params, MonoObject **exc);
 void (CDECL *mono_runtime_object_init)(MonoObject *this_obj);
 void (CDECL *mono_runtime_quit)(void);
+static void (CDECL *mono_set_crash_chaining)(BOOL chain_signals);
 static void (CDECL *mono_set_dirs)(const char *assembly_dir, const char *config_dir);
 static void (CDECL *mono_set_verbose_level)(DWORD level);
 MonoString* (CDECL *mono_string_new)(MonoDomain *domain, const char *str);
@@ -120,6 +125,10 @@ static MonoImage* CDECL image_open_module_handle_dummy(HMODULE module_handle,
     char* fname, UINT has_entry_point, MonoImageOpenStatus* status)
 {
     return mono_image_open(fname, status);
+}
+
+static void CDECL set_crash_chaining_dummy(BOOL crash_chaining)
+{
 }
 
 static void CDECL set_print_handler_dummy(MonoPrintCallback callback)
@@ -175,6 +184,9 @@ static HRESULT load_mono(LPCWSTR mono_path)
         LOAD_MONO_FUNCTION(mono_class_from_name);
         LOAD_MONO_FUNCTION(mono_class_get_method_from_name);
         LOAD_MONO_FUNCTION(mono_domain_assembly_open);
+        LOAD_MONO_FUNCTION(mono_domain_get);
+        LOAD_MONO_FUNCTION(mono_domain_get_by_id);
+        LOAD_MONO_FUNCTION(mono_domain_set);
         LOAD_MONO_FUNCTION(mono_domain_set_config);
         LOAD_MONO_FUNCTION(mono_free);
         LOAD_MONO_FUNCTION(mono_image_open);
@@ -184,6 +196,7 @@ static HRESULT load_mono(LPCWSTR mono_path)
         LOAD_MONO_FUNCTION(mono_jit_set_trace_options);
         LOAD_MONO_FUNCTION(mono_marshal_get_vtfixup_ftnptr);
         LOAD_MONO_FUNCTION(mono_object_get_domain);
+        LOAD_MONO_FUNCTION(mono_object_get_virtual_method);
         LOAD_MONO_FUNCTION(mono_object_new);
         LOAD_MONO_FUNCTION(mono_object_unbox);
         LOAD_MONO_FUNCTION(mono_profiler_install);
@@ -209,12 +222,15 @@ static HRESULT load_mono(LPCWSTR mono_path)
 } while (0);
 
         LOAD_OPT_MONO_FUNCTION(mono_image_open_from_module_handle, image_open_module_handle_dummy);
+        LOAD_OPT_MONO_FUNCTION(mono_set_crash_chaining, set_crash_chaining_dummy);
         LOAD_OPT_MONO_FUNCTION(mono_trace_set_print_handler, set_print_handler_dummy);
         LOAD_OPT_MONO_FUNCTION(mono_trace_set_printerr_handler, set_print_handler_dummy);
 
 #undef LOAD_OPT_MONO_FUNCTION
 
         mono_profiler_install(NULL, mono_shutdown_callback_fn);
+
+        mono_set_crash_chaining(TRUE);
 
         mono_trace_set_print_handler(mono_print_handler_fn);
         mono_trace_set_printerr_handler(mono_print_handler_fn);
@@ -256,7 +272,13 @@ static void CDECL mono_shutdown_callback_fn(MonoProfiler *prof)
 
 static void CDECL mono_print_handler_fn(const char *string, INT is_stdout)
 {
-    wine_dbg_printf("%s", string);
+    const char *p;
+    for (; *string; string = p)
+    {
+        if ((p = strstr(string, "\n"))) p++;
+        else p = string + strlen(string);
+        wine_dbg_printf("%.*s", (int)(p - string), string);
+    }
 }
 
 static HRESULT CLRRuntimeInfo_GetRuntimeHost(CLRRuntimeInfo *This, RuntimeHost **result)

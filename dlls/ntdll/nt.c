@@ -2339,6 +2339,17 @@ NTSTATUS WINAPI SYSCALL(NtQuerySystemInformation)(
             RtlFreeHeap(GetProcessHeap(), 0, buf);
         }
         break;
+    case SystemRecommendedSharedDataAlignment:
+        {
+            len = sizeof(DWORD);
+            if (Length >= len)
+            {
+                if (!SystemInformation) ret = STATUS_ACCESS_VIOLATION;
+                else *((DWORD *)SystemInformation) = 64;
+            }
+            else ret = STATUS_INFO_LENGTH_MISMATCH;
+        }
+        break;
     default:
 	FIXME("(0x%08x,%p,0x%08x,%p) stub\n",
 	      SystemInformationClass,SystemInformation,Length,ResultLength);
@@ -2362,7 +2373,7 @@ NTSTATUS WINAPI SYSCALL(NtQuerySystemInformation)(
 NTSTATUS WINAPI NtQuerySystemInformationEx(SYSTEM_INFORMATION_CLASS SystemInformationClass,
     void *Query, ULONG QueryLength, void *SystemInformation, ULONG Length, ULONG *ResultLength)
 {
-    ULONG len;
+    ULONG len = 0;
     NTSTATUS ret = STATUS_NOT_IMPLEMENTED;
 
     TRACE("(0x%08x,%p,%u,%p,%u,%p) stub\n", SystemInformationClass, Query, QueryLength, SystemInformation,
@@ -2799,6 +2810,18 @@ NTSTATUS WINAPI SYSCALL(NtSystemDebugControl)(SYSDBG_COMMAND command, PVOID inbu
                                      ULONG outbuflength, PULONG retlength)
 {
     FIXME("(%d, %p, %d, %p, %d, %p), stub\n", command, inbuffer, inbuflength, outbuffer, outbuflength, retlength);
+
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/******************************************************************************
+ *  NtSetLdtEntries   (NTDLL.@)
+ *  ZwSetLdtEntries   (NTDLL.@)
+ */
+NTSTATUS WINAPI NtSetLdtEntries(ULONG selector1, ULONG entry1_low, ULONG entry1_high,
+                                ULONG selector2, ULONG entry2_low, ULONG entry2_high)
+{
+    FIXME("(%u, %u, %u, %u, %u, %u): stub\n", selector1, entry1_low, entry1_high, selector2, entry2_low, entry2_high);
 
     return STATUS_NOT_IMPLEMENTED;
 }

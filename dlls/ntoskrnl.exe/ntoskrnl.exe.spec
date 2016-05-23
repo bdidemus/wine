@@ -33,8 +33,8 @@
 @ stdcall -norelay InterlockedExchange(ptr long) NTOSKRNL_InterlockedExchange
 @ stdcall -norelay InterlockedExchangeAdd(ptr long) NTOSKRNL_InterlockedExchangeAdd
 @ stdcall -norelay InterlockedIncrement(ptr) NTOSKRNL_InterlockedIncrement
-@ stdcall InterlockedPopEntrySList(ptr) kernel32.InterlockedPopEntrySList
-@ stdcall InterlockedPushEntrySList(ptr ptr) kernel32.InterlockedPushEntrySList
+@ stdcall -norelay InterlockedPopEntrySList(ptr) NTOSKRNL_InterlockedPopEntrySList
+@ stdcall -norelay InterlockedPushEntrySList(ptr ptr) NTOSKRNL_InterlockedPushEntrySList
 @ stub IoAssignDriveLetters
 @ stub IoReadPartitionTable
 @ stub IoSetPartitionInformation
@@ -49,7 +49,7 @@
 @ stub KiAcquireSpinLock
 @ stub KiReleaseSpinLock
 @ stdcall -norelay ObfDereferenceObject(ptr)
-@ stdcall ObfReferenceObject(ptr)
+@ stdcall -norelay ObfReferenceObject(ptr)
 @ stub RtlPrefetchMemoryNonTemporal
 @ cdecl -i386 -norelay RtlUlongByteSwap() ntdll.RtlUlongByteSwap
 @ cdecl -ret64 RtlUlonglongByteSwap(int64) ntdll.RtlUlonglongByteSwap
@@ -518,7 +518,7 @@
 @ stub KeClearEvent
 @ stub KeConnectInterrupt
 @ stub KeDcacheFlushCount
-@ stub KeDelayExecutionThread
+@ stdcall KeDelayExecutionThread(long long ptr)
 @ stub KeDeregisterBugCheckCallback
 @ stub KeDeregisterBugCheckReasonCallback
 @ stub KeDetachProcess
@@ -899,7 +899,7 @@
 @ stub PsReferenceImpersonationToken
 @ stub PsReferencePrimaryToken
 @ stdcall PsRemoveCreateThreadNotifyRoutine(ptr)
-@ stub PsRemoveLoadImageNotifyRoutine
+@ stdcall PsRemoveLoadImageNotifyRoutine(ptr)
 @ stub PsRestoreImpersonation
 @ stub PsReturnPoolQuota
 @ stub PsReturnProcessNonPagedPoolQuota

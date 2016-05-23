@@ -64,6 +64,46 @@ static const char data9[] =
 static const char data10[] =
     "<a></b>";
 
+static const char data11[] =
+    "<o:OfficeConfig xmlns:o=\"urn:schemas-microsoft-com:office:office\">"
+    "<o:services o:GenerationTime=\"2015-09-03T18:47:54\">"
+    "<!--Build: 16.0.6202.6852-->"
+    "</o:services>"
+    "</o:OfficeConfig>";
+
+static const char data12[] =
+    "<services>"
+    "<service><id>1</id></service>"
+    "<service><id>2</id></service>"
+    "</services>";
+
+static const char data13[] =
+    "<services></services>";
+
+static const char data14[] =
+    "<services>"
+    "<wrapper>"
+    "<service><id>1</id></service>"
+    "<service><id>2</id></service>"
+    "</wrapper>"
+    "</services>";
+
+static const char data15[] =
+    "<services>"
+    "<wrapper>"
+    "<service>1</service>"
+    "<service>2</service>"
+    "</wrapper>"
+    "</services>";
+
+static const char data16[] =
+    "<services>"
+    "<wrapper>"
+    "<service name='1'>1</service>"
+    "<service name='2'>2</service>"
+    "</wrapper>"
+    "</services>";
+
 static void test_WsCreateError(void)
 {
     HRESULT hr;
@@ -486,13 +526,7 @@ static void test_WsSetInput(void)
         charset = 0xdeadbeef;
         size = sizeof(charset);
         hr = WsGetReaderProperty( reader, WS_XML_READER_PROPERTY_CHARSET, &charset, size, NULL );
-        if (tests[i].todo)
-        {
-            todo_wine ok( hr == tests[i].hr, "%u: got %08x expected %08x\n", i, hr, tests[i].hr );
-            if (hr == S_OK)
-                todo_wine ok( charset == tests[i].charset, "%u: got %u expected %u\n", i, charset, tests[i].charset );
-        }
-        else
+        todo_wine_if (tests[i].todo)
         {
             ok( hr == tests[i].hr, "%u: got %08x expected %08x\n", i, hr, tests[i].hr );
             if (hr == S_OK)
@@ -893,11 +927,11 @@ static void test_WsReadStartElement(void)
 
     /* WsReadEndElement advances reader to EOF */
     hr = WsReadEndElement( reader, NULL );
-    todo_wine ok( hr == S_OK, "got %08x\n", hr );
+    ok( hr == S_OK, "got %08x\n", hr );
 
     hr = WsGetReaderNode( reader, &node, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
-    todo_wine if (node) ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
 
     hr = WsReadEndElement( reader, NULL );
     ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
@@ -910,6 +944,7 @@ static void test_WsReadEndElement(void)
     HRESULT hr;
     WS_XML_READER *reader;
     const WS_XML_NODE *node;
+    int found;
 
     hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
     ok( hr == S_OK, "got %08x\n", hr );
@@ -982,11 +1017,11 @@ static void test_WsReadEndElement(void)
 
     /* WsReadEndElement advances reader to EOF */
     hr = WsReadEndElement( reader, NULL );
-    todo_wine ok( hr == S_OK, "got %08x\n", hr );
+    ok( hr == S_OK, "got %08x\n", hr );
 
     hr = WsGetReaderNode( reader, &node, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
-    todo_wine if (node) ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
 
     hr = WsReadEndElement( reader, NULL );
     ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
@@ -1015,6 +1050,79 @@ static void test_WsReadEndElement(void)
 
     hr = WsReadEndElement( reader, NULL );
     ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    hr = set_input( reader, "<a></A>", sizeof("<a></A>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFillReader( reader, sizeof("<a></a>") - 1, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    found = -1;
+    hr = WsReadToStartElement( reader, NULL, NULL, &found, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( found == TRUE, "got %d\n", found );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    hr = set_input( reader, "<a></a>", sizeof("<a></a>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFillReader( reader, sizeof("<a></a>") - 1, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    found = -1;
+    hr = WsReadToStartElement( reader, NULL, NULL, &found, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( found == TRUE, "got %d\n", found );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    hr = set_input( reader, "<a/>", sizeof("<a/>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFillReader( reader, sizeof("<a/>") - 1, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    found = -1;
+    hr = WsReadToStartElement( reader, NULL, NULL, &found, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( found == TRUE, "got %d\n", found );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node) ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
     WsFreeReader( reader );
 }
 
@@ -1082,9 +1190,7 @@ static void test_WsReadNode(void)
         ok( hr == S_OK, "%u: got %08x\n", i, hr );
 
         hr = WsReadNode( reader, NULL );
-        if (tests[i].todo)
-            todo_wine ok( hr == tests[i].hr, "%u: got %08x\n", i, hr );
-        else
+        todo_wine_if (tests[i].todo)
             ok( hr == tests[i].hr, "%u: got %08x\n", i, hr );
         if (hr == S_OK)
         {
@@ -1094,10 +1200,7 @@ static void test_WsReadNode(void)
             ok( node != NULL, "%u: node not set\n", i );
             if (node)
             {
-                if (tests[i].todo)
-                    todo_wine
-                    ok( node->nodeType == tests[i].type, "%u: got %u\n", i, node->nodeType );
-                else
+                todo_wine_if (tests[i].todo)
                     ok( node->nodeType == tests[i].type, "%u: got %u\n", i, node->nodeType );
             }
         }
@@ -1221,6 +1324,12 @@ static void test_WsReadType(void)
     HRESULT hr;
     WS_XML_READER *reader;
     WS_HEAP *heap;
+    enum { ONE = 1, TWO = 2 };
+    WS_XML_STRING one = { 3, (BYTE *)"ONE" };
+    WS_XML_STRING two = { 3, (BYTE *)"TWO" };
+    WS_ENUM_VALUE enum_values[] = { { ONE, &one }, { TWO, &two } };
+    WS_ENUM_DESCRIPTION enum_desc;
+    int val_enum;
     WCHAR *val_str;
     BOOL val_bool;
     INT8 val_int8;
@@ -1458,6 +1567,18 @@ static void test_WsReadType(void)
     todo_wine ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
     ok( !val_uint64, "wrong value\n" );
 
+    enum_desc.values       = enum_values;
+    enum_desc.valueCount   = sizeof(enum_values)/sizeof(enum_values[0]);
+    enum_desc.maxByteCount = 3;
+    enum_desc.nameIndices  = NULL;
+
+    val_enum = 0;
+    prepare_type_test( reader, "<t>ONE</t>", sizeof("<t>ONE</t>") - 1 );
+    hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_ENUM_TYPE, &enum_desc,
+                     WS_READ_REQUIRED_VALUE, heap, &val_enum, sizeof(val_enum), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( val_enum == 1, "got %d\n", val_enum );
+
     WsFreeReader( reader );
     WsFreeHeap( heap );
 }
@@ -1601,6 +1722,7 @@ static void test_WsMoveReader(void)
     WS_XML_STRING localname = {1, (BYTE *)"a"}, localname2 = {1, (BYTE *)"b"}, ns = {0, NULL};
     const WS_XML_NODE *node;
     WS_XML_ELEMENT_NODE *elem;
+    WS_XML_UTF8_TEXT utf8;
 
     hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
     ok( hr == S_OK, "got %08x\n", hr );
@@ -1682,7 +1804,7 @@ static void test_WsMoveReader(void)
 
     hr = WsGetReaderNode( reader, &node, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
-    ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
 
     /* EOF node is last child of BOF node */
     hr = WsMoveReader( reader, WS_MOVE_TO_BOF, NULL, NULL );
@@ -1693,14 +1815,146 @@ static void test_WsMoveReader(void)
 
     hr = WsGetReaderNode( reader, &node, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
-    ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
 
     hr = WsMoveReader( reader, WS_MOVE_TO_NEXT_NODE, NULL, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
 
     hr = WsGetReaderNode( reader, &node, NULL );
     ok( hr == S_OK, "got %08x\n", hr );
-    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", elem->node.nodeType );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_ROOT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 1, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "a", 1 ), "wrong data\n" );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_CHILD_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 1, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "b", 1 ), "wrong data\n" );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_END_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_PARENT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 1, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "b", 1 ), "wrong data\n" );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_PARENT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 1, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "a", 1 ), "wrong data\n" );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_PARENT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_BOF, "got %u\n", node->nodeType );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_PARENT_ELEMENT, NULL, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    WsFreeWriter( writer );
+    WsFreeHeap( heap );
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateXmlBuffer( heap, NULL, 0, &buffer, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateWriter( NULL, 0, &writer, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsSetOutputToBuffer( writer, buffer, NULL, 0, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    /* <a><b>test</b></a> */
+    hr = WsWriteStartElement( writer, NULL, &localname, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsWriteStartElement( writer, NULL, &localname2, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    utf8.text.textType = WS_XML_TEXT_TYPE_UTF8;
+    utf8.value.bytes  = (BYTE *)"test";
+    utf8.value.length = sizeof("test") - 1;
+    hr = WsWriteText( writer, &utf8.text, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsWriteEndElement( writer, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsWriteEndElement( writer, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsSetInputToBuffer( reader, buffer, NULL, 0, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_ROOT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_NEXT_NODE, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_ROOT_ELEMENT, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_CHILD_NODE, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 1, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "b", 1 ), "wrong data\n" );
+
+    hr = WsMoveReader( reader, WS_MOVE_TO_NEXT_NODE, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
 
     WsFreeReader( reader );
     WsFreeWriter( writer );
@@ -1730,6 +1984,7 @@ static void test_simple_struct_type(void)
     WS_XML_STRING ns = {0, NULL}, localname = {3, (BYTE *)"str"};
     WS_XML_STRING localname2 = {4, (BYTE *)"test"};
     const WS_XML_NODE *node;
+    const WS_XML_ELEMENT_NODE *elem;
     struct test { WCHAR *str; } *test;
 
     hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
@@ -1795,6 +2050,70 @@ static void test_simple_struct_type(void)
     {
         ok( test->str != NULL, "str not set\n" );
         if (test->str) ok( !lstrcmpW( test->str, testW ), "wrong data\n" );
+    }
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    test = NULL;
+    prepare_struct_type_test( reader, "<str>test</str>" );
+    hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    if (test)
+    {
+        ok( test->str != NULL, "str not set\n" );
+        if (test->str) ok( !lstrcmpW( test->str, testW ), "wrong data\n" );
+    }
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    prepare_struct_type_test( reader, "<str>test</str>" );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (const WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 3, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "str", 3 ), "wrong data\n" );
+
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    if (test)
+    {
+        ok( test->str != NULL, "str not set\n" );
+        if (test->str) ok( !lstrcmpW( test->str, testW ), "wrong data\n" );
+    }
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    /* attribute field mapping */
+    f.mapping = WS_ATTRIBUTE_FIELD_MAPPING;
+
+    test = NULL;
+    prepare_struct_type_test( reader, "<test str=\"test\"/>" );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    if (test)
+    {
+        ok( test->str != NULL, "str not set\n" );
+        if (test->str) ok( !lstrcmpW( test->str, testW ), "wrong data test %p test->str %p\n", test, test->str );
     }
 
     hr = WsGetReaderNode( reader, &node, NULL );
@@ -1871,6 +2190,1175 @@ static void test_cdata(void)
     WsFreeReader( reader );
 }
 
+static void test_WsFindAttribute(void)
+{
+    static const char test[] = "<t attr='value' attr2='value2'></t>";
+    WS_XML_STRING ns = {0, NULL}, localname = {4, (BYTE *)"attr"};
+    WS_XML_STRING localname2 = {5, (BYTE *)"attr2"}, localname3 = {5, (BYTE *)"attr3"};
+    WS_XML_READER *reader;
+    ULONG index;
+    HRESULT hr;
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFindAttribute( reader, &localname, &ns, TRUE, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFindAttribute( reader, &localname, NULL, TRUE, &index, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsFindAttribute( reader, NULL, &ns, TRUE, &index, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    index = 0xdeadbeef;
+    hr = WsFindAttribute( reader, &localname, &ns, TRUE, &index, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( !index, "got %u\n", index );
+
+    index = 0xdeadbeef;
+    hr = WsFindAttribute( reader, &localname2, &ns, TRUE, &index, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( index == 1, "got %u\n", index );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    index = 0xdeadbeef;
+    hr = WsFindAttribute( reader, &localname, &ns, TRUE, &index, NULL );
+    ok( hr == WS_E_INVALID_OPERATION, "got %08x\n", hr );
+    ok( index == 0xdeadbeef, "got %u\n", index );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    index = 0xdeadbeef;
+    hr = WsFindAttribute( reader, &localname3, &ns, TRUE, &index, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+    ok( index == 0xdeadbeef, "got %u\n", index );
+
+    hr = set_input( reader, test, sizeof(test) - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadNode( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    index = 0xdeadbeef;
+    hr = WsFindAttribute( reader, &localname3, &ns, FALSE, &index, NULL );
+    ok( hr == S_FALSE, "got %08x\n", hr );
+    ok( index == ~0u, "got %u\n", index );
+
+    WsFreeReader( reader );
+}
+
+static void prepare_namespace_test( WS_XML_READER *reader, const char *data )
+{
+    HRESULT hr;
+    ULONG size = strlen( data );
+
+    hr = set_input( reader, data, size );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+}
+
+static void test_WsGetNamespaceFromPrefix(void)
+{
+    WS_XML_STRING prefix = {0, NULL};
+    const WS_XML_STRING *ns;
+    const WS_XML_NODE *node;
+    WS_XML_READER *reader;
+    HRESULT hr;
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetNamespaceFromPrefix( NULL, NULL, FALSE, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = WsGetNamespaceFromPrefix( NULL, NULL, FALSE, &ns, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = WsGetNamespaceFromPrefix( NULL, &prefix, FALSE, &ns, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    ns = (const WS_XML_STRING *)0xdeadbeef;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == WS_E_INVALID_OPERATION, "got %08x\n", hr );
+    ok( ns == (const WS_XML_STRING *)0xdeadbeef, "ns set\n" );
+
+    hr = set_input( reader, "<prefix:t xmlns:prefix2='ns'/>", sizeof("<prefix:t xmlns:prefix2='ns'/>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    prepare_namespace_test( reader, "<t></t>" );
+    ns = NULL;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns) ok( !ns->length, "got %u\n", ns->length );
+
+    prepare_namespace_test( reader, "<t xmls='ns'></t>" );
+    ns = NULL;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns) ok( !ns->length, "got %u\n", ns->length );
+
+    prepare_namespace_test( reader, "<prefix:t xmlns:prefix='ns'></t>" );
+    ns = NULL;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns) ok( !ns->length, "got %u\n", ns->length );
+
+    prepare_namespace_test( reader, "<prefix:t xmlns:prefix='ns'></t>" );
+    prefix.bytes = (BYTE *)"prefix";
+    prefix.length = 6;
+    ns = NULL;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns)
+    {
+        ok( ns->length == 2, "got %u\n", ns->length );
+        ok( !memcmp( ns->bytes, "ns", 2 ), "wrong data\n" );
+    }
+
+    prepare_namespace_test( reader, "<t xmlns:prefix='ns'></t>" );
+    ns = NULL;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns)
+    {
+        ok( ns->length == 2, "got %u\n", ns->length );
+        ok( !memcmp( ns->bytes, "ns", 2 ), "wrong data\n" );
+    }
+
+    hr = set_input( reader, "<t xmlns:prefix='ns'></t>", sizeof("<t xmlns:prefix='ns'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node)
+    {
+        WS_XML_ELEMENT_NODE *elem = (WS_XML_ELEMENT_NODE *)node;
+        WS_XML_ATTRIBUTE *attr;
+        WS_XML_UTF8_TEXT *text;
+
+        ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+        ok( elem->prefix != NULL, "prefix not set\n" );
+        ok( !elem->prefix->length, "got %u\n", elem->prefix->length );
+        ok( elem->prefix->bytes == NULL, "bytes not set\n" );
+        ok( elem->ns != NULL, "ns not set\n" );
+        ok( !elem->ns->length, "got %u\n", elem->ns->length );
+        ok( elem->ns->bytes != NULL, "bytes not set\n" );
+        ok( elem->attributeCount == 1, "got %u\n", elem->attributeCount );
+        ok( elem->attributes != NULL, "attributes not set\n" );
+
+        attr = elem->attributes[0];
+        ok( attr->singleQuote, "singleQuote not set\n" );
+        ok( attr->isXmlNs, "isXmlNs not set\n" );
+        ok( attr->prefix != NULL, "prefix not set\n" );
+        ok( attr->prefix->length == 6, "got %u\n", attr->prefix->length );
+        ok( attr->prefix->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->prefix->bytes, "prefix", 6 ), "wrong data\n" );
+        ok( attr->localName != NULL, "localName not set\n" );
+        ok( attr->localName->length == 6, "got %u\n", attr->localName->length );
+        ok( !memcmp( attr->localName->bytes, "prefix", 6 ), "wrong data\n" );
+        ok( attr->ns != NULL, "ns not set\n" );
+        ok( attr->ns->length == 2, "got %u\n", attr->ns->length );
+        ok( attr->ns->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->ns->bytes, "ns", 2 ), "wrong data\n" );
+        ok( attr->value != NULL, "value not set\n" );
+
+        text = (WS_XML_UTF8_TEXT *)attr->value;
+        ok( attr->value->textType == WS_XML_TEXT_TYPE_UTF8, "got %u\n", attr->value->textType );
+        ok( !text->value.length, "got %u\n", text->value.length );
+        ok( text->value.bytes == NULL, "bytes set\n" );
+    }
+
+    prepare_namespace_test( reader, "<t xmlns:prefix='ns'></t>" );
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    todo_wine ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    prepare_namespace_test( reader, "<t></t>" );
+    ns = NULL;
+    prefix.bytes = (BYTE *)"xml";
+    prefix.length = 3;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns)
+    {
+        ok( ns->length == 36, "got %u\n", ns->length );
+        ok( !memcmp( ns->bytes, "http://www.w3.org/XML/1998/namespace", 36 ), "wrong data\n" );
+    }
+
+    prepare_namespace_test( reader, "<t></t>" );
+    ns = NULL;
+    prefix.bytes = (BYTE *)"xmlns";
+    prefix.length = 5;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( ns != NULL, "ns not set\n" );
+    if (ns)
+    {
+        ok( ns->length == 29, "got %u\n", ns->length );
+        ok( !memcmp( ns->bytes, "http://www.w3.org/2000/xmlns/", 29 ), "wrong data\n" );
+    }
+
+    prepare_namespace_test( reader, "<t></t>" );
+    ns = (WS_XML_STRING *)0xdeadbeef;
+    prefix.bytes = (BYTE *)"prefix2";
+    prefix.length = 7;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, TRUE, &ns, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+    ok( ns == (WS_XML_STRING *)0xdeadbeef, "ns set\n" );
+
+    prepare_namespace_test( reader, "<t></t>" );
+    ns = (WS_XML_STRING *)0xdeadbeef;
+    prefix.bytes = (BYTE *)"prefix2";
+    prefix.length = 7;
+    hr = WsGetNamespaceFromPrefix( reader, &prefix, FALSE, &ns, NULL );
+    ok( hr == S_FALSE, "got %08x\n", hr );
+    ok( ns == NULL, "ns not set\n" );
+
+    hr = set_input( reader, "<t prefix:attr='' xmlns:prefix='ns'></t>", sizeof("<t prefix:attr='' xmlns:prefix='ns'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node)
+    {
+        WS_XML_ELEMENT_NODE *elem = (WS_XML_ELEMENT_NODE *)node;
+        WS_XML_ATTRIBUTE *attr;
+
+        ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+        ok( elem->attributeCount == 2, "got %u\n", elem->attributeCount );
+        ok( elem->attributes != NULL, "attributes not set\n" );
+
+        attr = elem->attributes[0];
+        ok( attr->singleQuote, "singleQuote not set\n" );
+        ok( !attr->isXmlNs, "isXmlNs is set\n" );
+        ok( attr->prefix != NULL, "prefix not set\n" );
+        ok( attr->prefix->length == 6, "got %u\n", attr->prefix->length );
+        ok( attr->prefix->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->prefix->bytes, "prefix", 6 ), "wrong data\n" );
+        ok( attr->localName != NULL, "localName not set\n" );
+        ok( attr->localName->length == 4, "got %u\n", attr->localName->length );
+        ok( !memcmp( attr->localName->bytes, "attr", 4 ), "wrong data\n" );
+        ok( attr->ns != NULL, "ns not set\n" );
+        ok( attr->ns->length == 2, "got %u\n", attr->ns->length );
+        ok( attr->ns->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->ns->bytes, "ns", 2 ), "wrong data\n" );
+    }
+
+    hr = set_input( reader, "<t xmlns:p='ns'><u xmlns:p='ns2'/></t>", sizeof("<t xmlns:p='ns'><u xmlns:p='ns2'/></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = set_input( reader, "<t xmlns:p='ns'><p:u p:a=''/></t>", sizeof("<t xmlns:p='ns'><p:u p:a=''/></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node)
+    {
+        WS_XML_ELEMENT_NODE *elem = (WS_XML_ELEMENT_NODE *)node;
+        WS_XML_ATTRIBUTE *attr;
+
+        ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+        ok( elem->attributeCount == 1, "got %u\n", elem->attributeCount );
+        ok( elem->attributes != NULL, "attributes not set\n" );
+
+        attr = elem->attributes[0];
+        ok( attr->prefix != NULL, "prefix not set\n" );
+        ok( attr->prefix->length == 1, "got %u\n", attr->prefix->length );
+        ok( attr->prefix->bytes != NULL, "bytes set\n" );
+        ok( !memcmp( attr->prefix->bytes, "p", 1 ), "wrong data\n" );
+        ok( attr->localName != NULL, "localName not set\n" );
+        ok( attr->localName->length == 1, "got %u\n", attr->localName->length );
+        ok( !memcmp( attr->localName->bytes, "a", 1 ), "wrong data\n" );
+        ok( attr->ns != NULL, "ns not set\n" );
+        ok( attr->ns->length == 2, "got %u\n", attr->ns->length );
+        ok( attr->ns->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->ns->bytes, "ns", 2 ), "wrong data\n" );
+    }
+
+    hr = set_input( reader, "<t xmlns='ns'></t>", sizeof("<t xmlns='ns'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    if (node)
+    {
+        WS_XML_ELEMENT_NODE *elem = (WS_XML_ELEMENT_NODE *)node;
+        WS_XML_ATTRIBUTE *attr;
+
+        ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+        ok( elem->prefix != NULL, "prefix not set\n" );
+        ok( !elem->prefix->length, "got %u\n", elem->prefix->length );
+        ok( elem->prefix->bytes == NULL, "bytes not set\n" );
+        ok( elem->ns != NULL, "ns not set\n" );
+        ok( elem->ns->length == 2, "got %u\n", elem->ns->length );
+        ok( elem->ns->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( elem->ns->bytes, "ns", 2 ), "wrong data\n" );
+
+        attr = elem->attributes[0];
+        ok( attr->isXmlNs, "isXmlNs is not set\n" );
+        ok( attr->prefix != NULL, "prefix not set\n" );
+        ok( !attr->prefix->length, "got %u\n", attr->prefix->length );
+        ok( attr->prefix->bytes == NULL, "bytes set\n" );
+        ok( attr->localName != NULL, "localName not set\n" );
+        ok( attr->localName->length == 5, "got %u\n", attr->localName->length );
+        ok( !memcmp( attr->localName->bytes, "xmlns", 5 ), "wrong data\n" );
+        ok( attr->ns != NULL, "ns not set\n" );
+        ok( attr->ns->length == 2, "got %u\n", attr->ns->length );
+        ok( attr->ns->bytes != NULL, "bytes not set\n" );
+        ok( !memcmp( attr->ns->bytes, "ns", 2 ), "wrong data\n" );
+    }
+
+    hr = set_input( reader, "<t xmlns:p='ns' xmlns:p='ns2'></t>", sizeof("<t xmlns:p='ns' xmlns:p='ns2'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    todo_wine ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    hr = set_input( reader, "<t xmlns:p='ns' xmlns:p='ns'></t>", sizeof("<t xmlns:p='ns' xmlns:p='ns'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    todo_wine ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    hr = set_input( reader, "<t xmlns:p='ns' xmlns:P='ns2'></t>", sizeof("<t xmlns:p='ns' xmlns:P='ns2'></t>") - 1 );
+    ok( hr == S_OK, "got %08x\n", hr );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    WsFreeReader( reader );
+}
+
+static void test_text_field_mapping(void)
+{
+    static const WCHAR testW[] = {'t','e','s','t',0};
+    HRESULT hr;
+    WS_XML_READER *reader;
+    WS_HEAP *heap;
+    WS_STRUCT_DESCRIPTION s;
+    WS_FIELD_DESCRIPTION f, *fields[1];
+    struct test
+    {
+        WCHAR *str;
+    } *test;
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<a>test</a>" );
+
+    memset( &f, 0, sizeof(f) );
+    f.mapping = WS_TEXT_FIELD_MAPPING;
+    f.type    = WS_WSZ_TYPE;
+    fields[0] = &f;
+
+    memset( &s, 0, sizeof(s) );
+    s.size       = sizeof(struct test);
+    s.alignment  = TYPE_ALIGNMENT(struct test);
+    s.fields     = fields;
+    s.fieldCount = 1;
+
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    ok( test->str != NULL, "str not set\n" );
+    ok( !lstrcmpW( test->str, testW ), "got %s\n", wine_dbgstr_w(test->str) );
+
+    WsFreeReader( reader );
+    WsFreeHeap( heap );
+}
+
+static void test_complex_struct_type(void)
+{
+    static const WCHAR timestampW[] =
+        {'2','0','1','5','-','0','9','-','0','3','T','1','8',':','4','7',':','5','4',0};
+    HRESULT hr;
+    WS_ERROR *error;
+    WS_ERROR_PROPERTY prop;
+    WS_XML_READER *reader;
+    WS_HEAP *heap;
+    WS_STRUCT_DESCRIPTION s, s2;
+    WS_FIELD_DESCRIPTION f, f2, *fields[1], *fields2[1];
+    WS_XML_STRING str_officeconfig = {12, (BYTE *)"OfficeConfig"};
+    WS_XML_STRING str_services = {8, (BYTE *)"services"};
+    WS_XML_STRING str_generationtime = {14, (BYTE *)"GenerationTime"};
+    WS_XML_STRING ns = {39, (BYTE *)"urn:schemas-microsoft-com:office:office"};
+    LANGID langid = MAKELANGID( LANG_ENGLISH, SUBLANG_DEFAULT );
+    const WS_XML_NODE *node;
+    const WS_XML_ELEMENT_NODE *elem;
+    struct services
+    {
+        WCHAR *generationtime;
+    };
+    struct officeconfig
+    {
+        struct services *services;
+    } *test;
+
+    prop.id        = WS_ERROR_PROPERTY_LANGID;
+    prop.value     = &langid;
+    prop.valueSize = sizeof(langid);
+    hr = WsCreateError( &prop, 1, &error );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    /* element content type mapping */
+    prepare_struct_type_test( reader, data11 );
+
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (const WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 12, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "OfficeConfig", 12 ), "wrong data\n" );
+
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (const WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 8, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "services", 8 ), "wrong data\n" );
+
+    memset( &f2, 0, sizeof(f2) );
+    f2.mapping         = WS_ATTRIBUTE_FIELD_MAPPING;
+    f2.localName       = &str_generationtime;
+    f2.ns              = &ns;
+    f2.type            = WS_WSZ_TYPE;
+    f2.options         = WS_FIELD_OPTIONAL;
+    fields2[0] = &f2;
+
+    memset( &s2, 0, sizeof(s2) );
+    s2.size          = sizeof(*test->services);
+    s2.alignment     = TYPE_ALIGNMENT(struct services);
+    s2.fields        = fields2;
+    s2.fieldCount    = 1;
+    s2.typeLocalName = &str_services;
+    s2.typeNs        = &ns;
+
+    memset( &f, 0, sizeof(f) );
+    f.mapping         = WS_ELEMENT_FIELD_MAPPING;
+    f.localName       = &str_services;
+    f.ns              = &ns;
+    f.type            = WS_STRUCT_TYPE;
+    f.typeDescription = &s2;
+    f.options         = WS_FIELD_POINTER;
+    fields[0] = &f;
+
+    memset( &s, 0, sizeof(s) );
+    s.size          = sizeof(*test);
+    s.alignment     = TYPE_ALIGNMENT(struct officeconfig);
+    s.fields        = fields;
+    s.fieldCount    = 1;
+    s.typeLocalName = &str_officeconfig;
+    s.typeNs        = &ns;
+
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), error );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    ok( !lstrcmpW( test->services->generationtime, timestampW ), "wrong data\n" );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_END_ELEMENT, "got %u\n", node->nodeType );
+
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    hr = WsReadEndElement( reader, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    /* element type mapping */
+    prepare_struct_type_test( reader, data11 );
+
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    elem = (const WS_XML_ELEMENT_NODE *)node;
+    ok( elem->node.nodeType == WS_XML_NODE_TYPE_ELEMENT, "got %u\n", elem->node.nodeType );
+    ok( elem->localName->length == 12, "got %u\n", elem->localName->length );
+    ok( !memcmp( elem->localName->bytes, "OfficeConfig", 12 ), "wrong data\n" );
+
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), error );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    if (test) ok( !lstrcmpW( test->services->generationtime, timestampW ), "wrong data\n" );
+
+    hr = WsGetReaderNode( reader, &node, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( node->nodeType == WS_XML_NODE_TYPE_EOF, "got %u\n", node->nodeType );
+
+    WsFreeReader( reader );
+    WsFreeHeap( heap );
+    WsFreeError( error );
+}
+
+static void test_repeating_element(void)
+{
+    static const WCHAR oneW[] = {'1',0}, twoW[] = {'2',0};
+    WS_XML_STRING str_name = {4, (BYTE *)"name"};
+    WS_XML_STRING str_services = {8, (BYTE *)"services"};
+    WS_XML_STRING str_service = {7, (BYTE *)"service"};
+    WS_XML_STRING str_wrapper = {7, (BYTE *)"wrapper"};
+    WS_XML_STRING str_id = {2, (BYTE *)"id"};
+    WS_XML_STRING str_ns = {0, NULL};
+    HRESULT hr;
+    WS_XML_READER *reader;
+    WS_HEAP *heap;
+    WS_STRUCT_DESCRIPTION s, s2;
+    WS_FIELD_DESCRIPTION f, f2, f3, *fields[1], *fields2[2];
+    WS_ITEM_RANGE range;
+    struct service { UINT32 id; };
+    struct service2 { WCHAR *id; };
+    struct service3 { WCHAR *name; WCHAR *id; };
+    struct services
+    {
+        struct service *service;
+        ULONG           service_count;
+    } *test;
+    struct services2
+    {
+        struct service2 *service;
+        ULONG            service_count;
+    } *test2;
+    struct services3
+    {
+        struct service3 *service;
+        ULONG            service_count;
+    } *test3;
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, data12 );
+
+    memset( &f2, 0, sizeof(f2) );
+    f2.mapping   = WS_ELEMENT_FIELD_MAPPING;
+    f2.localName = &str_id;
+    f2.ns        = &str_ns;
+    f2.type      = WS_UINT32_TYPE;
+    fields2[0]   = &f2;
+
+    memset( &s2, 0, sizeof(s2) );
+    s2.size          = sizeof(struct service);
+    s2.alignment     = TYPE_ALIGNMENT(struct service);
+    s2.fields        = fields2;
+    s2.fieldCount    = 1;
+    s2.typeLocalName = &str_service;
+
+    memset( &f, 0, sizeof(f) );
+    f.mapping         = WS_REPEATING_ELEMENT_FIELD_MAPPING;
+    f.countOffset     = FIELD_OFFSET(struct services, service_count);
+    f.type            = WS_STRUCT_TYPE;
+    f.typeDescription = &s2;
+    f.itemLocalName   = &str_service;
+    f.itemNs          = &str_ns;
+    fields[0] = &f;
+
+    memset( &s, 0, sizeof(s) );
+    s.size          = sizeof(struct services);
+    s.alignment     = TYPE_ALIGNMENT(struct services);
+    s.fields        = fields;
+    s.fieldCount    = 1;
+    s.typeLocalName = &str_services;
+
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    ok( test->service != NULL, "service not set\n" );
+    ok( test->service_count == 2, "got %u\n", test->service_count );
+    ok( test->service[0].id == 1, "got %u\n", test->service[0].id );
+    ok( test->service[1].id == 2, "got %u\n", test->service[1].id );
+
+    /* item range */
+    prepare_struct_type_test( reader, data13 );
+    range.minItemCount = 0;
+    range.maxItemCount = 1;
+    f.itemRange = &range;
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    ok( test->service != NULL, "service not set\n" );
+    ok( !test->service_count, "got %u\n", test->service_count );
+
+    /* wrapper element */
+    prepare_struct_type_test( reader, data14 );
+    f.itemRange = NULL;
+    f.localName = &str_wrapper;
+    f.ns        = &str_ns;
+    test = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test, sizeof(test), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test != NULL, "test not set\n" );
+    ok( test->service != NULL, "service not set\n" );
+    ok( test->service_count == 2, "got %u\n", test->service_count );
+    ok( test->service[0].id == 1, "got %u\n", test->service[0].id );
+    ok( test->service[1].id == 2, "got %u\n", test->service[1].id );
+
+    /* repeating text field mapping */
+    prepare_struct_type_test( reader, data15 );
+    f2.mapping   = WS_TEXT_FIELD_MAPPING;
+    f2.localName = NULL;
+    f2.ns        = NULL;
+    f2.type      = WS_WSZ_TYPE;
+    s2.size      = sizeof(struct service2);
+    s2.alignment = TYPE_ALIGNMENT(struct service2);
+    test2 = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test2, sizeof(test2), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test2 != NULL, "test2 not set\n" );
+    ok( test2->service != NULL, "service not set\n" );
+    ok( test2->service_count == 2, "got %u\n", test2->service_count );
+    ok( !lstrcmpW( test2->service[0].id, oneW ), "wrong data\n" );
+    ok( !lstrcmpW( test2->service[1].id, twoW ), "wrong data\n" );
+
+    /* repeating attribute field + text field mapping */
+    prepare_struct_type_test( reader, data16 );
+    f2.offset    = FIELD_OFFSET(struct service3, id);
+    memset( &f3, 0, sizeof(f3) );
+    f3.mapping   = WS_ATTRIBUTE_FIELD_MAPPING;
+    f3.localName = &str_name;
+    f3.ns        = &str_ns;
+    f3.type      = WS_WSZ_TYPE;
+    fields2[0]   = &f3;
+    fields2[1]   = &f2;
+    s2.size      = sizeof(struct service3);
+    s2.alignment = TYPE_ALIGNMENT(struct service3);
+    s2.fieldCount = 2;
+    test3 = NULL;
+    hr = WsReadType( reader, WS_ELEMENT_TYPE_MAPPING, WS_STRUCT_TYPE, &s,
+                     WS_READ_REQUIRED_POINTER, heap, &test3, sizeof(test3), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( test3 != NULL, "test3 not set\n" );
+    ok( test3->service != NULL, "service not set\n" );
+    ok( test3->service_count == 2, "got %u\n", test3->service_count );
+    ok( !lstrcmpW( test3->service[0].name, oneW ), "wrong data\n" );
+    ok( !lstrcmpW( test3->service[0].id, oneW ), "wrong data\n" );
+    ok( !lstrcmpW( test3->service[1].name, twoW ), "wrong data\n" );
+    ok( !lstrcmpW( test3->service[1].id, twoW ), "wrong data\n" );
+
+    WsFreeReader( reader );
+    WsFreeHeap( heap );
+}
+
+static void test_WsResetHeap(void)
+{
+    HRESULT hr;
+    WS_HEAP *heap;
+    SIZE_T requested, actual;
+    ULONG size;
+    void *ptr;
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    requested = 0xdeadbeef;
+    size = sizeof(requested);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_REQUESTED_SIZE, &requested, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( !requested, "got %u\n", (ULONG)requested );
+
+    actual = 0xdeadbeef;
+    size = sizeof(actual);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_ACTUAL_SIZE, &actual, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( !actual, "got %u\n", (ULONG)actual );
+
+    hr = WsAlloc( heap, 128, &ptr, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    requested = 0xdeadbeef;
+    size = sizeof(requested);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_REQUESTED_SIZE, &requested, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    todo_wine ok( requested == 128, "got %u\n", (ULONG)requested );
+
+    actual = 0xdeadbeef;
+    size = sizeof(actual);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_ACTUAL_SIZE, &actual, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    todo_wine ok( actual == 128, "got %u\n", (ULONG)actual );
+
+    hr = WsAlloc( heap, 1, &ptr, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    requested = 0xdeadbeef;
+    size = sizeof(requested);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_REQUESTED_SIZE, &requested, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    todo_wine ok( requested == 129, "got %u\n", (ULONG)requested );
+
+    actual = 0xdeadbeef;
+    size = sizeof(actual);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_ACTUAL_SIZE, &actual, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    todo_wine ok( actual == 384, "got %u\n", (ULONG)actual );
+
+    hr = WsResetHeap( NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = WsResetHeap( heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    requested = 0xdeadbeef;
+    size = sizeof(requested);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_REQUESTED_SIZE, &requested, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( !requested, "got %u\n", (ULONG)requested );
+
+    actual = 0xdeadbeef;
+    size = sizeof(actual);
+    hr = WsGetHeapProperty( heap, WS_HEAP_PROPERTY_ACTUAL_SIZE, &actual, size, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    todo_wine ok( actual == 128, "got %u\n", (ULONG)actual );
+
+    WsFreeHeap( heap );
+}
+
+static void test_datetime(void)
+{
+    static const struct
+    {
+        const char        *str;
+        HRESULT            hr;
+        __int64            ticks;
+        WS_DATETIME_FORMAT format;
+    }
+    tests[] =
+    {
+        {"<t>0000-01-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00Z</t>", S_OK, 0, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00.0Z</t>", S_OK, 0, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.1Z</t>", S_OK, 0x0000f4240, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.01Z</t>", S_OK, 0x0000186a0, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.0000001Z</t>", S_OK, 1, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.9999999Z</t>", S_OK, 0x00098967f, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.0000000Z</t>", S_OK, 0, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T00:00:00.00000001Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00Z-</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>-0001-01-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-00-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-13-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-12-01T00:00:00Z</t>", S_OK, 0x1067555f88000, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-00T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>2001-01-32T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>2001-01-31T00:00:00Z</t>", S_OK, 0x8c2592fe3794000, WS_DATETIME_FORMAT_UTC},
+        {"<t>1900-02-29T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>2000-02-29T00:00:00Z</t>", S_OK, 0x8c1505f0e438000, 0},
+        {"<t>2001-02-29T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>2001-02-28T00:00:00Z</t>", S_OK, 0x8c26f30870a4000, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-00-01U00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T24:00:00Z</t>", S_OK, 0xc92a69c000, WS_DATETIME_FORMAT_UTC},
+        {"<t>0001-01-01T24:00:01Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:60:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:60Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00Y</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00+00:01</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0001-01-01T00:00:00-00:01</t>", S_OK, 0x023c34600, WS_DATETIME_FORMAT_LOCAL},
+        {"<t>9999-12-31T24:00:00+00:01</t>", S_OK, 0x2bca2875d073fa00, WS_DATETIME_FORMAT_LOCAL},
+        {"<t>9999-12-31T24:00:00-00:01</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0002-01-01T00:00:00+14:01</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0002-01-01T00:00:00+15:00</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0002-01-01T00:00:00+13:60</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>0002-01-01T00:00:00+13:59</t>", S_OK, 0x11e5c43cc5600, WS_DATETIME_FORMAT_LOCAL},
+        {"<t>0002-01-01T00:00:00+01:00</t>", S_OK, 0x11ec917025800, WS_DATETIME_FORMAT_LOCAL},
+        {"<t>2016-01-01T00:00:00-01:00</t>", S_OK, 0x8d31246dfbba800, WS_DATETIME_FORMAT_LOCAL},
+        {"<t>2016-01-01T00:00:00Z</t>", S_OK, 0x8d3123e7df74000, WS_DATETIME_FORMAT_UTC},
+        {"<t> 2016-01-02T03:04:05Z </t>", S_OK, 0x8d313215fb64080, WS_DATETIME_FORMAT_UTC},
+        {"<t>+2016-01-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t></t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>01-01-01T00:00:00Z</t>", WS_E_INVALID_FORMAT, 0, 0},
+        {"<t>1601-01-01T00:00:00Z</t>", S_OK, 0x701ce1722770000, WS_DATETIME_FORMAT_UTC},
+    };
+    HRESULT hr;
+    WS_XML_READER *reader;
+    WS_HEAP *heap;
+    WS_DATETIME date;
+    ULONG i;
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+    for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++)
+    {
+        memset( &date, 0, sizeof(date) );
+        prepare_type_test( reader, tests[i].str, strlen(tests[i].str) );
+        hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_DATETIME_TYPE, NULL,
+                         WS_READ_REQUIRED_VALUE, heap, &date, sizeof(date), NULL );
+        ok( hr == tests[i].hr, "%u: got %08x\n", i, hr );
+        if (hr == S_OK)
+        {
+            ok( date.ticks == tests[i].ticks, "%u: got %x%08x\n", i, (ULONG)(date.ticks >> 32), (ULONG)date.ticks );
+            ok( date.format == tests[i].format, "%u: got %u\n", i, date.format );
+        }
+    }
+
+    WsFreeReader( reader );
+    WsFreeHeap( heap );
+}
+
+static void test_WsDateTimeToFileTime(void)
+{
+    static const struct
+    {
+        WS_DATETIME dt;
+        HRESULT     hr;
+        FILETIME    ft;
+    }
+    tests[] =
+    {
+        { {0, WS_DATETIME_FORMAT_UTC}, WS_E_INVALID_FORMAT, {0, 0} },
+        { {0x701ce172276ffff, WS_DATETIME_FORMAT_UTC}, WS_E_INVALID_FORMAT, {0, 0} },
+        { {0x701ce1722770000, WS_DATETIME_FORMAT_UTC}, S_OK, {0, 0} },
+        { {0x2bca2875f4373fff, WS_DATETIME_FORMAT_UTC}, S_OK, {0xd1c03fff, 0x24c85a5e} },
+        { {0x2bca2875f4374000, WS_DATETIME_FORMAT_UTC}, S_OK, {0xd1c04000, 0x24c85a5e} },
+        { {0x2bca2875f4374000, WS_DATETIME_FORMAT_LOCAL}, S_OK, {0xd1c04000, 0x24c85a5e} },
+        { {~0, WS_DATETIME_FORMAT_UTC}, S_OK, {0xdd88ffff, 0xf8fe31e8} },
+    };
+    WS_DATETIME dt;
+    FILETIME ft;
+    HRESULT hr;
+    ULONG i;
+
+    hr = WsDateTimeToFileTime( NULL, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    dt.ticks  = 0x701ce172277000;
+    dt.format = WS_DATETIME_FORMAT_UTC;
+    hr = WsDateTimeToFileTime( &dt, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = WsDateTimeToFileTime( NULL, &ft, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++)
+    {
+        memset( &ft, 0, sizeof(ft) );
+        hr = WsDateTimeToFileTime( &tests[i].dt, &ft, NULL );
+        ok( hr == tests[i].hr, "%u: got %08x\n", i, hr );
+        if (hr == S_OK)
+        {
+            ok( ft.dwLowDateTime == tests[i].ft.dwLowDateTime, "%u: got %08x\n", i, ft.dwLowDateTime );
+            ok( ft.dwHighDateTime == tests[i].ft.dwHighDateTime, "%u: got %08x\n", i, ft.dwHighDateTime );
+        }
+    }
+}
+
+static void test_WsFileTimeToDateTime(void)
+{
+    WS_DATETIME dt;
+    FILETIME ft;
+    HRESULT hr;
+
+    hr = WsFileTimeToDateTime( NULL, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    ft.dwLowDateTime = ft.dwHighDateTime = 0;
+    hr = WsFileTimeToDateTime( &ft, NULL, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    hr = WsFileTimeToDateTime( NULL, &dt, NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    dt.ticks = 0xdeadbeef;
+    dt.format = 0xdeadbeef;
+    hr = WsFileTimeToDateTime( &ft, &dt, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( dt.ticks == 0x701ce1722770000, "got %x%08x\n", (ULONG)(dt.ticks >> 32), (ULONG)dt.ticks );
+    ok( dt.format == WS_DATETIME_FORMAT_UTC, "got %u\n", dt.format );
+
+    ft.dwLowDateTime  = 0xd1c03fff;
+    ft.dwHighDateTime = 0x24c85a5e;
+    hr = WsFileTimeToDateTime( &ft, &dt, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( dt.ticks == 0x2bca2875f4373fff, "got %x%08x\n", (ULONG)(dt.ticks >> 32), (ULONG)dt.ticks );
+    ok( dt.format == WS_DATETIME_FORMAT_UTC, "got %u\n", dt.format );
+
+    ft.dwLowDateTime++;
+    hr = WsFileTimeToDateTime( &ft, &dt, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    ft.dwLowDateTime  = 0xdd88ffff;
+    ft.dwHighDateTime = 0xf8fe31e8;
+    hr = WsFileTimeToDateTime( &ft, &dt, NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    ft.dwLowDateTime++;
+    hr = WsFileTimeToDateTime( &ft, &dt, NULL );
+    ok( hr == WS_E_NUMERIC_OVERFLOW, "got %08x\n", hr );
+}
+
+static void test_double(void)
+{
+    static const struct
+    {
+        const char *str;
+        HRESULT     hr;
+        ULONGLONG   val;
+    }
+    tests[] =
+    {
+        {"<t>0.0</t>", S_OK, 0},
+        {"<t>-0.0</t>", S_OK, 0x8000000000000000},
+        {"<t>+0.0</t>", S_OK, 0},
+        {"<t>-</t>", S_OK, 0},
+        {"<t>+</t>", S_OK, 0},
+        {"<t>.0</t>", S_OK, 0},
+        {"<t>0.</t>", S_OK, 0},
+        {"<t>0</t>", S_OK, 0},
+        {"<t> 0 </t>", S_OK, 0},
+        {"<t></t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>0,1</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>1.1.</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>1</t>", S_OK, 0x3ff0000000000000},
+        {"<t>1.0000000000000002</t>", S_OK, 0x3ff0000000000001},
+        {"<t>1.0000000000000004</t>", S_OK, 0x3ff0000000000002},
+        {"<t>10000000000000000000</t>", S_OK, 0x43e158e460913d00},
+        {"<t>100000000000000000000</t>", S_OK, 0x4415af1d78b58c40},
+        {"<t>2</t>", S_OK, 0x4000000000000000},
+        {"<t>-2</t>", S_OK, 0xc000000000000000},
+        {"<t>nodouble</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>INF</t>", S_OK, 0x7ff0000000000000},
+        {"<t>-INF</t>", S_OK, 0xfff0000000000000},
+        {"<t>+INF</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>Infinity</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>-Infinity</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>inf</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>NaN</t>", S_OK, 0xfff8000000000000},
+        {"<t>-NaN</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>NAN</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>0.3</t>", S_OK, 0x3fd3333333333333},
+        {"<t>0.33</t>", S_OK, 0x3fd51eb851eb851f},
+        {"<t>0.333</t>", S_OK, 0x3fd54fdf3b645a1d},
+        {"<t>0.3333</t>", S_OK, 0x3fd554c985f06f69},
+        {"<t>0.33333</t>", S_OK, 0x3fd555475a31a4be},
+        {"<t>0.333333</t>", S_OK, 0x3fd55553ef6b5d46},
+        {"<t>0.3333333</t>", S_OK, 0x3fd55555318abc87},
+        {"<t>0.33333333</t>", S_OK, 0x3fd5555551c112da},
+        {"<t>0.333333333</t>", S_OK, 0x3fd5555554f9b516},
+        {"<t>0.3333333333</t>", S_OK, 0x3fd55555554c2bb5},
+        {"<t>0.33333333333</t>", S_OK, 0x3fd5555555546ac5},
+        {"<t>0.3333333333333</t>", S_OK, 0x3fd55555555552fd},
+        {"<t>0.33333333333333</t>", S_OK, 0x3fd5555555555519},
+        {"<t>0.333333333333333</t>", S_OK, 0x3fd555555555554f},
+        {"<t>0.3333333333333333</t>", S_OK, 0x3fd5555555555555},
+        {"<t>0.33333333333333333</t>", S_OK, 0x3fd5555555555555},
+        {"<t>0.1e10</t>", S_OK, 0x41cdcd6500000000},
+        {"<t>1e</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>1e0</t>", S_OK, 0x3ff0000000000000},
+        {"<t>1e+1</t>", S_OK, 0x4024000000000000},
+        {"<t>1e-1</t>", S_OK, 0x3fb999999999999a},
+        {"<t>e10</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>1e10.</t>", WS_E_INVALID_FORMAT, 0},
+        {"<t>1E10</t>", S_OK, 0x4202a05f20000000},
+        {"<t>1e10</t>", S_OK, 0x4202a05f20000000},
+        {"<t>1e-10</t>", S_OK, 0x3ddb7cdfd9d7bdbb},
+        {"<t>1.7976931348623158e308</t>", S_OK, 0x7fefffffffffffff},
+        {"<t>1.7976931348623159e308</t>", S_OK, 0x7ff0000000000000},
+        {"<t>4.94065645841247e-324</t>", S_OK, 0x1},
+    };
+    HRESULT hr;
+    WS_XML_READER *reader;
+    WS_HEAP *heap;
+    ULONGLONG val;
+    ULONG i;
+
+    hr = WsCreateHeap( 1 << 16, 0, NULL, 0, &heap, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    for (i = 0; i < sizeof(tests)/sizeof(tests[0]); i++)
+    {
+        val = 0;
+        prepare_type_test( reader, tests[i].str, strlen(tests[i].str) );
+        hr = WsReadType( reader, WS_ELEMENT_CONTENT_TYPE_MAPPING, WS_DOUBLE_TYPE, NULL,
+                         WS_READ_REQUIRED_VALUE, heap, &val, sizeof(val), NULL );
+        ok( hr == tests[i].hr, "%u: got %08x\n", i, hr );
+        if (hr == tests[i].hr) ok( val == tests[i].val, "%u: got %x%08x\n", i, (ULONG)(val >> 32), (ULONG)val );
+    }
+
+    WsFreeReader( reader );
+    WsFreeHeap( heap );
+}
+
+static void test_WsReadElement(void)
+{
+    WS_XML_STRING localname = {1, (BYTE *)"t"}, ns = {0, NULL};
+    HRESULT hr;
+    WS_XML_READER *reader;
+    WS_ELEMENT_DESCRIPTION desc;
+    UINT32 val;
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    desc.elementLocalName = &localname;
+    desc.elementNs        = &ns;
+    desc.type             = WS_UINT32_TYPE;
+    desc.typeDescription  = NULL;
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadElement( NULL, &desc, WS_READ_REQUIRED_VALUE, NULL, &val, sizeof(val), NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadElement( reader, NULL, WS_READ_REQUIRED_VALUE, NULL, &val, sizeof(val), NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadElement( reader, &desc, WS_READ_REQUIRED_VALUE, NULL, NULL, sizeof(val), NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    val = 0xdeadbeef;
+    hr = WsReadElement( reader, &desc, WS_READ_REQUIRED_VALUE, NULL, &val, sizeof(val), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( val == 1, "got %u\n", val );
+
+    WsFreeReader( reader );
+}
+
+static void test_WsReadValue(void)
+{
+    HRESULT hr;
+    WS_XML_READER *reader;
+    UINT32 val;
+
+    hr = WsCreateReader( NULL, 0, &reader, NULL ) ;
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadValue( NULL, WS_UINT32_TYPE, &val, sizeof(val), NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadValue( reader, WS_UINT32_TYPE, NULL, sizeof(val), NULL );
+    ok( hr == E_INVALIDARG, "got %08x\n", hr );
+
+    /* reader must be positioned correctly */
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadValue( reader, WS_UINT32_TYPE, &val, sizeof(val), NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadValue( reader, WS_UINT32_TYPE, &val, sizeof(val), NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    prepare_struct_type_test( reader, "<t>1</t>" );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadStartElement( reader, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    val = 0xdeadbeef;
+    hr = WsReadValue( reader, WS_UINT32_TYPE, &val, sizeof(val), NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+    ok( val == 1, "got %u\n", val );
+
+    prepare_struct_type_test( reader, "<u t='1'></u>" );
+    hr = WsReadToStartElement( reader, NULL, NULL, NULL, NULL );
+    ok( hr == S_OK, "got %08x\n", hr );
+
+    hr = WsReadValue( reader, WS_UINT32_TYPE, &val, sizeof(val), NULL );
+    ok( hr == WS_E_INVALID_FORMAT, "got %08x\n", hr );
+
+    WsFreeReader( reader );
+}
+
 START_TEST(reader)
 {
     test_WsCreateError();
@@ -1890,4 +3378,16 @@ START_TEST(reader)
     test_WsMoveReader();
     test_simple_struct_type();
     test_cdata();
+    test_WsFindAttribute();
+    test_WsGetNamespaceFromPrefix();
+    test_text_field_mapping();
+    test_complex_struct_type();
+    test_repeating_element();
+    test_WsResetHeap();
+    test_datetime();
+    test_WsDateTimeToFileTime();
+    test_WsFileTimeToDateTime();
+    test_double();
+    test_WsReadElement();
+    test_WsReadValue();
 }

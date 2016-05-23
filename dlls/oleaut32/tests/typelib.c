@@ -210,7 +210,8 @@ static void ref_count_test(LPCWSTR type_lib)
 
     hRes = ITypeLib_GetTypeInfo(iface, 1, &iti1);
     ok(hRes == S_OK, "ITypeLib_GetTypeInfo failed on index = 1\n");
-    ok(ref_count=ITypeLib_Release(iface) > 0, "ITypeLib destroyed while ITypeInfo has back pointer\n");
+    ref_count = ITypeLib_Release(iface);
+    ok(ref_count > 0, "ITypeLib destroyed while ITypeInfo has back pointer\n");
     if(!ref_count)
         return;
 
@@ -5709,19 +5710,23 @@ static void test_LoadRegTypeLib(void)
     hr = LoadRegTypeLib(&LIBID_TestTypelib, 1, 7, LOCALE_NEUTRAL, &tl);
     ok(hr == TYPE_E_LIBNOTREGISTERED, "got 0x%08x\n", hr);
 
+    tl = NULL;
     hr = LoadRegTypeLib(&LIBID_TestTypelib, 0xffff, 0xffff, LOCALE_NEUTRAL, &tl);
     ok(hr == S_OK, "got 0x%08x\n", hr);
 
-    hr = ITypeLib_GetLibAttr(tl, &attr);
-    ok(hr == S_OK, "got 0x%08x\n", hr);
+    if (tl)
+    {
+        hr = ITypeLib_GetLibAttr(tl, &attr);
+        ok(hr == S_OK, "got 0x%08x\n", hr);
 
-    ok(attr->lcid == 0, "got %x\n", attr->lcid);
-    ok(attr->wMajorVerNum == 2, "got %d\n", attr->wMajorVerNum);
-    ok(attr->wMinorVerNum == 5, "got %d\n", attr->wMinorVerNum);
-    ok(attr->wLibFlags == LIBFLAG_FHASDISKIMAGE, "got %x\n", attr->wLibFlags);
+        ok(attr->lcid == 0, "got %x\n", attr->lcid);
+        ok(attr->wMajorVerNum == 2, "got %d\n", attr->wMajorVerNum);
+        ok(attr->wMinorVerNum == 5, "got %d\n", attr->wMinorVerNum);
+        ok(attr->wLibFlags == LIBFLAG_FHASDISKIMAGE, "got %x\n", attr->wLibFlags);
 
-    ITypeLib_ReleaseTLibAttr(tl, attr);
-    ITypeLib_Release(tl);
+        ITypeLib_ReleaseTLibAttr(tl, attr);
+        ITypeLib_Release(tl);
+    }
 
     DeleteFileA("test_actctx_tlb.tlb");
     DeleteFileA("test_actctx_tlb2.tlb");

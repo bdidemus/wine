@@ -1103,14 +1103,39 @@ static void D3DXIntersectTriTest(void)
 
     exp_res = TRUE; exp_u = 0.5f; exp_v = 0.25f; exp_dist = 8.0f;
 
-    got_res = D3DXIntersectTri(&vertex[0],&vertex[1],&vertex[2],&position,&ray,&got_u,&got_v,&got_dist);
-    ok( got_res == exp_res, "Expected result = %d, got %d\n",exp_res,got_res);
-    ok( compare(exp_u,got_u), "Expected u = %f, got %f\n",exp_u,got_u);
-    ok( compare(exp_v,got_v), "Expected v = %f, got %f\n",exp_v,got_v);
-    ok( compare(exp_dist,got_dist), "Expected distance = %f, got %f\n",exp_dist,got_dist);
+    got_res = D3DXIntersectTri(&vertex[0], &vertex[1], &vertex[2], &position, &ray, &got_u, &got_v, &got_dist);
+    ok(got_res == exp_res, "Expected result %d, got %d.\n", exp_res, got_res);
+    ok(compare(exp_u, got_u), "Expected u %f, got %f.\n", exp_u, got_u);
+    ok(compare(exp_v, got_v), "Expected v %f, got %f.\n", exp_v, got_v);
+    ok(compare(exp_dist, got_dist), "Expected distance %f, got %f.\n", exp_dist, got_dist);
 
     got_res = D3DXIntersectTri(&vertex[0], &vertex[1], &vertex[2], &position, &ray, NULL, NULL, NULL);
-    ok(got_res == exp_res, "Expected result = %d, got %d\n", exp_res, got_res);
+    ok(got_res == exp_res, "Expected result %d, got %d.\n", exp_res, got_res);
+
+    vertex[2].x = 1.0f; vertex[2].y = 0.0f; vertex[2].z = 0.0f;
+    vertex[1].x = 2.0f; vertex[1].y = 0.0f; vertex[1].z = 0.0f;
+    vertex[0].x = 1.0f; vertex[0].y = 1.0f; vertex[0].z = 0.0f;
+
+    got_u = got_v = got_dist = 0.0f;
+    got_res = D3DXIntersectTri(&vertex[0], &vertex[1], &vertex[2], &position, &ray, &got_u, &got_v, &got_dist);
+    ok(got_res == exp_res, "Expected result %d, got %d.\n", exp_res, got_res);
+    ok(compare(exp_u, got_u), "Expected u %f, got %f.\n", exp_u, got_u);
+    ok(compare(exp_v, got_v), "Expected v %f, got %f.\n", exp_v, got_v);
+    ok(compare(exp_dist, got_dist), "Expected distance %f, got %f.\n", exp_dist, got_dist);
+
+    vertex[2].x = 1.0f; vertex[2].y = 0.0f; vertex[2].z = 0.0f;
+    vertex[1].x = 2.0f; vertex[1].y = 0.0f; vertex[1].z = -0.5f;
+    vertex[0].x = 1.0f; vertex[0].y = 1.0f; vertex[0].z = -1.0f;
+    exp_u = 0.375f;
+    exp_v = 0.5625f;
+    exp_dist = 7.9375f;
+    got_u = got_v = got_dist = 0.0f;
+    got_res = D3DXIntersectTri(&vertex[0], &vertex[1], &vertex[2], &position, &ray, &got_u, &got_v, &got_dist);
+    ok(got_res == exp_res, "Expected result %d, got %d.\n", exp_res, got_res);
+    ok(compare(exp_u, got_u), "Expected u %f, got %f.\n", exp_u, got_u);
+    ok(compare(exp_v, got_v), "Expected v %f, got %f.\n", exp_v, got_v);
+    ok(compare(exp_dist, got_dist), "Expected distance %f, got %f.\n", exp_dist, got_dist);
+
 
 /*Only positive ray is taken in account*/
 
@@ -4401,7 +4426,7 @@ static void D3DXCreateTextTest(void)
     ok(hr == D3D_OK, "Got result %x, expected %x (D3D_OK)\n", hr, D3D_OK);
     number_of_vertices = d3dxmesh->lpVtbl->GetNumVertices(d3dxmesh);
     number_of_faces = d3dxmesh->lpVtbl->GetNumFaces(d3dxmesh);
-    if (SUCCEEDED(hr) && d3dxmesh) d3dxmesh->lpVtbl->Release(d3dxmesh);
+    d3dxmesh->lpVtbl->Release(d3dxmesh);
 
     hr = D3DXCreateTextA(device, hdc, "wine", 0.0f, 0.4f, &d3dxmesh, NULL, NULL);
     ok(hr == D3D_OK, "Got result %x, expected %x (D3D_OK)\n", hr, D3D_OK);
@@ -4411,7 +4436,7 @@ static void D3DXCreateTextTest(void)
     ok(number_of_faces == d3dxmesh->lpVtbl->GetNumFaces(d3dxmesh),
        "Got %d faces, expected %d\n",
        d3dxmesh->lpVtbl->GetNumVertices(d3dxmesh), number_of_faces);
-    if (SUCCEEDED(hr) && d3dxmesh) d3dxmesh->lpVtbl->Release(d3dxmesh);
+    d3dxmesh->lpVtbl->Release(d3dxmesh);
 
 if (0)
 {
@@ -4823,7 +4848,7 @@ static void test_update_semantics(void)
     }
 
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration);
-    ok(hr == D3D_OK, "Test UpdateSematics, got %#x expected %#x\n", hr, D3D_OK);
+    ok(hr == D3D_OK, "Test UpdateSemantics, got %#x expected %#x\n", hr, D3D_OK);
 
     /* Check that declaration was written by getting it again */
     memset(declaration, 0, sizeof(declaration));
@@ -4838,7 +4863,7 @@ static void test_update_semantics(void)
     {
         if (decl_ptr->Usage == D3DDECLUSAGE_POSITION)
         {
-            ok(decl_ptr->Offset == offset, "Test UpdateSematics, got offset %d expected %d\n",
+            ok(decl_ptr->Offset == offset, "Test UpdateSemantics, got offset %d expected %d\n",
                decl_ptr->Offset, offset);
         }
     }
@@ -4849,7 +4874,7 @@ static void test_update_semantics(void)
     memset(declaration, filler_a, sizeof(declaration));
     memcpy(declaration, declaration0, sizeof(declaration0));
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration);
-    ok(hr == D3D_OK, "Test UpdateSematics, "
+    ok(hr == D3D_OK, "Test UpdateSemantics, "
        "got %#x expected D3D_OK\n", hr);
     memset(declaration, filler_b, sizeof(declaration));
     hr = mesh->lpVtbl->GetDeclaration(mesh, declaration);
@@ -4882,12 +4907,12 @@ static void test_update_semantics(void)
     }
 
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration);
-    ok(hr == D3D_OK, "Test UpdateSematics for overlapping fields, "
+    ok(hr == D3D_OK, "Test UpdateSemantics for overlapping fields, "
        "got %#x expected D3D_OK\n", hr);
 
     /* Set the position type to color instead of float3 */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_pos_type_color);
-    ok(hr == D3D_OK, "Test UpdateSematics position type color, "
+    ok(hr == D3D_OK, "Test UpdateSemantics position type color, "
        "got %#x expected D3D_OK\n", hr);
 
     /* The following test cases show that NULL, smaller or larger declarations,
@@ -4900,7 +4925,7 @@ static void test_update_semantics(void)
     /* Null declaration (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, NULL);
-    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSematics null pointer declaration, "
+    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSemantics null pointer declaration, "
        "got %#x expected D3DERR_INVALIDCALL\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4914,7 +4939,7 @@ static void test_update_semantics(void)
     /* Smaller vertex declaration (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_smaller);
-    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSematics for smaller vertex declaration, "
+    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSemantics for smaller vertex declaration, "
        "got %#x expected D3DERR_INVALIDCALL\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4928,7 +4953,7 @@ static void test_update_semantics(void)
     /* Larger vertex declaration (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_larger);
-    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSematics for larger vertex declaration, "
+    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSemantics for larger vertex declaration, "
        "got %#x expected D3DERR_INVALIDCALL\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4942,7 +4967,7 @@ static void test_update_semantics(void)
     /* Use multiple streams and keep the same vertex size (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_multiple_streams);
-    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSematics using multiple streams, "
+    ok(hr == D3DERR_INVALIDCALL, "Test UpdateSemantics using multiple streams, "
                  "got %#x expected D3DERR_INVALIDCALL\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4962,7 +4987,7 @@ static void test_update_semantics(void)
     /* Double usage (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_double_usage);
-    ok(hr == D3D_OK, "Test UpdateSematics double usage, "
+    ok(hr == D3D_OK, "Test UpdateSemantics double usage, "
        "got %#x expected D3D_OK\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4976,7 +5001,7 @@ static void test_update_semantics(void)
     /* Set the position to an undefined type (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_undefined_type);
-    ok(hr == D3D_OK, "Test UpdateSematics undefined type, "
+    ok(hr == D3D_OK, "Test UpdateSemantics undefined type, "
        "got %#x expected D3D_OK\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",
@@ -4990,7 +5015,7 @@ static void test_update_semantics(void)
     /* Use a not 4 byte aligned offset (invalid declaration) */
     mesh->lpVtbl->UpdateSemantics(mesh, declaration0); /* Set a valid declaration */
     hr = mesh->lpVtbl->UpdateSemantics(mesh, declaration_not_4_byte_aligned_offset);
-    ok(hr == D3D_OK, "Test UpdateSematics not 4 byte aligned offset, "
+    ok(hr == D3D_OK, "Test UpdateSemantics not 4 byte aligned offset, "
        "got %#x expected D3D_OK\n", hr);
     vertex_size = mesh->lpVtbl->GetNumBytesPerVertex(mesh);
     ok(vertex_size == exp_vertex_size, "Got vertex declaration size %u, expected %u\n",

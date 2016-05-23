@@ -512,7 +512,7 @@ unsigned msvcrt_create_io_inherit_block(WORD *size, BYTE **block)
   last_fd++;
 
   *size = sizeof(unsigned) + (sizeof(char) + sizeof(HANDLE)) * last_fd;
-  *block = MSVCRT_calloc(*size, 1);
+  *block = MSVCRT_calloc(1, *size);
   if (!*block)
   {
     *size = 0;
@@ -660,7 +660,7 @@ static BOOL msvcrt_alloc_buffer(MSVCRT_FILE* file)
             && MSVCRT__isatty(file->_file))
         return FALSE;
 
-    file->_base = MSVCRT_calloc(MSVCRT_INTERNAL_BUFSIZ,1);
+    file->_base = MSVCRT_calloc(1, MSVCRT_INTERNAL_BUFSIZ);
     if(file->_base) {
         file->_bufsiz = MSVCRT_INTERNAL_BUFSIZ;
         file->_flag |= MSVCRT__IOMYBUF;
@@ -1021,6 +1021,14 @@ int CDECL MSVCRT__close(int fd)
   TRACE(":fd (%d) handle (%p)\n", fd, info->handle);
   if (!(info->wxflag & WX_OPEN)) {
     ret = -1;
+  } else if (fd == MSVCRT_STDOUT_FILENO &&
+          info->handle == get_ioinfo_nolock(MSVCRT_STDERR_FILENO)->handle) {
+    msvcrt_free_fd(fd);
+    ret = 0;
+  } else if (fd == MSVCRT_STDERR_FILENO &&
+          info->handle == get_ioinfo_nolock(MSVCRT_STDOUT_FILENO)->handle) {
+    msvcrt_free_fd(fd);
+    ret = 0;
   } else {
     ret = CloseHandle(info->handle) ? 0 : -1;
     msvcrt_free_fd(fd);
@@ -5090,6 +5098,34 @@ int CDECL MSVCRT__stdio_common_vfprintf(unsigned __int64 options, MSVCRT_FILE *f
 
     return ret;
 }
+
+/*********************************************************************
+ *		__stdio_common_vfwprintf (MSVCRT.@)
+ */
+int CDECL MSVCRT__stdio_common_vfwprintf(unsigned __int64 options, MSVCRT_FILE *file, const MSVCRT_wchar_t *format,
+                                         MSVCRT__locale_t locale, __ms_va_list valist)
+{
+    BOOL tmp_buf;
+    int ret;
+
+    if (!MSVCRT_CHECK_PMT( file != NULL )) return -1;
+    if (!MSVCRT_CHECK_PMT( format != NULL )) return -1;
+
+    MSVCRT__lock_file(file);
+    tmp_buf = add_std_buffer(file);
+
+    if (options & ~UCRTBASE_PRINTF_MASK)
+        FIXME("options %s not handled\n", wine_dbgstr_longlong(options));
+
+    ret = pf_printf_w(puts_clbk_file_w, file, format, locale,
+            options & UCRTBASE_PRINTF_MASK, arg_clbk_valist, NULL, &valist);
+
+    if(tmp_buf) remove_std_buffer(file);
+    MSVCRT__unlock_file(file);
+
+    return ret;
+}
+
 
 /*********************************************************************
  *              _vfwprintf_l (MSVCRT.@)

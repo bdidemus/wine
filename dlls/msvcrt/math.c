@@ -331,15 +331,6 @@ float CDECL MSVCRT_frexpf( float x, int *exp )
 }
 
 /*********************************************************************
- *      _scalbf (MSVCRT.@)
- */
-float CDECL MSVCRT__scalbf(float num, MSVCRT_long power)
-{
-  if (!finitef(num)) *MSVCRT__errno() = MSVCRT_EDOM;
-  return ldexpf(num, power);
-}
-
-/*********************************************************************
  *      modff (MSVCRT.@)
  */
 float CDECL MSVCRT_modff( float x, float *iptr )
@@ -674,36 +665,16 @@ int CDECL MSVCRT__fpclass(double num)
 #if defined(HAVE_FPCLASS) || defined(fpclass)
   switch (fpclass( num ))
   {
-#ifdef FP_SNAN
   case FP_SNAN:  return MSVCRT__FPCLASS_SNAN;
-#endif
-#ifdef FP_QNAN
   case FP_QNAN:  return MSVCRT__FPCLASS_QNAN;
-#endif
-#ifdef FP_NINF
   case FP_NINF:  return MSVCRT__FPCLASS_NINF;
-#endif
-#ifdef FP_PINF
   case FP_PINF:  return MSVCRT__FPCLASS_PINF;
-#endif
-#ifdef FP_NDENORM
   case FP_NDENORM: return MSVCRT__FPCLASS_ND;
-#endif
-#ifdef FP_PDENORM
   case FP_PDENORM: return MSVCRT__FPCLASS_PD;
-#endif
-#ifdef FP_NZERO
   case FP_NZERO: return MSVCRT__FPCLASS_NZ;
-#endif
-#ifdef FP_PZERO
   case FP_PZERO: return MSVCRT__FPCLASS_PZ;
-#endif
-#ifdef FP_NNORM
   case FP_NNORM: return MSVCRT__FPCLASS_NN;
-#endif
-#ifdef FP_PNORM
   case FP_PNORM: return MSVCRT__FPCLASS_PN;
-#endif
   default: return MSVCRT__FPCLASS_PN;
   }
 #elif defined (fpclassify)
@@ -815,15 +786,6 @@ double CDECL MSVCRT__logb(double num)
 {
   if (!isfinite(num)) *MSVCRT__errno() = MSVCRT_EDOM;
   return logb(num);
-}
-
-/*********************************************************************
- *		_scalb (MSVCRT.@)
- */
-double CDECL MSVCRT__scalb(double num, MSVCRT_long power)
-{
-  if (!isfinite(num)) *MSVCRT__errno() = MSVCRT_EDOM;
-  return ldexp(num, power);
 }
 
 /*********************************************************************
@@ -2742,4 +2704,109 @@ double CDECL MSVCR120_fmin(double x, double y)
     if(x==0 && y==0)
         return signbit(x) ? x : y;
     return x<y ? x : y;
+}
+
+/*********************************************************************
+ *      asinh (MSVCR120.@)
+ */
+double CDECL MSVCR120_asinh(double x)
+{
+#ifdef HAVE_ASINH
+    return asinh(x);
+#else
+    FIXME( "not implemented\n" );
+    return 0.0;
+#endif
+}
+
+/*********************************************************************
+ *      asinhf (MSVCR120.@)
+ */
+float CDECL MSVCR120_asinhf(float x)
+{
+#ifdef HAVE_ASINHF
+    return asinhf(x);
+#else
+    FIXME( "not implemented\n" );
+    return 0.0f;
+#endif
+}
+
+/*********************************************************************
+ *      asinhl (MSVCR120.@)
+ */
+LDOUBLE CDECL MSVCR120_asinhl(LDOUBLE x)
+{
+    return MSVCR120_asinh(x);
+}
+
+/*********************************************************************
+ *      _scalb  (MSVCRT.@)
+ *      scalbn  (MSVCR120.@)
+ *      scalbln (MSVCR120.@)
+ */
+double CDECL MSVCRT__scalb(double num, MSVCRT_long power)
+{
+  if (!isfinite(num)) *MSVCRT__errno() = MSVCRT_EDOM;
+  return ldexp(num, power);
+}
+
+/*********************************************************************
+ *      _scalbf  (MSVCRT.@)
+ *      scalbnf  (MSVCR120.@)
+ *      scalblnf (MSVCR120.@)
+ */
+float CDECL MSVCRT__scalbf(float num, MSVCRT_long power)
+{
+  if (!finitef(num)) *MSVCRT__errno() = MSVCRT_EDOM;
+  return ldexpf(num, power);
+}
+
+/*********************************************************************
+ *      scalbnl  (MSVCR120.@)
+ *      scalblnl (MSVCR120.@)
+ */
+LDOUBLE CDECL MSVCR120_scalbnl(LDOUBLE num, MSVCRT_long power)
+{
+    return MSVCRT__scalb(num, power);
+}
+
+/*********************************************************************
+ *      remainder (MSVCR120.@)
+ */
+double CDECL MSVCR120_remainder(double x, double y)
+{
+#ifdef HAVE_REMAINDER
+    /* this matches 64-bit Windows.  32-bit Windows is slightly different */
+    if(!finite(x)) *MSVCRT__errno() = MSVCRT_EDOM;
+    if(isnan(y) || y==0.0) *MSVCRT__errno() = MSVCRT_EDOM;
+    return remainder(x, y);
+#else
+    FIXME( "not implemented\n" );
+    return 0.0;
+#endif
+}
+
+/*********************************************************************
+ *      remainderf (MSVCR120.@)
+ */
+float CDECL MSVCR120_remainderf(float x, float y)
+{
+#ifdef HAVE_REMAINDERF
+    /* this matches 64-bit Windows.  32-bit Windows is slightly different */
+    if(!finitef(x)) *MSVCRT__errno() = MSVCRT_EDOM;
+    if(isnanf(y) || y==0.0f) *MSVCRT__errno() = MSVCRT_EDOM;
+    return remainderf(x, y);
+#else
+    FIXME( "not implemented\n" );
+    return 0.0f;
+#endif
+}
+
+/*********************************************************************
+ *      remainderl (MSVCR120.@)
+ */
+LDOUBLE CDECL MSVCR120_remainderl(LDOUBLE x, LDOUBLE y)
+{
+    return MSVCR120_remainder(x, y);
 }

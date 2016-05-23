@@ -168,6 +168,7 @@
 @ stdcall DisableProcessWindowsGhosting()
 @ stdcall DispatchMessageA(ptr)
 @ stdcall DispatchMessageW(ptr)
+@ stdcall DisplayConfigGetDeviceInfo(ptr)
 # @ stub DisplayExitWindowsWarnings
 @ stdcall DlgDirListA(long str long long long)
 @ stdcall DlgDirListComboBoxA(long ptr long long long)
@@ -290,6 +291,7 @@
 @ stdcall GetDoubleClickTime()
 @ stdcall GetFocus()
 @ stdcall GetForegroundWindow()
+@ stdcall GetGestureConfig(long long long ptr ptr long)
 @ stdcall GetGUIThreadInfo(long ptr)
 @ stdcall GetGuiResources(long long)
 @ stdcall GetIconInfo(long ptr)
@@ -444,6 +446,7 @@
 # @ stub IsHungThread
 @ stdcall IsIconic(long)
 @ stdcall IsMenu(long)
+@ stdcall IsProcessDPIAware()
 @ stdcall IsRectEmpty(ptr)
 # @ stub IsServerSideWindow
 @ stdcall IsTouchWindow(long ptr)
@@ -548,6 +551,7 @@
 # @ stub PrivateSetDbgTag
 # @ stub PrivateSetRipFlags
 @ stdcall PtInRect(ptr int64)
+@ stdcall QueryDisplayConfig(long ptr ptr ptr ptr ptr)
 @ stub QuerySendMessage
 # @ stub QueryUserCounters
 @ stdcall RealChildWindowFromPoint(long int64)
@@ -620,6 +624,7 @@
 @ stdcall SetClassWord(long long long)
 @ stdcall SetClipboardData(long long)
 @ stdcall SetClipboardViewer(long)
+@ stdcall SetCoalescableTimer(long long long ptr long)
 # @ stub SetConsoleReserveKeys
 @ stdcall SetCursor(long)
 @ stub SetCursorContents

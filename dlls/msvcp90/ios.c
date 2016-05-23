@@ -14769,6 +14769,30 @@ int __cdecl tr2_sys__Link(char const* existing_path, char const* new_path)
     return GetLastError();
 }
 
+/* ?_Symlink@sys@tr2@std@@YAHPBD0@Z */
+/* ?_Symlink@sys@tr2@std@@YAHPEBD0@Z */
+int __cdecl tr2_sys__Symlink(char const* existing_file_name, char const* file_name)
+{
+    TRACE("(%s %s)\n", debugstr_a(existing_file_name), debugstr_a(file_name));
+    if(!existing_file_name || !file_name)
+        return ERROR_INVALID_PARAMETER;
+
+    if(CreateSymbolicLinkA(file_name, existing_file_name, 0))
+        return ERROR_SUCCESS;
+    return GetLastError();
+}
+
+/* ?_Unlink@sys@tr2@std@@YAHPBD@Z */
+/* ?_Unlink@sys@tr2@std@@YAHPEBD@Z */
+int __cdecl tr2_sys__Unlink(char const* path)
+{
+    TRACE("(%s)\n", debugstr_a(path));
+
+    if(DeleteFileA(path))
+        return ERROR_SUCCESS;
+    return GetLastError();
+}
+
 /* ??0strstream@std@@QAE@PADHH@Z */
 /* ??0strstream@std@@QEAA@PEAD_JH@Z */
 #if STREAMSIZE_BITS == 64
@@ -15264,6 +15288,47 @@ struct space_info* __cdecl tr2_sys__Statvfs_wchar(struct space_info *ret, const 
         ret->available = available.QuadPart;
     }
     return ret;
+}
+
+/* ?_Stat@sys@tr2@std@@YA?AW4file_type@123@PB_WAAH@Z */
+/* ?_Stat@sys@tr2@std@@YA?AW4file_type@123@PEB_WAEAH@Z */
+enum file_type __cdecl tr2_sys__Stat_wchar(WCHAR const* path, int* err_code)
+{
+    DWORD attr;
+    TRACE("(%s %p)\n", debugstr_w(path), err_code);
+    if(!path) {
+        *err_code = ERROR_INVALID_PARAMETER;
+        return status_unknown;
+    }
+
+    attr=GetFileAttributesW(path);
+    if(attr == INVALID_FILE_ATTRIBUTES) {
+        enum file_type ret;
+        switch(GetLastError()) {
+            case ERROR_FILE_NOT_FOUND:
+            case ERROR_BAD_NETPATH:
+            case ERROR_INVALID_NAME:
+            case ERROR_BAD_PATHNAME:
+            case ERROR_PATH_NOT_FOUND:
+                ret = file_not_found;
+                *err_code = ERROR_SUCCESS;
+                break;
+            default:
+                ret = status_unknown;
+                *err_code = GetLastError();
+        }
+        return ret;
+    }
+
+    *err_code = ERROR_SUCCESS;
+    return (attr & FILE_ATTRIBUTE_DIRECTORY)?directory_file:regular_file;
+}
+
+/* ?_Lstat@sys@tr2@std@@YA?AW4file_type@123@PB_WAAH@Z */
+/* ?_Lstat@sys@tr2@std@@YA?AW4file_type@123@PEB_WAEAH@Z */
+enum file_type __cdecl tr2_sys__Lstat_wchar(WCHAR const* path, int* err_code)
+{
+    return tr2_sys__Stat_wchar(path, err_code);
 }
 
 /* ??1_Winit@std@@QAE@XZ */

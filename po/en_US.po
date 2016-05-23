@@ -11611,6 +11611,46 @@ msgstr "The registry value '%1' already exists. Do you want to overwrite it?"
 msgid "The registry operation was cancelled\n"
 msgstr "The registry operation was cancelled\n"
 
+#: reg.rc:48 regedit.rc:204
+msgid "(Default)"
+msgstr "(Default)"
+
+#: reg.rc:49
+msgid "Are you sure you want to delete the registry value '%1'?"
+msgstr "Are you sure you want to delete the registry value '%1'?"
+
+#: reg.rc:50
+msgid "Are you sure you want to delete all registry values in '%1'?"
+msgstr "Are you sure you want to delete all registry values in '%1'?"
+
+#: reg.rc:51
+msgid "Are you sure you want to delete the registry key '%1'?"
+msgstr "Are you sure you want to delete the registry key '%1'?"
+
+#: reg.rc:52
+msgid "reg: The option [/d] must be followed by a valid string\n"
+msgstr "reg: The option [/d] must be followed by a valid string\n"
+
+#: reg.rc:53
+msgid ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+msgstr ""
+"reg: Unable to delete all registry values in '%1'. An unexpected error "
+"occurred.\n"
+
+#: reg.rc:54
+msgid ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+msgstr ""
+"reg: Unable to complete the specified operation. An unexpected error "
+"occurred.\n"
+
+#: reg.rc:55
+msgid "Search complete. Number of matches found: %1!d!\n"
+msgstr "Search complete. Number of matches found: %1!d!\n"
+
 #: regedit.rc:34
 msgid "&Registry"
 msgstr "&Registry"
@@ -11812,10 +11852,6 @@ msgstr "Registry Files (*.reg)"
 #: regedit.rc:197
 msgid "Win9x/NT4 Registry files (REGEDIT4)"
 msgstr "Win9x/NT4 Registry Files (REGEDIT4)"
-
-#: regedit.rc:204
-msgid "(Default)"
-msgstr "(Default)"
 
 #: regedit.rc:205
 msgid "(value not set)"

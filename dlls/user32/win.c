@@ -2984,6 +2984,8 @@ HWND WINAPI SetParent( HWND hwnd, HWND parent )
     POINT pt;
     BOOL ret;
 
+    TRACE("(%p %p)\n", hwnd, parent);
+
     if (is_broadcast(hwnd) || is_broadcast(parent))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
@@ -3470,7 +3472,7 @@ BOOL WINAPI FlashWindowEx( PFLASHWINFO pfinfo )
 {
     WND *wndPtr;
 
-    TRACE( "%p\n", pfinfo->hwnd );
+    TRACE( "%p\n", pfinfo );
 
     if (!pfinfo)
     {

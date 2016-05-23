@@ -41,6 +41,8 @@
 # @ stub DbgUiStopDebugging
 @ stub DbgUiWaitStateChange
 @ stdcall DbgUserBreakPoint()
+@ stdcall EtwRegisterTraceGuidsA(ptr ptr ptr long ptr str str ptr)
+@ stdcall EtwRegisterTraceGuidsW(ptr ptr ptr long ptr wstr wstr ptr)
 # @ stub KiFastSystemCall
 # @ stub KiFastSystemCallRet
 # @ stub KiIntSystemCall
@@ -338,7 +340,7 @@
 @ stdcall NtSetInformationToken(long long ptr long)
 @ stdcall NtSetIntervalProfile(long long)
 @ stdcall NtSetIoCompletion(ptr long ptr long long)
-@ stub NtSetLdtEntries
+@ stdcall NtSetLdtEntries(long long long long long long)
 @ stub NtSetLowEventPair
 @ stub NtSetLowWaitHighEventPair
 @ stub NtSetLowWaitHighThread
@@ -405,17 +407,17 @@
 @ stub RtlActivateActivationContextUnsafeFast
 @ stdcall RtlAddAccessAllowedAce(ptr long long ptr)
 @ stdcall RtlAddAccessAllowedAceEx(ptr long long long ptr)
-# @ stub RtlAddAccessAllowedObjectAce
+@ stdcall RtlAddAccessAllowedObjectAce(ptr long long long ptr ptr ptr)
 @ stdcall RtlAddAccessDeniedAce(ptr long long ptr)
 @ stdcall RtlAddAccessDeniedAceEx(ptr long long long ptr)
-# @ stub RtlAddAccessDeniedObjectAce
+@ stdcall RtlAddAccessDeniedObjectAce(ptr long long long ptr ptr ptr)
 @ stdcall RtlAddAce(ptr long long ptr long)
 @ stub RtlAddActionToRXact
 @ stdcall RtlAddAtomToAtomTable(ptr wstr ptr)
 @ stub RtlAddAttributeActionToRXact
 @ stdcall RtlAddAuditAccessAce(ptr long long ptr long long)
 @ stdcall RtlAddAuditAccessAceEx(ptr long long long ptr long long)
-# @ stub RtlAddAuditAccessObjectAce
+@ stdcall RtlAddAuditAccessObjectAce(ptr long long long ptr ptr ptr long long)
 # @ stub RtlAddCompoundAce
 # @ stub RtlAddRange
 @ cdecl -arch=arm,x86_64 RtlAddFunctionTable(ptr long long)
@@ -462,7 +464,8 @@
 @ stdcall RtlCompareMemory(ptr ptr long)
 @ stdcall RtlCompareMemoryUlong(ptr long long)
 @ stdcall RtlCompareString(ptr ptr long)
-@ stdcall RtlCompareUnicodeString (ptr ptr long)
+@ stdcall RtlCompareUnicodeString(ptr ptr long)
+@ stdcall RtlCompareUnicodeStrings(ptr long ptr long long)
 @ stdcall RtlCompressBuffer(long ptr long ptr long long ptr ptr)
 @ stdcall RtlComputeCrc32(long ptr long)
 # @ stub RtlComputeImportTableHash
@@ -706,7 +709,8 @@
 @ stdcall RtlInterlockedFlushSList(ptr)
 @ stdcall RtlInterlockedPopEntrySList(ptr)
 @ stdcall RtlInterlockedPushEntrySList(ptr ptr)
-@ stdcall RtlInterlockedPushListSList(ptr ptr ptr long)
+@ stdcall -norelay RtlInterlockedPushListSList(ptr ptr ptr long)
+@ stdcall RtlInterlockedPushListSListEx(ptr ptr ptr long)
 # @ stub RtlInvertRangeList
 @ stdcall RtlIpv4AddressToStringA(ptr ptr)
 @ stdcall RtlIpv4AddressToStringExA(ptr long ptr ptr)
@@ -1258,7 +1262,7 @@
 @ stdcall ZwSetInformationToken(long long ptr long) NtSetInformationToken
 @ stdcall ZwSetIntervalProfile(long long) NtSetIntervalProfile
 @ stdcall ZwSetIoCompletion(ptr long ptr long long) NtSetIoCompletion
-@ stub ZwSetLdtEntries
+@ stdcall ZwSetLdtEntries(long long long long long long) NtSetLdtEntries
 @ stub ZwSetLowEventPair
 @ stub ZwSetLowWaitHighEventPair
 @ stub ZwSetLowWaitHighThread

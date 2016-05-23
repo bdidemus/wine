@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <stdio.h>
+#include <float.h>
+#include <limits.h>
 
 #include <windef.h>
 #include <winbase.h>
@@ -83,6 +85,15 @@ static wchar_t** (CDECL *p____lc_locale_name_func)(void);
 static unsigned int (CDECL *p__GetConcurrency)(void);
 static void* (CDECL *p__W_Gettnames)(void);
 static void (CDECL *p_free)(void*);
+static float (CDECL *p_strtof)(const char *, char **);
+static int (CDECL *p__finite)(double);
+static float (CDECL *p_wcstof)(const wchar_t*, wchar_t**);
+static double (CDECL *p_remainder)(double, double);
+static int* (CDECL *p_errno)(void);
+
+/* make sure we use the correct errno */
+#undef errno
+#define errno (*p_errno())
 
 static BOOL init(void)
 {
@@ -105,6 +116,11 @@ static BOOL init(void)
     p__GetConcurrency = (void*)GetProcAddress(module,"?_GetConcurrency@details@Concurrency@@YAIXZ");
     p__W_Gettnames = (void*)GetProcAddress(module, "_W_Gettnames");
     p_free = (void*)GetProcAddress(module, "free");
+    p_strtof = (void*)GetProcAddress(module, "strtof");
+    p__finite = (void*)GetProcAddress(module, "_finite");
+    p_wcstof = (void*)GetProcAddress(module, "wcstof");
+    p_remainder = (void*)GetProcAddress(module, "remainder");
+    p_errno = (void*)GetProcAddress(module, "_errno");
     return TRUE;
 }
 
@@ -245,13 +261,9 @@ static void test____lc_locale_name_func(void)
 
         lc_names = p____lc_locale_name_func();
         ok(lc_names[0] == NULL, "%d - lc_names[0] = %s\n", i, wine_dbgstr_w(lc_names[0]));
-        if(tests[i].todo) {
-            todo_wine ok(!lstrcmpW(lc_names[1], tests[i].name) || broken(!lstrcmpW(lc_names[1], tests[i].broken_name)),
-                    "%d - lc_names[1] = %s\n", i, wine_dbgstr_w(lc_names[1]));
-        } else {
+        todo_wine_if(tests[i].todo)
             ok(!lstrcmpW(lc_names[1], tests[i].name) || broken(!lstrcmpW(lc_names[1], tests[i].broken_name)),
                     "%d - lc_names[1] = %s\n", i, wine_dbgstr_w(lc_names[1]));
-        }
 
         for(j=LC_MIN+2; j<=LC_MAX; j++) {
             ok(!lstrcmpW(lc_names[1], lc_names[j]), "%d - lc_names[%d] = %s, expected %s\n",
@@ -321,13 +333,119 @@ static void test__W_Gettnames(void)
     p_setlocale(LC_ALL, "C");
 }
 
+static void test__strtof(void)
+{
+    const char float1[] = "12.0";
+    const char float2[] = "3.402823466e+38";          /* FLT_MAX */
+    const char float3[] = "-3.402823466e+38";
+    const char float4[] = "1.7976931348623158e+308";  /* DBL_MAX */
+
+    const WCHAR twelve[] = {'1','2','.','0',0};
+    const WCHAR arabic23[] = { 0x662, 0x663, 0};
+
+    char *end;
+    float f;
+
+    f = p_strtof(float1, &end);
+    ok(f == 12.0, "f = %lf\n", f);
+    ok(end == float1+4, "incorrect end (%d)\n", (int)(end-float1));
+
+    f = p_strtof(float2, &end);
+    ok(f == FLT_MAX, "f = %lf\n", f);
+    ok(end == float2+15, "incorrect end (%d)\n", (int)(end-float2));
+
+    f = p_strtof(float3, &end);
+    ok(f == -FLT_MAX, "f = %lf\n", f);
+    ok(end == float3+16, "incorrect end (%d)\n", (int)(end-float3));
+
+    f = p_strtof(float4, &end);
+    ok(!p__finite(f), "f = %lf\n", f);
+    ok(end == float4+23, "incorrect end (%d)\n", (int)(end-float4));
+
+    f = p_strtof("inf", NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    f = p_strtof("INF", NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    f = p_strtof("1.#inf", NULL);
+    ok(f == 1, "f = %lf\n", f);
+
+    f = p_strtof("INFINITY", NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    f = p_strtof("0x12", NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    f = p_wcstof(twelve, NULL);
+    ok(f == 12.0, "f = %lf\n", f);
+
+    f = p_wcstof(arabic23, NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    if(!p_setlocale(LC_ALL, "Arabic")) {
+        win_skip("Arabic locale not available\n");
+        return;
+    }
+
+    f = p_wcstof(twelve, NULL);
+    ok(f == 12.0, "f = %lf\n", f);
+
+    f = p_wcstof(arabic23, NULL);
+    ok(f == 0, "f = %lf\n", f);
+
+    p_setlocale(LC_ALL, "C");
+}
+
+static void test_remainder(void)
+{
+    struct {
+        double  x, y, r;
+        errno_t e;
+    } tests[] = {
+        { 3.0,      2.0,       -1.0,    -1   },
+        { 1.0,      1.0,        0.0,    -1   },
+        { INFINITY, 0.0,        NAN,    EDOM },
+        { INFINITY, 42.0,       NAN,    EDOM },
+        { NAN,      0.0,        NAN,    EDOM },
+        { NAN,      42.0,       NAN,    EDOM },
+        { 0.0,      INFINITY,   0.0,    -1   },
+        { 42.0,     INFINITY,   42.0,   -1   },
+        { 0.0,      NAN,        NAN,    EDOM },
+        { 42.0,     NAN,        NAN,    EDOM },
+        { 1.0,      0.0,        NAN,    EDOM },
+        { INFINITY, INFINITY,   NAN,    EDOM },
+    };
+    errno_t e;
+    double r;
+    int i;
+
+    if(sizeof(void*) != 8) /* errno handling slightly different on 32-bit */
+        return;
+
+    for(i=0; i<sizeof(tests)/sizeof(*tests); i++) {
+        errno = -1;
+        r = p_remainder(tests[i].x, tests[i].y);
+        e = errno;
+
+        ok(tests[i].e == e, "expected errno %i, but got %i\n", tests[i].e, e);
+        if(_isnan(tests[i].r))
+            ok(_isnan(r), "expected NAN, but got %f\n", r);
+        else
+            ok(tests[i].r == r, "expected result %f, but got %f\n", tests[i].r, r);
+    }
+}
+
 START_TEST(msvcr120)
 {
     if (!init()) return;
+    test__strtof();
     test_lconv();
     test__dsign();
     test__dpcomp();
     test____lc_locale_name_func();
     test__GetConcurrency();
     test__W_Gettnames();
+    test__strtof();
+    test_remainder();
 }

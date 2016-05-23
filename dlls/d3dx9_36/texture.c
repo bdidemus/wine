@@ -19,9 +19,10 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include "wine/unicode.h"
-#include "wine/debug.h"
-#include "d3dx9_36_private.h"
+#include "config.h"
+#include "wine/port.h"
+
+#include "d3dx9_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3dx);
 
@@ -678,7 +679,7 @@ HRESULT WINAPI D3DXCreateTextureFromFileInMemoryEx(struct IDirect3DDevice9 *devi
     dynamic_texture = (caps.Caps2 & D3DCAPS2_DYNAMICTEXTURES) && (usage & D3DUSAGE_DYNAMIC);
     if (pool == D3DPOOL_DEFAULT && !dynamic_texture)
     {
-        hr = D3DXCreateTexture(device, width, height, miplevels, usage, format, D3DPOOL_SYSTEMMEM, &buftex);
+        hr = D3DXCreateTexture(device, width, height, miplevels, 0, format, D3DPOOL_SYSTEMMEM, &buftex);
         texptr = &buftex;
     }
     else

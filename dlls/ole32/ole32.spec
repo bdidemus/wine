@@ -23,6 +23,7 @@
 @ stdcall CoFreeUnusedLibraries()
 @ stdcall CoFreeUnusedLibrariesEx(long long)
 @ stdcall CoGetActivationState(int128 long ptr)
+@ stdcall CoGetApartmentType(ptr ptr)
 @ stdcall CoGetCallContext(ptr ptr)
 @ stdcall CoGetCallState(long ptr)
 @ stdcall CoGetCallerTID(ptr)
@@ -262,12 +263,14 @@
 @ stdcall StgCreateDocfile(wstr long long ptr)
 @ stdcall StgCreateDocfileOnILockBytes(ptr long long ptr)
 @ stdcall StgCreatePropSetStg(ptr long ptr)
+@ stdcall StgCreatePropStg(ptr ptr ptr long long ptr)
 @ stdcall StgCreateStorageEx(wstr long long long ptr ptr ptr ptr)
 @ stub StgGetIFillLockBytesOnFile
 @ stub StgGetIFillLockBytesOnILockBytes
 @ stdcall StgIsStorageFile(wstr)
 @ stdcall StgIsStorageILockBytes(ptr)
 @ stub StgOpenAsyncDocfileOnIFillLockBytes
+@ stdcall StgOpenPropStg(ptr ptr long long ptr)
 @ stdcall StgOpenStorage(wstr ptr long ptr long ptr)
 @ stdcall StgOpenStorageEx(wstr long long long ptr ptr ptr ptr)
 @ stdcall StgOpenStorageOnILockBytes(ptr ptr long long long ptr)

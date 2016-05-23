@@ -146,7 +146,7 @@ static void init_thiscall_thunk(void)
 }
 
 #define call_func1(func,_this) call_thiscall_func1(func,_this)
-#define call_func2(func,_this,a) call_thiscall_func2(func,_this,(const void*)a)
+#define call_func2(func,_this,a) call_thiscall_func2(func,_this,(const void*)(a))
 
 #else
 
@@ -1109,10 +1109,8 @@ static void test_demangle_datatype(void)
     for (i = 0; i < num_test; i++)
     {
 	name = p__unDName(0, demangle[i].mangled, 0, pmalloc, pfree, 0x2800);
-	if (demangle[i].test_in_wine)
-	    ok(name != NULL && !strcmp(name,demangle[i].result), "Got name \"%s\" for %d\n", name, i);
-	else
-	    todo_wine ok(name != NULL && !strcmp(name,demangle[i].result), "Got name %s for %d\n", name, i);
+        todo_wine_if (!demangle[i].test_in_wine)
+            ok(name != NULL && !strcmp(name,demangle[i].result), "Got name \"%s\" for %d\n", name, i);
         if(name)
             pfree(name);
     }

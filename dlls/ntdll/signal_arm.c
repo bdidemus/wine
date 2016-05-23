@@ -860,7 +860,7 @@ static void usr1_handler( int signal, siginfo_t *siginfo, void *sigcontext )
  */
 int CDECL __wine_set_signal_handler(unsigned int sig, wine_signal_handler wsh)
 {
-    if (sig > sizeof(handlers) / sizeof(handlers[0])) return -1;
+    if (sig >= sizeof(handlers) / sizeof(handlers[0])) return -1;
     if (handlers[sig] != NULL) return -2;
     handlers[sig] = wsh;
     return 0;
@@ -926,7 +926,7 @@ void signal_init_thread( TEB *teb )
         init_done = TRUE;
     }
 
-#ifdef __ARM_ARCH_7A__
+#if defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_8A__)
     /* Win32/ARM applications expect the TEB pointer to be in the TPIDRURW register. */
     __asm__ __volatile__( "mcr p15, 0, %0, c13, c0, 2" : : "r" (teb) );
 #endif

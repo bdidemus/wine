@@ -1213,6 +1213,58 @@ BOOL WINAPI wglSetPixelFormatWINE( HDC hdc, int format )
 }
 
 /***********************************************************************
+ *              wglQueryCurrentRendererIntegerWINE
+ *
+ * Provided by the WGL_WINE_query_renderer extension.
+ */
+BOOL WINAPI wglQueryCurrentRendererIntegerWINE( GLenum attribute, GLuint *value )
+{
+    const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
+
+    if (!funcs->ext.p_wglQueryCurrentRendererIntegerWINE) return FALSE;
+    return funcs->ext.p_wglQueryCurrentRendererIntegerWINE( attribute, value );
+}
+
+/***********************************************************************
+ *              wglQueryCurrentRendererStringWINE
+ *
+ * Provided by the WGL_WINE_query_renderer extension.
+ */
+const GLchar * WINAPI wglQueryCurrentRendererStringWINE( GLenum attribute )
+{
+    const struct opengl_funcs *funcs = NtCurrentTeb()->glTable;
+
+    if (!funcs->ext.p_wglQueryCurrentRendererStringWINE) return NULL;
+    return funcs->ext.p_wglQueryCurrentRendererStringWINE( attribute );
+}
+
+/***********************************************************************
+ *              wglQueryRendererIntegerWINE
+ *
+ * Provided by the WGL_WINE_query_renderer extension.
+ */
+BOOL WINAPI wglQueryRendererIntegerWINE( HDC dc, GLint renderer, GLenum attribute, GLuint *value )
+{
+    const struct opengl_funcs *funcs = get_dc_funcs( dc );
+
+    if (!funcs || !funcs->ext.p_wglQueryRendererIntegerWINE) return FALSE;
+    return funcs->ext.p_wglQueryRendererIntegerWINE( dc, renderer, attribute, value );
+}
+
+/***********************************************************************
+ *              wglQueryRendererStringWINE
+ *
+ * Provided by the WGL_WINE_query_renderer extension.
+ */
+const GLchar * WINAPI wglQueryRendererStringWINE( HDC dc, GLint renderer, GLenum attribute )
+{
+    const struct opengl_funcs *funcs = get_dc_funcs( dc );
+
+    if (!funcs || !funcs->ext.p_wglQueryRendererStringWINE) return NULL;
+    return funcs->ext.p_wglQueryRendererStringWINE( dc, renderer, attribute );
+}
+
+/***********************************************************************
  *		wglUseFontBitmaps_common
  */
 static BOOL wglUseFontBitmaps_common( HDC hdc, DWORD first, DWORD count, DWORD listBase, BOOL unicode )
@@ -1769,6 +1821,9 @@ static GLubyte *filter_extensions_list(const char *extensions, const char *disab
     p = str = HeapAlloc(GetProcessHeap(), 0, strlen(extensions) + 2);
     if (!str)
         return NULL;
+
+    TRACE( "GL_EXTENSIONS:\n" );
+
     for (;;)
     {
         while (*extensions == ' ')
@@ -1817,6 +1872,9 @@ static GLuint *filter_extensions_index(const char *disabled)
     disabled_exts = HeapAlloc(GetProcessHeap(), 0, disabled_size * sizeof(*disabled_exts));
     if (!disabled_exts)
         return NULL;
+
+    TRACE( "GL_EXTENSIONS:\n" );
+
     for (j = 0; j < extensions_count; ++j)
     {
         gl_ext = (const char *)funcs->ext.p_glGetStringi(GL_EXTENSIONS, j);
@@ -1862,8 +1920,6 @@ static GLuint *filter_extensions_index(const char *disabled)
 static BOOL filter_extensions(const char *extensions, GLubyte **exts_list, GLuint **disabled_exts)
 {
     static const char *disabled;
-
-    TRACE( "GL_EXTENSIONS:\n" );
 
     if (!disabled)
     {

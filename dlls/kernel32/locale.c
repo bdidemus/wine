@@ -1048,6 +1048,52 @@ INT WINAPI GetSystemDefaultLocaleName(LPWSTR localename, INT len)
     return LCIDToLocaleName(lcid, localename, len, 0);
 }
 
+static BOOL get_dummy_preferred_ui_language( DWORD flags, ULONG *count, WCHAR *buffer, ULONG *size )
+{
+    LCTYPE type;
+    int lsize;
+
+    FIXME("(0x%x %p %p %p) returning a dummy value (current locale)\n", flags, count, buffer, size);
+
+    if (flags & MUI_LANGUAGE_ID)
+        type = LOCALE_ILANGUAGE;
+    else
+        type = LOCALE_SNAME;
+
+    lsize = GetLocaleInfoW(LOCALE_SYSTEM_DEFAULT, type, NULL, 0);
+    if (!lsize)
+    {
+        /* keep last error from callee */
+        return FALSE;
+    }
+    lsize++;
+    if (!*size)
+    {
+        *size = lsize;
+        *count = 1;
+        return TRUE;
+    }
+
+    if (lsize > *size)
+    {
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    if (!GetLocaleInfoW(LOCALE_SYSTEM_DEFAULT, type, buffer, *size))
+    {
+        /* keep last error from callee */
+        return FALSE;
+    }
+
+    buffer[lsize-1] = 0;
+    *size = lsize;
+    *count = 1;
+    TRACE("returned variable content: %d, \"%s\", %d\n", *count, debugstr_w(buffer), *size);
+    return TRUE;
+
+}
+
 /***********************************************************************
  *             GetSystemPreferredUILanguages (KERNEL32.@)
  */
@@ -1069,9 +1115,25 @@ BOOL WINAPI GetSystemPreferredUILanguages(DWORD flags, ULONG* count, WCHAR* buff
         return FALSE;
     }
 
-    FIXME("(0x%x %p %p %p) stub\n", flags, count, buffer, size);
-    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-    return FALSE;
+    return get_dummy_preferred_ui_language( flags, count, buffer, size );
+}
+
+/***********************************************************************
+ *              SetThreadPreferredUILanguages (KERNEL32.@)
+ */
+BOOL WINAPI SetThreadPreferredUILanguages( DWORD flags, PCZZWSTR buffer, PULONG count )
+{
+    FIXME( "%u, %p, %p\n", flags, buffer, count );
+    return TRUE;
+}
+
+/***********************************************************************
+ *              GetThreadPreferredUILanguages (KERNEL32.@)
+ */
+BOOL WINAPI GetThreadPreferredUILanguages( DWORD flags, ULONG *count, WCHAR *buf, ULONG *size )
+{
+    FIXME( "%08x, %p, %p %p\n", flags, count, buf, size );
+    return get_dummy_preferred_ui_language( flags, count, buf, size );
 }
 
 /***********************************************************************
@@ -2594,6 +2656,9 @@ BOOL WINAPI IsValidLocaleName( LPCWSTR locale )
 {
     struct locale_name locale_name;
 
+    if (!locale)
+        return FALSE;
+
     /* string parsing */
     parse_locale_name( locale, &locale_name );
 
@@ -2799,7 +2864,7 @@ BOOL WINAPI GetStringTypeW( DWORD type, LPCWSTR src, INT count, LPWORD chartype 
             if ((c>=0x30A0)&&(c<=0x30FF)) type3 |= C3_KATAKANA;
             if ((c>=0x3040)&&(c<=0x309F)) type3 |= C3_HIRAGANA;
             if ((c>=0x4E00)&&(c<=0x9FAF)) type3 |= C3_IDEOGRAPH;
-            if ((c>=0x0600)&&(c<=0x06FF)) type3 |= C3_KASHIDA;
+            if (c == 0x0640) type3 |= C3_KASHIDA;
             if ((c>=0x3000)&&(c<=0x303F)) type3 |= C3_SYMBOL;
 
             if ((c>=0xD800)&&(c<=0xDBFF)) type3 |= C3_HIGHSURROGATE;
@@ -2940,7 +3005,11 @@ INT WINAPI LCMapStringEx(LPCWSTR name, DWORD flags, LPCWSTR src, INT srclen, LPW
 
     if (version) FIXME("unsupported version structure %p\n", version);
     if (reserved) FIXME("unsupported reserved pointer %p\n", reserved);
-    if (lparam) FIXME("unsupported lparam %lx\n", lparam);
+    if (lparam)
+    {
+        static int once;
+        if (!once++) FIXME("unsupported lparam %lx\n", lparam);
+    }
 
     if (!src || !srclen || dstlen < 0)
     {
@@ -4981,8 +5050,8 @@ INT WINAPI IdnToNameprepUnicode(DWORD dwFlags, LPCWSTR lpUnicodeCharStr, INT cch
         BIDI_L     = 0x8
     };
 
-    extern const unsigned short nameprep_char_type[];
-    extern const WCHAR nameprep_mapping[];
+    extern const unsigned short nameprep_char_type[] DECLSPEC_HIDDEN;
+    extern const WCHAR nameprep_mapping[] DECLSPEC_HIDDEN;
     const WCHAR *ptr;
     WORD flags;
     WCHAR buf[64], *map_str, norm_str[64], ch;

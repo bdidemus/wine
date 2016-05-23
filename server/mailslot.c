@@ -397,11 +397,11 @@ static enum server_fd_type mailslot_device_get_fd_type( struct fd *fd )
     return FD_TYPE_DEVICE;
 }
 
-void create_mailslot_device( struct directory *root, const struct unicode_str *name )
+void create_mailslot_device( struct object *root, const struct unicode_str *name )
 {
     struct mailslot_device *dev;
 
-    if ((dev = create_named_object_dir( root, name, 0, &mailslot_device_ops )) &&
+    if ((dev = create_named_object( root, &mailslot_device_ops, name, 0, NULL )) &&
         get_error() != STATUS_OBJECT_NAME_EXISTS)
     {
         dev->mailslots = NULL;
@@ -415,7 +415,7 @@ void create_mailslot_device( struct directory *root, const struct unicode_str *n
     if (dev) make_object_static( &dev->obj );
 }
 
-static struct mailslot *create_mailslot( struct directory *root,
+static struct mailslot *create_mailslot( struct object *root,
                                          const struct unicode_str *name, unsigned int attr,
                                          int max_msgsize, timeout_t read_timeout,
                                          const struct security_descriptor *sd )
@@ -423,15 +423,13 @@ static struct mailslot *create_mailslot( struct directory *root,
     struct mailslot *mailslot;
     int fds[2];
 
-    if (!(mailslot = create_named_object_dir( root, name, attr, &mailslot_ops ))) return NULL;
+    if (!(mailslot = create_named_object( root, &mailslot_ops, name, attr, sd ))) return NULL;
 
     mailslot->fd = NULL;
     mailslot->write_fd = -1;
     mailslot->max_msgsize = max_msgsize;
     mailslot->read_timeout = read_timeout;
     list_init( &mailslot->writers );
-    if (sd) default_set_sd( &mailslot->obj, sd, OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
-                            DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION );
 
     if (!socketpair( PF_UNIX, SOCK_DGRAM, 0, fds ))
     {
@@ -497,7 +495,7 @@ DECL_HANDLER(create_mailslot)
 {
     struct mailslot *mailslot;
     struct unicode_str name;
-    struct directory *root;
+    struct object *root;
     const struct security_descriptor *sd;
     const struct object_attributes *objattr = get_req_object_attributes( &sd, &name, &root );
 
@@ -510,7 +508,7 @@ DECL_HANDLER(create_mailslot)
             set_error( STATUS_OBJECT_PATH_SYNTAX_BAD );
             return;
         }
-        else if (!(root = get_directory_obj( current->process, objattr->rootdir, 0 ))) return;
+        if (!(root = get_directory_obj( current->process, objattr->rootdir ))) return;
     }
 
     if ((mailslot = create_mailslot( root, &name, objattr->attributes, req->max_msgsize,

@@ -126,7 +126,7 @@ HRESULT WINAPI DwmSetWindowAttribute(HWND hwnd, DWORD attributenum, LPCVOID attr
 
     if (!once++) FIXME("(%p, %x, %p, %x) stub\n", hwnd, attributenum, attribute, size);
 
-    return E_NOTIMPL;
+    return S_OK;
 }
 
 /**********************************************************************
@@ -259,3 +259,12 @@ HRESULT WINAPI DwmUpdateThumbnailProperties(HTHUMBNAIL thumbnail, const DWM_THUM
     FIXME("(%p, %p) stub\n", thumbnail, props);
     return E_NOTIMPL;
 }
+
+/**********************************************************************
+ *           DwmSetPresentParameters         (DWMAPI.@)
+ */
+HRESULT WINAPI DwmSetPresentParameters(HWND hwnd, DWM_PRESENT_PARAMETERS *params)
+{
+    FIXME("(%p %p) stub\n", hwnd, params);
+    return S_OK;
+};
